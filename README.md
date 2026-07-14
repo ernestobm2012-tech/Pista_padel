@@ -101,6 +101,14 @@ puede crear una cuenta (botón **"Iniciar sesión"** arriba a la derecha en
 - Ver y **cancelar sus propias reservas futuras** desde "Mi cuenta", sin
   tener que llamar o escribir al ayuntamiento.
 
+Este proyecto Supabase se comparte con la app de pasear perros
+(`paseo-perros-app`), pero **ambas gestionan sus propios clientes de forma
+independiente**: al registrarse desde `index.html`, la cuenta se marca
+internamente como cliente de pádel (`is_padel_customer`), y tanto el
+disparador que rellena `clientes_padel` como el de la app de pasear perros
+(que crea sus propios perfiles) respetan esa marca — un alta en una app
+nunca crea datos de cliente en la otra.
+
 Técnicamente, `reservas_padel` tiene una columna `user_id` (rellena solo si
 el cliente estaba logueado al reservar) y usa el sistema de usuarios de
 Supabase Auth — el mismo que ya usa el administrador, pero cualquiera puede

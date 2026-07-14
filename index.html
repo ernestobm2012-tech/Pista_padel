@@ -726,7 +726,7 @@ signupAccountForm.addEventListener('submit', async (e) => {
   const password = document.getElementById('signup_password').value;
   const { data, error } = await supabase.auth.signUp({
     email, password,
-    options: { data: { full_name, phone } },
+    options: { data: { full_name, phone, is_padel_customer: true } },
   });
   if (error){
     signupAccountMsg.textContent = /already registered|already exists/i.test(error.message)
