@@ -252,7 +252,10 @@
           </div>
           <div class="field"><label for="res_date">Fecha</label><input type="date" id="res_date" required></div>
           <div class="field"><label for="res_start">Hora inicio</label><input type="time" id="res_start" required></div>
-          <div class="field"><label for="res_end">Hora fin</label><input type="time" id="res_end" required></div>
+          <div class="field">
+            <label for="res_duration">Duración</label>
+            <select id="res_duration" required></select>
+          </div>
           <div class="field"><label for="res_name">Nombre</label><input type="text" id="res_name" required></div>
           <div class="field"><label for="res_phone">Teléfono (opcional)</label><input type="text" id="res_phone"></div>
           <div class="field">
@@ -501,7 +504,10 @@
       </div>
       <div class="field"><label for="edit_res_date">Fecha</label><input type="date" id="edit_res_date" required></div>
       <div class="field"><label for="edit_res_start">Hora inicio</label><input type="time" id="edit_res_start" required></div>
-      <div class="field"><label for="edit_res_end">Hora fin</label><input type="time" id="edit_res_end" required></div>
+      <div class="field">
+        <label for="edit_res_duration">Duración</label>
+        <select id="edit_res_duration" required></select>
+      </div>
       <div class="field"><label for="edit_res_name">Nombre</label><input type="text" id="edit_res_name" required></div>
       <div class="field"><label for="edit_res_phone">Teléfono (opcional)</label><input type="text" id="edit_res_phone"></div>
       <div class="field">
@@ -690,6 +696,29 @@ function fmtDate(d){
 function formatPrice(n){
   return new Intl.NumberFormat('es-ES', { style:'currency', currency:'EUR' }).format(n);
 }
+function timeToMinutes(hhmm){
+  const [h, m] = hhmm.split(':').map(Number);
+  return h * 60 + m;
+}
+function minutesToTime(mins){
+  const h = String(Math.floor(mins / 60) % 24).padStart(2, '0');
+  const m = String(mins % 60).padStart(2, '0');
+  return `${h}:${m}`;
+}
+async function loadDurationsCache(){
+  if (!window._DURATIONS_CACHE){
+    const { data } = await supabase.from('duraciones_padel').select('*').eq('active', true).order('sort_order');
+    window._DURATIONS_CACHE = data || [];
+  }
+  return window._DURATIONS_CACHE;
+}
+function populateDurationSelect(selectEl, selectedMinutes){
+  const durations = window._DURATIONS_CACHE || [];
+  selectEl.innerHTML = `<option value="">Elige duración…</option>` + durations.map(d =>
+    `<option value="${d.duration_minutes}">${durationLabel(d.duration_minutes)} — ${formatPrice(d.price)}</option>`
+  ).join('');
+  if (selectedMinutes) selectEl.value = String(selectedMinutes);
+}
 function padelImageUrl(path){
   return supabase.storage.from('galeria-padel').getPublicUrl(path).data.publicUrl;
 }
@@ -772,8 +801,10 @@ function populateReservationCourtSelect(){
 
 document.getElementById('newReservationBtn').addEventListener('click', async () => {
   if (!window._COURTS_CACHE) await loadCourts();
+  await loadDurationsCache();
   document.getElementById('reservationForm').reset();
   populateReservationCourtSelect();
+  populateDurationSelect(document.getElementById('res_duration'));
   document.getElementById('res_status').value = 'confirmada';
   document.getElementById('reservationFormMsg').textContent = '';
   document.getElementById('reservationFormCard').hidden = false;
@@ -792,13 +823,20 @@ document.getElementById('reservationForm').addEventListener('submit', async (e) 
   const pistaId = document.getElementById('res_pista').value;
   const date = document.getElementById('res_date').value;
   const start = document.getElementById('res_start').value;
-  const end = document.getElementById('res_end').value;
+  const durationMinutes = Number(document.getElementById('res_duration').value);
 
-  if (end <= start){
-    msg.textContent = 'La hora de fin debe ser posterior a la de inicio.';
+  if (!start){
+    msg.textContent = 'La hora de inicio es obligatoria.';
     msg.className = 'form-msg err';
     return;
   }
+  if (!durationMinutes){
+    msg.textContent = 'La duración es obligatoria.';
+    msg.className = 'form-msg err';
+    return;
+  }
+  const durationInfo = (window._DURATIONS_CACHE || []).find(d => d.duration_minutes === durationMinutes);
+  const end = minutesToTime(timeToMinutes(start) + durationMinutes);
 
   const { data: overlaps } = await supabase
     .from('reservas_padel')
@@ -826,6 +864,8 @@ document.getElementById('reservationForm').addEventListener('submit', async (e) 
     reservation_date: date,
     start_time: start,
     end_time: end,
+    duration_minutes: durationMinutes,
+    price: durationInfo ? durationInfo.price : null,
     full_name: document.getElementById('res_name').value.trim(),
     phone: document.getElementById('res_phone').value.trim() || null,
     players_count: document.getElementById('res_players').value ? Number(document.getElementById('res_players').value) : null,
@@ -1191,13 +1231,14 @@ function renderTopClients(rows){
 }
 
 /* ---------- Modal: modificar reserva ---------- */
-function openEditReservationModal(r){
+async function openEditReservationModal(r){
+  await loadDurationsCache();
   document.getElementById('edit_res_id').value = r.id;
   document.getElementById('edit_res_pista').innerHTML = (window._COURTS_CACHE || []).map(c => `<option value="${c.id}">${c.name}</option>`).join('');
   document.getElementById('edit_res_pista').value = r.pista_id;
   document.getElementById('edit_res_date').value = r.reservation_date;
   document.getElementById('edit_res_start').value = r.start_time.slice(0,5);
-  document.getElementById('edit_res_end').value = r.end_time.slice(0,5);
+  populateDurationSelect(document.getElementById('edit_res_duration'), r.duration_minutes);
   document.getElementById('edit_res_name').value = r.full_name;
   document.getElementById('edit_res_phone').value = r.phone || '';
   document.getElementById('edit_res_players').value = r.players_count || '';
@@ -1222,13 +1263,20 @@ document.getElementById('editReservationForm').addEventListener('submit', async 
   const pistaId = document.getElementById('edit_res_pista').value;
   const date = document.getElementById('edit_res_date').value;
   const start = document.getElementById('edit_res_start').value;
-  const end = document.getElementById('edit_res_end').value;
+  const durationMinutes = Number(document.getElementById('edit_res_duration').value);
 
-  if (end <= start){
-    msg.textContent = 'La hora de fin debe ser posterior a la de inicio.';
+  if (!start){
+    msg.textContent = 'La hora de inicio es obligatoria.';
     msg.className = 'form-msg err';
     return;
   }
+  if (!durationMinutes){
+    msg.textContent = 'La duración es obligatoria.';
+    msg.className = 'form-msg err';
+    return;
+  }
+  const durationInfo = (window._DURATIONS_CACHE || []).find(d => d.duration_minutes === durationMinutes);
+  const end = minutesToTime(timeToMinutes(start) + durationMinutes);
 
   const { data: overlaps } = await supabase
     .from('reservas_padel')
@@ -1257,6 +1305,8 @@ document.getElementById('editReservationForm').addEventListener('submit', async 
     reservation_date: date,
     start_time: start,
     end_time: end,
+    duration_minutes: durationMinutes,
+    price: durationInfo ? durationInfo.price : null,
     full_name: document.getElementById('edit_res_name').value.trim(),
     phone: document.getElementById('edit_res_phone').value.trim() || null,
     players_count: document.getElementById('edit_res_players').value ? Number(document.getElementById('edit_res_players').value) : null,

@@ -222,6 +222,16 @@ incluidas en la propia Edge Function `notify-new-reservation-padel`, así
 que funciona de fábrica en cuanto activas las notificaciones desde un
 dispositivo.
 
+## Reservas manuales desde admin.html
+
+Al crear o modificar una reserva a mano (pestaña «Reservas»), la **duración
+es obligatoria** — se elige de una lista (igual que en la web pública, con
+su precio), no se escribe una hora de fin suelta. Si falta la hora de
+inicio o la duración, el formulario no deja guardar y avisa con un mensaje.
+La hora de fin, la duración y el precio se calculan y guardan solos a
+partir de la duración elegida, así ninguna reserva se queda sin esos datos
+(lo que antes aparecía como "Sin registrar" en Estadísticas).
+
 ## Torneos y ligas
 
 Desde `admin.html` → pestaña «Torneos» puedes crear un torneo (eliminatoria
