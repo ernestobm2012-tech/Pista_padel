@@ -1,0 +1,583 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><circle cx=%2250%22 cy=%2250%22 r=%2245%22 fill=%22%23C6FF3D%22/></svg>">
+<title>Club de Pádel — Reserva tu pista online</title>
+<meta name="description" content="Reserva tu pista de pádel online: consulta horarios disponibles, precios y confirma tu partido en segundos.">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0B1210;
+    --bg-soft:#101C17;
+    --surface:#142620;
+    --surface-2:#1A322A;
+    --ink:#EEF6F0;
+    --ink-soft:#A9C2B3;
+    --lime:#C6FF3D;
+    --lime-dark:#8FCB1F;
+    --line:rgba(255,255,255,.10);
+    --radius:14px;
+    --maxw:1120px;
+    --red:#FF6B6B;
+    --amber:#FFC857;
+  }
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--ink);
+    font-family:'Inter', sans-serif;
+    line-height:1.55;
+    -webkit-font-smoothing:antialiased;
+  }
+  h1,h2,h3,.display{
+    font-family:'Outfit', sans-serif;
+    font-weight:700;
+    letter-spacing:-0.01em;
+    color:var(--ink);
+    margin:0;
+  }
+  a{color:inherit;}
+  img{max-width:100%; display:block;}
+  .wrap{max-width:var(--maxw); margin:0 auto; padding:0 24px;}
+  .eyebrow{
+    font-family:'Outfit', sans-serif;
+    text-transform:uppercase;
+    letter-spacing:.14em;
+    font-size:12.5px;
+    font-weight:600;
+    color:var(--lime);
+  }
+  .btn{
+    display:inline-flex; align-items:center; justify-content:center; gap:8px;
+    padding:14px 26px; border-radius:999px; border:0; cursor:pointer;
+    font-family:'Outfit', sans-serif; font-weight:600; font-size:15px;
+    text-decoration:none; transition:transform .15s ease, opacity .15s ease;
+  }
+  .btn:active{ transform:scale(.97); }
+  .btn-primary{ background:var(--lime); color:#0B1210; }
+  .btn-primary:hover{ background:var(--lime-dark); }
+  .btn-ghost{ background:transparent; color:var(--ink); border:1px solid var(--line); }
+  .btn-ghost:hover{ border-color:var(--lime); color:var(--lime); }
+  .btn:disabled{ opacity:.5; cursor:not-allowed; }
+
+  /* ---------- Header ---------- */
+  header{
+    position:sticky; top:0; z-index:40;
+    background:rgba(11,18,16,.85); backdrop-filter:blur(8px);
+    border-bottom:1px solid var(--line);
+  }
+  .nav{ display:flex; align-items:center; justify-content:space-between; padding:16px 0; }
+  .logo{ font-family:'Outfit', sans-serif; font-weight:800; font-size:20px; display:flex; align-items:center; gap:8px; }
+  .logo .dot{ width:12px; height:12px; border-radius:50%; background:var(--lime); }
+  .nav-links{ display:flex; gap:28px; list-style:none; margin:0; padding:0; }
+  .nav-links a{ text-decoration:none; font-size:14.5px; font-weight:500; color:var(--ink-soft); }
+  .nav-links a:hover{ color:var(--lime); }
+  .nav-cta{ display:flex; }
+  .burger{ display:none; background:none; border:0; color:var(--ink); font-size:24px; cursor:pointer; }
+  @media (max-width:760px){
+    .nav-links, .nav-cta{ display:none; }
+    .burger{ display:block; }
+    header.nav-open .nav-links{
+      display:flex; flex-direction:column; gap:0; position:absolute; top:100%; left:0; right:0;
+      background:var(--bg-soft); border-bottom:1px solid var(--line); padding:8px 24px 20px;
+    }
+    header.nav-open .nav-links a{ padding:12px 0; border-bottom:1px solid var(--line); }
+    header.nav-open .nav-links li:last-child a{ border-bottom:0; }
+  }
+
+  /* ---------- Hero ---------- */
+  .hero{
+    padding:80px 0 60px;
+    background:
+      radial-gradient(60% 60% at 85% 10%, rgba(198,255,61,.14), transparent),
+      var(--bg);
+    border-bottom:1px solid var(--line);
+  }
+  .hero-grid{ display:grid; grid-template-columns:1.1fr .9fr; gap:48px; align-items:center; }
+  @media (max-width:860px){ .hero-grid{ grid-template-columns:1fr; } }
+  .hero h1{ font-size:clamp(34px, 5.2vw, 56px); line-height:1.05; margin:14px 0 18px; }
+  .hero p{ color:var(--ink-soft); font-size:17px; max-width:46ch; margin:0 0 28px; }
+  .hero-actions{ display:flex; gap:14px; flex-wrap:wrap; }
+  .hero-card{
+    background:var(--surface); border:1px solid var(--line); border-radius:20px; padding:24px;
+    display:grid; gap:14px;
+  }
+  .hero-stat{ display:flex; justify-content:space-between; align-items:baseline; padding:10px 0; border-bottom:1px dashed var(--line); }
+  .hero-stat:last-child{ border-bottom:0; }
+  .hero-stat b{ font-family:'Outfit'; font-size:22px; color:var(--lime); }
+
+  section{ padding:64px 0; }
+  .section-head{ max-width:640px; margin:0 auto 36px; text-align:center; }
+  .section-head h2{ font-size:clamp(26px,3.4vw,36px); margin-top:10px; }
+  .section-head p{ color:var(--ink-soft); margin-top:12px; }
+
+  /* ---------- Pistas ---------- */
+  .courts-grid{ display:grid; grid-template-columns:repeat(auto-fit, minmax(220px,1fr)); gap:20px; }
+  .court-card{
+    background:var(--surface); border:1px solid var(--line); border-radius:var(--radius);
+    padding:24px; text-align:center;
+  }
+  .court-card .icon{ font-size:32px; margin-bottom:10px; }
+  .court-card h3{ font-size:19px; }
+  .court-card .surface{ color:var(--ink-soft); font-size:14px; margin-top:6px; }
+
+  /* ---------- Precios ---------- */
+  .price-groups{ display:grid; grid-template-columns:repeat(auto-fit, minmax(280px,1fr)); gap:20px; }
+  .price-group{ background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); padding:24px; }
+  .price-group h3{ font-size:16px; color:var(--lime); text-transform:uppercase; letter-spacing:.08em; margin-bottom:14px; }
+  .price-row{ display:flex; justify-content:space-between; padding:10px 0; border-bottom:1px solid var(--line); font-size:15px; }
+  .price-row:last-child{ border-bottom:0; }
+  .price-row .amt{ font-family:'Outfit'; font-weight:700; color:var(--ink); }
+  .price-row .label{ color:var(--ink-soft); }
+  .price-row .range{ display:block; font-size:12.5px; color:var(--ink-soft); opacity:.8; }
+
+  /* ---------- Reserva ---------- */
+  .booking-panel{
+    background:var(--surface); border:1px solid var(--line); border-radius:20px; padding:28px;
+  }
+  .booking-controls{ display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:24px; }
+  @media (max-width:600px){ .booking-controls{ grid-template-columns:1fr; } }
+  .field{ display:grid; gap:6px; }
+  .field label{ font-size:13px; font-weight:600; color:var(--ink-soft); }
+  .field input, .field select, .field textarea{
+    background:var(--bg-soft); border:1px solid var(--line); border-radius:10px;
+    padding:12px 14px; color:var(--ink); font-family:inherit; font-size:15px;
+  }
+  .field input:focus, .field select:focus, .field textarea:focus{ outline:none; border-color:var(--lime); }
+
+  .slots-grid{ display:grid; grid-template-columns:repeat(auto-fill, minmax(120px,1fr)); gap:10px; }
+  .slot-btn{
+    background:var(--bg-soft); border:1px solid var(--line); border-radius:10px; padding:12px 8px;
+    color:var(--ink); font-family:'Outfit'; font-weight:600; font-size:14px; cursor:pointer;
+    text-align:center; transition:border-color .15s ease, background .15s ease;
+  }
+  .slot-btn:hover{ border-color:var(--lime); }
+  .slot-btn.taken{ opacity:.35; text-decoration:line-through; cursor:not-allowed; background:transparent; }
+  .slot-btn.taken:hover{ border-color:var(--line); }
+  .slots-empty{ color:var(--ink-soft); font-size:14px; padding:20px 0; text-align:center; }
+
+  /* ---------- Modal ---------- */
+  .modal-backdrop{
+    position:fixed; inset:0; background:rgba(0,0,0,.6); display:flex; align-items:center; justify-content:center;
+    padding:20px; z-index:100;
+  }
+  .modal-backdrop[hidden]{ display:none; }
+  .modal{
+    background:var(--bg-soft); border:1px solid var(--line); border-radius:20px; padding:28px;
+    width:100%; max-width:460px; max-height:90vh; overflow:auto;
+  }
+  .modal-head{ display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:18px; }
+  .modal-close{ background:none; border:0; color:var(--ink-soft); font-size:22px; cursor:pointer; line-height:1; }
+  .modal form{ display:grid; gap:14px; }
+  .form-msg{ font-size:14px; min-height:20px; }
+  .form-msg.ok{ color:var(--lime); }
+  .form-msg.err{ color:var(--red); }
+
+  /* ---------- Contacto / Footer ---------- */
+  .contact-grid{ display:grid; grid-template-columns:1fr 1fr; gap:32px; }
+  @media (max-width:760px){ .contact-grid{ grid-template-columns:1fr; } }
+  .social-links{ display:flex; gap:12px; margin-top:18px; }
+  .social-links a{
+    width:42px; height:42px; border-radius:50%; border:1px solid var(--line);
+    display:flex; align-items:center; justify-content:center; text-decoration:none; font-size:18px;
+  }
+  .social-links a:hover{ border-color:var(--lime); color:var(--lime); }
+  footer{ border-top:1px solid var(--line); padding:28px 0; text-align:center; color:var(--ink-soft); font-size:13.5px; }
+  .map-frame{ border:1px solid var(--line); border-radius:var(--radius); overflow:hidden; height:280px; }
+  .map-frame iframe{ width:100%; height:100%; border:0; filter:grayscale(.3) invert(.9) contrast(.85); }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap nav">
+    <div class="logo"><span class="dot"></span> Club de Pádel</div>
+    <ul class="nav-links">
+      <li><a href="#pistas">Pistas</a></li>
+      <li><a href="#precios">Precios</a></li>
+      <li><a href="#reserva">Reservar</a></li>
+      <li><a href="#contacto">Contacto</a></li>
+    </ul>
+    <div class="nav-cta"><a href="#reserva" class="btn btn-primary">Reservar pista</a></div>
+    <button class="burger" id="burgerBtn" aria-label="Menú">☰</button>
+  </div>
+</header>
+
+<section class="hero">
+  <div class="wrap hero-grid">
+    <div>
+      <span class="eyebrow">Reservas online</span>
+      <h1>Reserva tu pista de pádel en segundos</h1>
+      <p>Elige pista, fecha y hora, y confirma tu reserva al momento. Sin llamadas, sin esperas.</p>
+      <div class="hero-actions">
+        <a href="#reserva" class="btn btn-primary">Ver horarios disponibles</a>
+        <a href="#precios" class="btn btn-ghost">Ver precios</a>
+      </div>
+    </div>
+    <div class="hero-card">
+      <div class="hero-stat"><span>Pistas disponibles</span><b id="statCourts">—</b></div>
+      <div class="hero-stat"><span>Reserva mínima</span><b>90 min</b></div>
+      <div class="hero-stat"><span>Horario</span><b>08:00–23:00</b></div>
+    </div>
+  </div>
+</section>
+
+<section id="pistas">
+  <div class="wrap">
+    <div class="section-head">
+      <span class="eyebrow">Instalaciones</span>
+      <h2>Nuestras pistas</h2>
+      <p>Pistas cuidadas y listas para tu partido.</p>
+    </div>
+    <div class="courts-grid" id="courtsGrid">
+      <p style="text-align:center; color:var(--ink-soft);">Cargando pistas…</p>
+    </div>
+  </div>
+</section>
+
+<section id="precios">
+  <div class="wrap">
+    <div class="section-head">
+      <span class="eyebrow">Tarifas</span>
+      <h2>Precios por franja horaria</h2>
+      <p>Precio por pista y turno de 90 minutos.</p>
+    </div>
+    <div class="price-groups" id="priceGroups">
+      <p style="text-align:center; color:var(--ink-soft);">Cargando precios…</p>
+    </div>
+  </div>
+</section>
+
+<section id="reserva">
+  <div class="wrap">
+    <div class="section-head">
+      <span class="eyebrow">Disponibilidad</span>
+      <h2>Reserva tu pista</h2>
+      <p>Elige pista y fecha para ver los horarios libres.</p>
+    </div>
+    <div class="booking-panel">
+      <div class="booking-controls">
+        <div class="field">
+          <label for="pistaSelect">Pista</label>
+          <select id="pistaSelect"></select>
+        </div>
+        <div class="field">
+          <label for="dateInput">Fecha</label>
+          <input type="date" id="dateInput">
+        </div>
+      </div>
+      <div class="slots-grid" id="slotsGrid">
+        <p class="slots-empty">Elige pista y fecha para ver horarios.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="contacto">
+  <div class="wrap contact-grid">
+    <div>
+      <span class="eyebrow">Contacto</span>
+      <h2 style="margin-top:10px;">¿Hablamos?</h2>
+      <p style="color:var(--ink-soft); margin-top:14px;">
+        📍 Dirección del club aquí<br>
+        📞 <a href="tel:+34600000000">600 000 000</a><br>
+        ✉️ <a href="mailto:info@clubpadel.es">info@clubpadel.es</a>
+      </p>
+      <div class="social-links">
+        <a href="https://instagram.com" target="_blank" rel="noopener" data-social="instagram" aria-label="Instagram">IG</a>
+        <a href="https://facebook.com" target="_blank" rel="noopener" data-social="facebook" aria-label="Facebook">FB</a>
+        <a href="https://wa.me/34600000000" target="_blank" rel="noopener" data-social="whatsapp" aria-label="WhatsApp">WA</a>
+      </div>
+    </div>
+    <div class="map-frame">
+      <iframe loading="lazy" src="https://www.google.com/maps?q=padel&output=embed"></iframe>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">© <span id="year"></span> Club de Pádel. Todos los derechos reservados.</div>
+</footer>
+
+<!-- ---------- Modal de reserva ---------- -->
+<div class="modal-backdrop" id="bookingModal" hidden>
+  <div class="modal">
+    <div class="modal-head">
+      <div>
+        <span class="eyebrow" id="modalPista"></span>
+        <h3 id="modalDateTime" style="margin-top:6px; font-size:20px;"></h3>
+      </div>
+      <button class="modal-close" id="modalClose" aria-label="Cerrar">✕</button>
+    </div>
+    <form id="bookingForm">
+      <div class="field">
+        <label for="full_name">Nombre y apellidos</label>
+        <input type="text" id="full_name" required>
+      </div>
+      <div class="field">
+        <label for="phone">Teléfono</label>
+        <input type="tel" id="phone" required>
+      </div>
+      <div class="field">
+        <label for="email">Email (opcional)</label>
+        <input type="email" id="email">
+      </div>
+      <div class="field">
+        <label for="players_count">Nº de jugadores</label>
+        <select id="players_count">
+          <option value="2">2</option>
+          <option value="4" selected>4</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="message">Comentario (opcional)</label>
+        <textarea id="message" rows="2"></textarea>
+      </div>
+      <div class="form-msg" id="formMsg"></div>
+      <button type="submit" class="btn btn-primary">Confirmar reserva</button>
+    </form>
+  </div>
+</div>
+
+<script type="module">
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+
+const SUPABASE_URL = 'https://stnuvhlqicftjbtlybit.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN0bnV2aGxxaWNmdGpidGx5Yml0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMyNDY4NzgsImV4cCI6MjA5ODgyMjg3OH0.1a8uenfaddy_yiXPgerteMoktCEeeFhkH021qp0okPY';
+const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+document.getElementById('year').textContent = new Date().getFullYear();
+
+const OPEN_TIME = '08:00';
+const CLOSE_TIME = '23:00';
+const SLOT_MINUTES = 90;
+
+function toMinutes(hhmm){
+  const [h, m] = hhmm.split(':').map(Number);
+  return h * 60 + m;
+}
+function toHHMM(mins){
+  const h = String(Math.floor(mins / 60)).padStart(2, '0');
+  const m = String(mins % 60).padStart(2, '0');
+  return `${h}:${m}`;
+}
+function buildSlots(){
+  const slots = [];
+  let start = toMinutes(OPEN_TIME);
+  const close = toMinutes(CLOSE_TIME);
+  while (start + SLOT_MINUTES <= close){
+    slots.push({ start: toHHMM(start), end: toHHMM(start + SLOT_MINUTES) });
+    start += SLOT_MINUTES;
+  }
+  return slots;
+}
+const ALL_SLOTS = buildSlots();
+
+function formatPrice(n){
+  return new Intl.NumberFormat('es-ES', { style:'currency', currency:'EUR', minimumFractionDigits:0 }).format(n);
+}
+function addDays(dateStr, n){
+  const d = new Date(dateStr + 'T00:00:00');
+  d.setDate(d.getDate() + n);
+  return d.toISOString().slice(0,10);
+}
+
+let FESTIVOS = new Set();
+async function loadFestivos(){
+  const { data } = await supabase.from('festivos_padel').select('event_date');
+  FESTIVOS = new Set((data || []).map(r => r.event_date));
+}
+function dayGroupFor(dateStr){
+  const d = new Date(dateStr + 'T00:00:00');
+  const dow = d.getDay(); // 0 domingo, 6 sábado
+  const isWeekend = dow === 0 || dow === 6;
+  return (isWeekend || FESTIVOS.has(dateStr)) ? 'fin_semana_festivo' : 'laborable';
+}
+
+let ALL_COURTS = [];
+async function loadCourts(){
+  const { data, error } = await supabase.from('pistas_padel').select('*').eq('active', true).order('sort_order');
+  ALL_COURTS = data || [];
+  document.getElementById('statCourts').textContent = ALL_COURTS.length;
+
+  const grid = document.getElementById('courtsGrid');
+  if (error || !ALL_COURTS.length){
+    grid.innerHTML = '<p style="text-align:center; color:var(--ink-soft);">Aún no hay pistas configuradas.</p>';
+  } else {
+    grid.innerHTML = ALL_COURTS.map(c => `
+      <div class="court-card">
+        <div class="icon">🎾</div>
+        <h3>${c.name}</h3>
+        ${c.surface ? `<div class="surface">${c.surface}</div>` : ''}
+      </div>
+    `).join('');
+  }
+
+  const select = document.getElementById('pistaSelect');
+  select.innerHTML = ALL_COURTS.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+}
+
+async function loadPricing(){
+  const { data, error } = await supabase.from('precios_padel').select('*').eq('active', true).order('sort_order');
+  const wrap = document.getElementById('priceGroups');
+  if (error || !data || !data.length){
+    wrap.innerHTML = '<p style="text-align:center; color:var(--ink-soft);">Aún no hay precios configurados.</p>';
+    return;
+  }
+  const groups = {
+    laborable: { title: 'Lunes a viernes', rows: [] },
+    fin_semana_festivo: { title: 'Fines de semana y festivos', rows: [] },
+  };
+  data.forEach(p => { if (groups[p.day_group]) groups[p.day_group].rows.push(p); });
+
+  wrap.innerHTML = Object.values(groups).filter(g => g.rows.length).map(g => `
+    <div class="price-group">
+      <h3>${g.title}</h3>
+      ${g.rows.map(r => `
+        <div class="price-row">
+          <span class="label">${r.label}<span class="range">${r.hours_range}</span></span>
+          <span class="amt">${formatPrice(r.price)}</span>
+        </div>
+      `).join('')}
+    </div>
+  `).join('');
+}
+
+let BUSY_SLOTS = new Set();
+async function loadAvailability(pistaId, dateStr){
+  const { data } = await supabase
+    .from('disponibilidad_padel')
+    .select('start_time, end_time')
+    .eq('pista_id', pistaId)
+    .eq('reservation_date', dateStr);
+  BUSY_SLOTS = new Set((data || []).map(r => `${r.start_time.slice(0,5)}-${r.end_time.slice(0,5)}`));
+}
+
+function renderSlots(dateStr){
+  const grid = document.getElementById('slotsGrid');
+  const isPast = dateStr < new Date().toISOString().slice(0,10);
+  if (isPast){
+    grid.innerHTML = '<p class="slots-empty">Elige una fecha a partir de hoy.</p>';
+    return;
+  }
+  grid.innerHTML = ALL_SLOTS.map(s => {
+    const key = `${s.start}-${s.end}`;
+    const taken = BUSY_SLOTS.has(key);
+    return `<button type="button" class="slot-btn ${taken ? 'taken' : ''}" ${taken ? 'disabled' : ''} data-start="${s.start}" data-end="${s.end}">${s.start}</button>`;
+  }).join('');
+}
+
+async function refreshSlots(){
+  const pistaId = document.getElementById('pistaSelect').value;
+  const dateStr = document.getElementById('dateInput').value;
+  if (!pistaId || !dateStr){
+    document.getElementById('slotsGrid').innerHTML = '<p class="slots-empty">Elige pista y fecha para ver horarios.</p>';
+    return;
+  }
+  document.getElementById('slotsGrid').innerHTML = '<p class="slots-empty">Cargando…</p>';
+  await loadAvailability(pistaId, dateStr);
+  renderSlots(dateStr);
+}
+
+let selectedSlot = null;
+function openBookingModal(startTime, endTime){
+  selectedSlot = { start: startTime, end: endTime };
+  const pistaId = document.getElementById('pistaSelect').value;
+  const court = ALL_COURTS.find(c => c.id === pistaId);
+  const dateStr = document.getElementById('dateInput').value;
+  const d = new Date(dateStr + 'T00:00:00');
+
+  document.getElementById('modalPista').textContent = court ? court.name : '';
+  document.getElementById('modalDateTime').textContent =
+    `${d.toLocaleDateString('es-ES', { weekday:'long', day:'numeric', month:'long' })} · ${startTime}–${endTime}`;
+
+  document.getElementById('bookingForm').reset();
+  document.getElementById('formMsg').textContent = '';
+  document.getElementById('bookingModal').hidden = false;
+}
+function closeBookingModal(){
+  document.getElementById('bookingModal').hidden = true;
+}
+
+function setMsg(text, type){
+  const el = document.getElementById('formMsg');
+  el.textContent = text;
+  el.className = 'form-msg ' + (type || '');
+}
+
+async function init(){
+  await Promise.all([loadCourts(), loadPricing(), loadFestivos()]);
+
+  const today = new Date().toISOString().slice(0,10);
+  const dateInput = document.getElementById('dateInput');
+  dateInput.min = today;
+  dateInput.value = today;
+
+  document.getElementById('pistaSelect').addEventListener('change', refreshSlots);
+  dateInput.addEventListener('change', refreshSlots);
+
+  document.getElementById('slotsGrid').addEventListener('click', (e) => {
+    const btn = e.target.closest('.slot-btn');
+    if (btn && !btn.disabled) openBookingModal(btn.dataset.start, btn.dataset.end);
+  });
+
+  document.getElementById('modalClose').addEventListener('click', closeBookingModal);
+  document.getElementById('bookingModal').addEventListener('click', (e) => {
+    if (e.target.id === 'bookingModal') closeBookingModal();
+  });
+
+  document.getElementById('bookingForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    setMsg('', '');
+
+    const payload = {
+      pista_id: document.getElementById('pistaSelect').value,
+      reservation_date: document.getElementById('dateInput').value,
+      start_time: selectedSlot.start,
+      end_time: selectedSlot.end,
+      full_name: document.getElementById('full_name').value.trim(),
+      phone: document.getElementById('phone').value.trim(),
+      email: document.getElementById('email').value.trim() || null,
+      players_count: Number(document.getElementById('players_count').value),
+      message: document.getElementById('message').value.trim() || null,
+    };
+
+    const submitBtn = e.target.querySelector('button[type="submit"]');
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Enviando…';
+
+    const { error } = await supabase.from('reservas_padel').insert(payload);
+
+    submitBtn.disabled = false;
+    submitBtn.textContent = 'Confirmar reserva';
+
+    if (error){
+      setMsg('No se ha podido enviar la reserva. Inténtalo de nuevo.', 'err');
+      return;
+    }
+
+    setMsg('¡Reserva enviada! Queda pendiente de confirmación.', 'ok');
+    setTimeout(() => { closeBookingModal(); refreshSlots(); }, 1800);
+  });
+
+  refreshSlots();
+}
+
+init();
+
+document.getElementById('burgerBtn').addEventListener('click', () => {
+  document.querySelector('header').classList.toggle('nav-open');
+});
+document.querySelectorAll('.nav-links a').forEach(a => {
+  a.addEventListener('click', () => document.querySelector('header').classList.remove('nav-open'));
+});
+</script>
+</body>
+</html>

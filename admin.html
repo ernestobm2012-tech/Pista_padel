@@ -1,0 +1,677 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>Panel de administración — Club de Pádel</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0B1210; --bg-soft:#101C17; --surface:#142620; --surface-2:#1A322A;
+    --ink:#EEF6F0; --ink-soft:#A9C2B3; --lime:#C6FF3D; --lime-dark:#8FCB1F;
+    --line:rgba(255,255,255,.10); --radius:12px; --red:#FF6B6B; --amber:#FFC857;
+  }
+  *{box-sizing:border-box;}
+  body{ margin:0; background:var(--bg); color:var(--ink); font-family:'Inter', sans-serif; }
+  h1,h2,h3{ font-family:'Outfit', sans-serif; font-weight:700; margin:0; }
+  input, select, textarea, button{ font-family:inherit; }
+  input, select, textarea{
+    background:var(--bg-soft); border:1px solid var(--line); border-radius:8px;
+    padding:10px 12px; color:var(--ink); font-size:14px; width:100%;
+  }
+  input:focus, select:focus, textarea:focus{ outline:none; border-color:var(--lime); }
+  label{ font-size:12.5px; font-weight:600; color:var(--ink-soft); display:block; margin-bottom:5px; }
+  .btn{
+    display:inline-flex; align-items:center; gap:6px; padding:10px 18px; border-radius:999px; border:0;
+    cursor:pointer; font-family:'Outfit'; font-weight:600; font-size:14px;
+  }
+  .btn-primary{ background:var(--lime); color:#0B1210; }
+  .btn-primary:hover{ background:var(--lime-dark); }
+  .btn-ghost{ background:transparent; color:var(--ink); border:1px solid var(--line); }
+  .btn-ghost:hover{ border-color:var(--lime); color:var(--lime); }
+  .btn-danger{ background:transparent; color:var(--red); border:1px solid rgba(255,107,107,.4); }
+  .btn-danger:hover{ background:rgba(255,107,107,.1); }
+  .btn-sm{ padding:6px 12px; font-size:12.5px; }
+  .btn:disabled{ opacity:.5; cursor:not-allowed; }
+
+  /* ---------- Login ---------- */
+  #loginScreen{ min-height:100vh; display:flex; align-items:center; justify-content:center; padding:20px; }
+  #loginScreen[hidden]{ display:none; }
+  .login-card{ background:var(--surface); border:1px solid var(--line); border-radius:16px; padding:32px; width:100%; max-width:360px; }
+  .login-card h1{ font-size:22px; margin-bottom:6px; }
+  .login-card p{ color:var(--ink-soft); font-size:14px; margin:0 0 20px; }
+  .login-card form{ display:grid; gap:14px; }
+  #loginMsg{ color:var(--red); font-size:13.5px; min-height:18px; }
+  .remember-row{ display:flex; align-items:center; gap:8px; font-size:13.5px; color:var(--ink-soft); }
+  .remember-row input{ width:auto; }
+
+  /* ---------- App shell ---------- */
+  header.appbar{
+    display:flex; align-items:center; justify-content:space-between; padding:16px 24px;
+    border-bottom:1px solid var(--line); background:var(--bg-soft);
+  }
+  header.appbar .logo{ font-family:'Outfit'; font-weight:800; display:flex; align-items:center; gap:8px; }
+  header.appbar .logo .dot{ width:10px; height:10px; border-radius:50%; background:var(--lime); }
+
+  nav.tabs{ display:flex; gap:6px; padding:14px 24px 0; border-bottom:1px solid var(--line); overflow-x:auto; }
+  nav.tabs button{
+    background:none; border:0; color:var(--ink-soft); font-family:'Outfit'; font-weight:600; font-size:14px;
+    padding:10px 16px; border-bottom:2px solid transparent; cursor:pointer; white-space:nowrap;
+  }
+  nav.tabs button.active{ color:var(--lime); border-bottom-color:var(--lime); }
+
+  main{ padding:24px; max-width:1100px; margin:0 auto; }
+  .tab-panel{ display:grid; gap:20px; }
+  .tab-panel[hidden]{ display:none; }
+  .panel-head{ display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; }
+  .card{ background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); padding:20px; }
+
+  table{ width:100%; border-collapse:collapse; font-size:14px; }
+  th, td{ text-align:left; padding:10px 8px; border-bottom:1px solid var(--line); vertical-align:middle; }
+  th{ color:var(--ink-soft); font-weight:600; font-size:12.5px; text-transform:uppercase; letter-spacing:.04em; }
+  tr:last-child td{ border-bottom:0; }
+  .table-wrap{ overflow-x:auto; }
+
+  .pill{ display:inline-block; padding:4px 10px; border-radius:999px; font-size:12px; font-weight:600; }
+  .pill-pendiente{ background:rgba(255,200,87,.15); color:var(--amber); }
+  .pill-confirmada{ background:rgba(198,255,61,.15); color:var(--lime); }
+  .pill-cancelada{ background:rgba(255,107,107,.15); color:var(--red); }
+
+  .row-actions{ display:flex; gap:6px; flex-wrap:wrap; }
+  .filters{ display:flex; gap:10px; flex-wrap:wrap; align-items:flex-end; }
+  .filters .field{ min-width:160px; }
+
+  .form-grid{ display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+  @media (max-width:600px){ .form-grid{ grid-template-columns:1fr; } }
+  .form-msg{ font-size:13.5px; min-height:18px; }
+  .form-msg.ok{ color:var(--lime); }
+  .form-msg.err{ color:var(--red); }
+
+  #invoicePrintArea{ display:none; }
+  @media print{
+    body *{ visibility:hidden; }
+    #invoicePrintArea, #invoicePrintArea *{ visibility:visible; }
+    #invoicePrintArea{ display:block; position:absolute; top:0; left:0; width:100%; color:#000; background:#fff; padding:40px; }
+  }
+</style>
+</head>
+<body>
+
+<div id="loginScreen">
+  <div class="login-card">
+    <h1>Panel del club</h1>
+    <p>Accede con tu cuenta de administrador.</p>
+    <form id="loginForm">
+      <div class="field"><label for="loginEmail">Email</label><input type="email" id="loginEmail" required></div>
+      <div class="field"><label for="loginPassword">Contraseña</label><input type="password" id="loginPassword" required></div>
+      <label class="remember-row"><input type="checkbox" id="loginRemember"> Recordarme en este dispositivo</label>
+      <div id="loginMsg"></div>
+      <button type="submit" class="btn btn-primary">Entrar</button>
+    </form>
+  </div>
+</div>
+
+<div id="appScreen" hidden>
+  <header class="appbar">
+    <div class="logo"><span class="dot"></span> Panel del club</div>
+    <button class="btn btn-ghost btn-sm" id="logoutBtn">Cerrar sesión</button>
+  </header>
+
+  <nav class="tabs">
+    <button data-tab="tabReservas" class="active">Reservas</button>
+    <button data-tab="tabPistas">Pistas</button>
+    <button data-tab="tabPrecios">Precios</button>
+    <button data-tab="tabFacturas">Facturas</button>
+  </nav>
+
+  <main>
+    <!-- ---------- Reservas ---------- -->
+    <section id="tabReservas" class="tab-panel">
+      <div class="panel-head">
+        <h2>Reservas</h2>
+        <div class="filters">
+          <div class="field">
+            <label for="statusFilter">Estado</label>
+            <select id="statusFilter">
+              <option value="">Todas</option>
+              <option value="pendiente">Pendiente</option>
+              <option value="confirmada">Confirmada</option>
+              <option value="cancelada">Cancelada</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="dateFilter">Fecha</label>
+            <input type="date" id="dateFilter">
+          </div>
+        </div>
+      </div>
+      <div class="card table-wrap">
+        <table>
+          <thead>
+            <tr><th>Fecha</th><th>Hora</th><th>Pista</th><th>Cliente</th><th>Teléfono</th><th>Jugadores</th><th>Estado</th><th></th></tr>
+          </thead>
+          <tbody id="reservationsBody"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ---------- Pistas ---------- -->
+    <section id="tabPistas" class="tab-panel" hidden>
+      <div class="panel-head"><h2>Pistas</h2><button class="btn btn-primary btn-sm" id="newCourtBtn">+ Nueva pista</button></div>
+      <div class="card" id="courtFormCard" hidden>
+        <form id="courtForm" class="form-grid">
+          <input type="hidden" id="court_id">
+          <div class="field"><label for="court_name">Nombre</label><input type="text" id="court_name" required></div>
+          <div class="field"><label for="court_surface">Superficie</label><input type="text" id="court_surface" placeholder="cristal, muro…"></div>
+          <div class="field"><label for="court_sort">Orden</label><input type="number" id="court_sort" value="0"></div>
+          <div class="field" style="display:flex; align-items:flex-end; gap:8px;">
+            <label style="margin:0; display:flex; align-items:center; gap:6px;"><input type="checkbox" id="court_active" style="width:auto;" checked> Activa</label>
+          </div>
+          <div style="grid-column:1/-1; display:flex; gap:10px; align-items:center;">
+            <button type="submit" class="btn btn-primary btn-sm">Guardar</button>
+            <button type="button" class="btn btn-ghost btn-sm" id="cancelCourtBtn">Cancelar</button>
+            <span class="form-msg" id="courtFormMsg"></span>
+          </div>
+        </form>
+      </div>
+      <div class="card table-wrap">
+        <table>
+          <thead><tr><th>Nombre</th><th>Superficie</th><th>Orden</th><th>Activa</th><th></th></tr></thead>
+          <tbody id="courtsBody"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ---------- Precios ---------- -->
+    <section id="tabPrecios" class="tab-panel" hidden>
+      <div class="panel-head"><h2>Precios</h2><button class="btn btn-primary btn-sm" id="newPriceBtn">+ Nuevo precio</button></div>
+      <div class="card" id="priceFormCard" hidden>
+        <form id="priceForm" class="form-grid">
+          <input type="hidden" id="price_id">
+          <div class="field">
+            <label for="price_day_group">Tipo de día</label>
+            <select id="price_day_group">
+              <option value="laborable">Lunes a viernes</option>
+              <option value="fin_semana_festivo">Fin de semana / festivo</option>
+            </select>
+          </div>
+          <div class="field"><label for="price_label">Etiqueta</label><input type="text" id="price_label" required placeholder="Mañana"></div>
+          <div class="field"><label for="price_hours_range">Franja horaria</label><input type="text" id="price_hours_range" required placeholder="08:00 - 17:00"></div>
+          <div class="field"><label for="price_amount">Precio (€)</label><input type="number" step="0.01" id="price_amount" required></div>
+          <div class="field"><label for="price_sort">Orden</label><input type="number" id="price_sort" value="0"></div>
+          <div class="field" style="display:flex; align-items:flex-end; gap:8px;">
+            <label style="margin:0; display:flex; align-items:center; gap:6px;"><input type="checkbox" id="price_active" style="width:auto;" checked> Activo</label>
+          </div>
+          <div style="grid-column:1/-1; display:flex; gap:10px; align-items:center;">
+            <button type="submit" class="btn btn-primary btn-sm">Guardar</button>
+            <button type="button" class="btn btn-ghost btn-sm" id="cancelPriceBtn">Cancelar</button>
+            <span class="form-msg" id="priceFormMsg"></span>
+          </div>
+        </form>
+      </div>
+      <div class="card table-wrap">
+        <table>
+          <thead><tr><th>Tipo de día</th><th>Etiqueta</th><th>Franja</th><th>Precio</th><th>Activo</th><th></th></tr></thead>
+          <tbody id="pricesBody"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ---------- Facturas ---------- -->
+    <section id="tabFacturas" class="tab-panel" hidden>
+      <div class="panel-head"><h2>Facturas</h2><button class="btn btn-primary btn-sm" id="newInvoiceBtn">+ Nueva factura</button></div>
+      <div class="card" id="invoiceFormCard" hidden>
+        <form id="invoiceForm" class="form-grid">
+          <div class="field" style="grid-column:1/-1;">
+            <label for="inv_reservation">Reserva (opcional)</label>
+            <select id="inv_reservation"><option value="">— Sin vincular a una reserva —</option></select>
+          </div>
+          <div class="field"><label for="inv_number">Nº de factura</label><input type="text" id="inv_number" required></div>
+          <div class="field"><label for="inv_date">Fecha</label><input type="date" id="inv_date" required></div>
+          <div class="field"><label for="inv_client_name">Cliente</label><input type="text" id="inv_client_name" required></div>
+          <div class="field"><label for="inv_client_dni">DNI/NIF</label><input type="text" id="inv_client_dni"></div>
+          <div class="field"><label for="inv_client_address">Dirección</label><input type="text" id="inv_client_address"></div>
+          <div class="field"><label for="inv_client_phone">Teléfono</label><input type="text" id="inv_client_phone"></div>
+          <div class="field"><label for="inv_concept">Concepto</label><input type="text" id="inv_concept" value="ALQUILER PISTA DE PÁDEL." required></div>
+          <div class="field"><label for="inv_total">Importe total (€, IVA incluido)</label><input type="number" step="0.01" id="inv_total" required></div>
+          <div class="field"><label for="inv_iva">IVA (%)</label><input type="number" step="0.01" id="inv_iva" value="21"></div>
+          <div class="field">
+            <label for="inv_payment">Forma de pago</label>
+            <select id="inv_payment"><option value="bizum">Bizum</option><option value="efectivo">Efectivo</option><option value="tarjeta">Tarjeta</option></select>
+          </div>
+          <div style="grid-column:1/-1; display:flex; gap:10px; align-items:center;">
+            <button type="submit" class="btn btn-primary btn-sm">Guardar factura</button>
+            <button type="button" class="btn btn-ghost btn-sm" id="cancelInvoiceBtn">Cancelar</button>
+            <span class="form-msg" id="invoiceFormMsg"></span>
+          </div>
+        </form>
+      </div>
+      <div class="card table-wrap">
+        <table>
+          <thead><tr><th>Nº</th><th>Fecha</th><th>Cliente</th><th>Importe</th><th></th></tr></thead>
+          <tbody id="invoicesBody"></tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+</div>
+
+<div id="invoicePrintArea">
+  <div id="invoicePrintContent"></div>
+</div>
+
+<script type="module">
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+
+const SUPABASE_URL = 'https://stnuvhlqicftjbtlybit.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN0bnV2aGxxaWNmdGpidGx5Yml0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMyNDY4NzgsImV4cCI6MjA5ODgyMjg3OH0.1a8uenfaddy_yiXPgerteMoktCEeeFhkH021qp0okPY';
+const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+const loginScreen = document.getElementById('loginScreen');
+const appScreen = document.getElementById('appScreen');
+const loginForm = document.getElementById('loginForm');
+const loginMsg = document.getElementById('loginMsg');
+
+const LOGIN_REMEMBER_KEY = 'padel_admin_remember';
+(function restoreRememberedLogin(){
+  const saved = JSON.parse(localStorage.getItem(LOGIN_REMEMBER_KEY) || 'null');
+  if (saved){
+    document.getElementById('loginEmail').value = saved.email || '';
+    document.getElementById('loginPassword').value = saved.password || '';
+    document.getElementById('loginRemember').checked = true;
+  }
+})();
+
+loginForm.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const email = document.getElementById('loginEmail').value.trim();
+  const password = document.getElementById('loginPassword').value;
+  const remember = document.getElementById('loginRemember').checked;
+  loginMsg.textContent = 'Entrando…';
+  const { error } = await supabase.auth.signInWithPassword({ email, password });
+  if (error){
+    loginMsg.textContent = 'Usuario o contraseña incorrectos.';
+    return;
+  }
+  if (remember) localStorage.setItem(LOGIN_REMEMBER_KEY, JSON.stringify({ email, password }));
+  else localStorage.removeItem(LOGIN_REMEMBER_KEY);
+  loginMsg.textContent = '';
+});
+
+document.getElementById('logoutBtn').addEventListener('click', async () => {
+  await supabase.auth.signOut();
+  window.location.reload();
+});
+
+document.querySelectorAll('nav.tabs button').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('nav.tabs button').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.tab-panel').forEach(p => p.hidden = true);
+    btn.classList.add('active');
+    const panel = document.getElementById(btn.dataset.tab);
+    panel.hidden = false;
+    if (btn.dataset.tab === 'tabReservas') loadReservations();
+    if (btn.dataset.tab === 'tabPistas') loadCourts();
+    if (btn.dataset.tab === 'tabPrecios') loadPrices();
+    if (btn.dataset.tab === 'tabFacturas') loadInvoices();
+  });
+});
+
+function fmtDate(d){
+  return new Date(d + 'T00:00:00').toLocaleDateString('es-ES', { day:'numeric', month:'short', year:'numeric' });
+}
+function formatPrice(n){
+  return new Intl.NumberFormat('es-ES', { style:'currency', currency:'EUR' }).format(n);
+}
+
+/* ---------- Reservas ---------- */
+let COURTS_BY_ID = {};
+
+async function loadReservations(){
+  const status = document.getElementById('statusFilter').value;
+  const date = document.getElementById('dateFilter').value;
+  let query = supabase.from('reservas_padel').select('*').order('reservation_date', { ascending: false }).order('start_time', { ascending: false });
+  if (status) query = query.eq('status', status);
+  if (date) query = query.eq('reservation_date', date);
+  const { data, error } = await query;
+  const body = document.getElementById('reservationsBody');
+  if (error){ body.innerHTML = `<tr><td colspan="8">Error cargando reservas.</td></tr>`; return; }
+  if (!data.length){ body.innerHTML = `<tr><td colspan="8">No hay reservas.</td></tr>`; return; }
+
+  body.innerHTML = data.map(r => `
+    <tr data-id="${r.id}">
+      <td>${fmtDate(r.reservation_date)}</td>
+      <td>${r.start_time.slice(0,5)}–${r.end_time.slice(0,5)}</td>
+      <td>${COURTS_BY_ID[r.pista_id] || '—'}</td>
+      <td>${r.full_name}</td>
+      <td>${r.phone}</td>
+      <td>${r.players_count || '—'}</td>
+      <td><span class="pill pill-${r.status}">${r.status}</span></td>
+      <td class="row-actions">
+        ${r.status !== 'confirmada' ? `<button class="btn btn-ghost btn-sm" data-action="confirm">Confirmar</button>` : ''}
+        ${r.status !== 'cancelada' ? `<button class="btn btn-danger btn-sm" data-action="cancel">Cancelar</button>` : ''}
+        <button class="btn btn-ghost btn-sm" data-action="delete">Borrar</button>
+      </td>
+    </tr>
+  `).join('');
+}
+
+document.getElementById('reservationsBody').addEventListener('click', async (e) => {
+  const btn = e.target.closest('button[data-action]');
+  if (!btn) return;
+  const id = btn.closest('tr').dataset.id;
+  if (btn.dataset.action === 'confirm'){
+    await supabase.from('reservas_padel').update({ status: 'confirmada' }).eq('id', id);
+  } else if (btn.dataset.action === 'cancel'){
+    await supabase.from('reservas_padel').update({ status: 'cancelada' }).eq('id', id);
+  } else if (btn.dataset.action === 'delete'){
+    if (!confirm('¿Borrar esta reserva definitivamente?')) return;
+    await supabase.from('reservas_padel').delete().eq('id', id);
+  }
+  loadReservations();
+});
+
+document.getElementById('statusFilter').addEventListener('change', loadReservations);
+document.getElementById('dateFilter').addEventListener('change', loadReservations);
+
+/* ---------- Pistas ---------- */
+async function loadCourts(){
+  const { data, error } = await supabase.from('pistas_padel').select('*').order('sort_order');
+  const body = document.getElementById('courtsBody');
+  COURTS_BY_ID = {};
+  if (error || !data){ body.innerHTML = `<tr><td colspan="5">Error cargando pistas.</td></tr>`; return; }
+  data.forEach(c => COURTS_BY_ID[c.id] = c.name);
+  if (!data.length){ body.innerHTML = `<tr><td colspan="5">No hay pistas todavía.</td></tr>`; return; }
+  body.innerHTML = data.map(c => `
+    <tr data-id="${c.id}">
+      <td>${c.name}</td>
+      <td>${c.surface || '—'}</td>
+      <td>${c.sort_order}</td>
+      <td>${c.active ? 'Sí' : 'No'}</td>
+      <td class="row-actions">
+        <button class="btn btn-ghost btn-sm" data-action="edit">Editar</button>
+        <button class="btn btn-danger btn-sm" data-action="delete">Borrar</button>
+      </td>
+    </tr>
+  `).join('');
+  window._COURTS_CACHE = data;
+}
+
+document.getElementById('newCourtBtn').addEventListener('click', () => {
+  document.getElementById('courtForm').reset();
+  document.getElementById('court_id').value = '';
+  document.getElementById('court_active').checked = true;
+  document.getElementById('courtFormMsg').textContent = '';
+  document.getElementById('courtFormCard').hidden = false;
+});
+document.getElementById('cancelCourtBtn').addEventListener('click', () => {
+  document.getElementById('courtFormCard').hidden = true;
+});
+document.getElementById('courtsBody').addEventListener('click', async (e) => {
+  const btn = e.target.closest('button[data-action]');
+  if (!btn) return;
+  const id = btn.closest('tr').dataset.id;
+  if (btn.dataset.action === 'delete'){
+    if (!confirm('¿Borrar esta pista?')) return;
+    await supabase.from('pistas_padel').delete().eq('id', id);
+    loadCourts();
+  } else if (btn.dataset.action === 'edit'){
+    const court = (window._COURTS_CACHE || []).find(c => c.id === id);
+    if (!court) return;
+    document.getElementById('court_id').value = court.id;
+    document.getElementById('court_name').value = court.name;
+    document.getElementById('court_surface').value = court.surface || '';
+    document.getElementById('court_sort').value = court.sort_order;
+    document.getElementById('court_active').checked = court.active;
+    document.getElementById('courtFormMsg').textContent = '';
+    document.getElementById('courtFormCard').hidden = false;
+  }
+});
+document.getElementById('courtForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const id = document.getElementById('court_id').value;
+  const payload = {
+    name: document.getElementById('court_name').value.trim(),
+    surface: document.getElementById('court_surface').value.trim() || null,
+    sort_order: Number(document.getElementById('court_sort').value || 0),
+    active: document.getElementById('court_active').checked,
+  };
+  const { error } = id
+    ? await supabase.from('pistas_padel').update(payload).eq('id', id)
+    : await supabase.from('pistas_padel').insert(payload);
+  const msg = document.getElementById('courtFormMsg');
+  if (error){ msg.textContent = 'Error al guardar.'; msg.className = 'form-msg err'; return; }
+  document.getElementById('courtFormCard').hidden = true;
+  loadCourts();
+});
+
+/* ---------- Precios ---------- */
+async function loadPrices(){
+  const { data, error } = await supabase.from('precios_padel').select('*').order('sort_order');
+  const body = document.getElementById('pricesBody');
+  if (error || !data){ body.innerHTML = `<tr><td colspan="6">Error cargando precios.</td></tr>`; return; }
+  if (!data.length){ body.innerHTML = `<tr><td colspan="6">No hay precios todavía.</td></tr>`; return; }
+  const dayLabels = { laborable: 'Lunes a viernes', fin_semana_festivo: 'Fin de semana / festivo' };
+  body.innerHTML = data.map(p => `
+    <tr data-id="${p.id}">
+      <td>${dayLabels[p.day_group] || p.day_group}</td>
+      <td>${p.label}</td>
+      <td>${p.hours_range}</td>
+      <td>${formatPrice(p.price)}</td>
+      <td>${p.active ? 'Sí' : 'No'}</td>
+      <td class="row-actions">
+        <button class="btn btn-ghost btn-sm" data-action="edit">Editar</button>
+        <button class="btn btn-danger btn-sm" data-action="delete">Borrar</button>
+      </td>
+    </tr>
+  `).join('');
+  window._PRICES_CACHE = data;
+}
+
+document.getElementById('newPriceBtn').addEventListener('click', () => {
+  document.getElementById('priceForm').reset();
+  document.getElementById('price_id').value = '';
+  document.getElementById('price_active').checked = true;
+  document.getElementById('priceFormMsg').textContent = '';
+  document.getElementById('priceFormCard').hidden = false;
+});
+document.getElementById('cancelPriceBtn').addEventListener('click', () => {
+  document.getElementById('priceFormCard').hidden = true;
+});
+document.getElementById('pricesBody').addEventListener('click', async (e) => {
+  const btn = e.target.closest('button[data-action]');
+  if (!btn) return;
+  const id = btn.closest('tr').dataset.id;
+  if (btn.dataset.action === 'delete'){
+    if (!confirm('¿Borrar este precio?')) return;
+    await supabase.from('precios_padel').delete().eq('id', id);
+    loadPrices();
+  } else if (btn.dataset.action === 'edit'){
+    const p = (window._PRICES_CACHE || []).find(x => x.id === id);
+    if (!p) return;
+    document.getElementById('price_id').value = p.id;
+    document.getElementById('price_day_group').value = p.day_group;
+    document.getElementById('price_label').value = p.label;
+    document.getElementById('price_hours_range').value = p.hours_range;
+    document.getElementById('price_amount').value = p.price;
+    document.getElementById('price_sort').value = p.sort_order;
+    document.getElementById('price_active').checked = p.active;
+    document.getElementById('priceFormMsg').textContent = '';
+    document.getElementById('priceFormCard').hidden = false;
+  }
+});
+document.getElementById('priceForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const id = document.getElementById('price_id').value;
+  const payload = {
+    day_group: document.getElementById('price_day_group').value,
+    label: document.getElementById('price_label').value.trim(),
+    hours_range: document.getElementById('price_hours_range').value.trim(),
+    price: Number(document.getElementById('price_amount').value),
+    sort_order: Number(document.getElementById('price_sort').value || 0),
+    active: document.getElementById('price_active').checked,
+  };
+  const { error } = id
+    ? await supabase.from('precios_padel').update(payload).eq('id', id)
+    : await supabase.from('precios_padel').insert(payload);
+  const msg = document.getElementById('priceFormMsg');
+  if (error){ msg.textContent = 'Error al guardar.'; msg.className = 'form-msg err'; return; }
+  document.getElementById('priceFormCard').hidden = true;
+  loadPrices();
+});
+
+/* ---------- Facturas ---------- */
+async function nextInvoiceNumber(){
+  const year = new Date().getFullYear();
+  const { data } = await supabase.from('invoices_padel').select('invoice_number')
+    .like('invoice_number', `${year}%`).order('invoice_number', { ascending: false }).limit(1);
+  if (!data || !data.length) return `${year}-001`;
+  const last = data[0].invoice_number;
+  const n = Number(last.split('-')[1] || 0) + 1;
+  return `${year}-${String(n).padStart(3, '0')}`;
+}
+
+async function populateInvoiceReservations(){
+  const { data } = await supabase.from('reservas_padel').select('*').eq('status', 'confirmada').order('reservation_date', { ascending: false });
+  const select = document.getElementById('inv_reservation');
+  select.innerHTML = '<option value="">— Sin vincular a una reserva —</option>' +
+    (data || []).map(r => `<option value="${r.id}">${fmtDate(r.reservation_date)} ${r.start_time.slice(0,5)} — ${r.full_name}</option>`).join('');
+  window._RES_CACHE = data || [];
+}
+
+document.getElementById('inv_reservation').addEventListener('change', (e) => {
+  const r = (window._RES_CACHE || []).find(x => x.id === e.target.value);
+  if (r){
+    document.getElementById('inv_client_name').value = r.full_name;
+    document.getElementById('inv_client_phone').value = r.phone;
+  }
+});
+
+document.getElementById('newInvoiceBtn').addEventListener('click', async () => {
+  document.getElementById('invoiceForm').reset();
+  document.getElementById('inv_date').value = new Date().toISOString().slice(0,10);
+  document.getElementById('inv_number').value = await nextInvoiceNumber();
+  document.getElementById('inv_concept').value = 'ALQUILER PISTA DE PÁDEL.';
+  document.getElementById('inv_iva').value = 21;
+  document.getElementById('invoiceFormMsg').textContent = '';
+  await populateInvoiceReservations();
+  document.getElementById('invoiceFormCard').hidden = false;
+});
+document.getElementById('cancelInvoiceBtn').addEventListener('click', () => {
+  document.getElementById('invoiceFormCard').hidden = true;
+});
+
+document.getElementById('invoiceForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const payload = {
+    invoice_number: document.getElementById('inv_number').value.trim(),
+    issue_date: document.getElementById('inv_date').value,
+    reservation_id: document.getElementById('inv_reservation').value || null,
+    client_name: document.getElementById('inv_client_name').value.trim(),
+    client_dni: document.getElementById('inv_client_dni').value.trim() || null,
+    client_address: document.getElementById('inv_client_address').value.trim() || null,
+    client_phone: document.getElementById('inv_client_phone').value.trim() || null,
+    concept: document.getElementById('inv_concept').value.trim(),
+    total_amount: Number(document.getElementById('inv_total').value),
+    iva_rate: Number(document.getElementById('inv_iva').value || 21),
+    payment_method: document.getElementById('inv_payment').value,
+  };
+  const { error } = await supabase.from('invoices_padel').insert(payload);
+  const msg = document.getElementById('invoiceFormMsg');
+  if (error){ msg.textContent = 'Error al guardar (¿número de factura repetido?).'; msg.className = 'form-msg err'; return; }
+  document.getElementById('invoiceFormCard').hidden = true;
+  loadInvoices();
+});
+
+async function loadInvoices(){
+  const { data, error } = await supabase.from('invoices_padel').select('*').order('invoice_number', { ascending: false });
+  const body = document.getElementById('invoicesBody');
+  if (error || !data){ body.innerHTML = `<tr><td colspan="5">Error cargando facturas.</td></tr>`; return; }
+  if (!data.length){ body.innerHTML = `<tr><td colspan="5">No hay facturas todavía.</td></tr>`; return; }
+  window._INVOICES_CACHE = data;
+  const lastId = data[0].id;
+  body.innerHTML = data.map(inv => `
+    <tr data-id="${inv.id}">
+      <td>${inv.invoice_number}</td>
+      <td>${fmtDate(inv.issue_date)}</td>
+      <td>${inv.client_name}</td>
+      <td>${formatPrice(inv.total_amount)}</td>
+      <td class="row-actions">
+        <button class="btn btn-ghost btn-sm" data-action="print">Imprimir</button>
+        ${inv.id === lastId ? `<button class="btn btn-danger btn-sm" data-action="delete">Borrar</button>` : ''}
+      </td>
+    </tr>
+  `).join('');
+}
+
+document.getElementById('invoicesBody').addEventListener('click', async (e) => {
+  const btn = e.target.closest('button[data-action]');
+  if (!btn) return;
+  const id = btn.closest('tr').dataset.id;
+  const inv = (window._INVOICES_CACHE || []).find(x => x.id === id);
+  if (!inv) return;
+  if (btn.dataset.action === 'delete'){
+    if (!confirm(`¿Borrar la factura ${inv.invoice_number}? La numeración debe ser correlativa: solo borra la última si te has equivocado al crearla.`)) return;
+    await supabase.from('invoices_padel').delete().eq('id', id);
+    loadInvoices();
+  } else if (btn.dataset.action === 'print'){
+    printInvoice(inv);
+  }
+});
+
+function printInvoice(inv){
+  const base = inv.total_amount / (1 + inv.iva_rate / 100);
+  const iva = inv.total_amount - base;
+  document.title = `Factura ${inv.invoice_number}`;
+  document.getElementById('invoicePrintContent').innerHTML = `
+    <h1 style="font-family:sans-serif;">FACTURA</h1>
+    <table style="width:100%; font-family:sans-serif; font-size:14px; margin-bottom:24px;">
+      <tr><td>Nº FACTURA:</td><td>${inv.invoice_number}</td></tr>
+      <tr><td>FECHA:</td><td>${fmtDate(inv.issue_date)}</td></tr>
+      <tr><td>CLIENTE:</td><td>${inv.client_name}</td></tr>
+      ${inv.client_dni ? `<tr><td>DNI/NIF:</td><td>${inv.client_dni}</td></tr>` : ''}
+      ${inv.client_address ? `<tr><td>DIRECCIÓN:</td><td>${inv.client_address}</td></tr>` : ''}
+      ${inv.client_phone ? `<tr><td>TELÉFONO:</td><td>${inv.client_phone}</td></tr>` : ''}
+    </table>
+    <table style="width:100%; font-family:sans-serif; font-size:14px; border-collapse:collapse;">
+      <tr style="border-bottom:1px solid #000;"><td><b>CONCEPTO</b></td><td style="text-align:right;"><b>IMPORTE</b></td></tr>
+      <tr><td>${inv.concept}</td><td style="text-align:right;">${formatPrice(base)}</td></tr>
+      <tr><td>IVA (${inv.iva_rate}%)</td><td style="text-align:right;">${formatPrice(iva)}</td></tr>
+      <tr style="border-top:1px solid #000;"><td><b>TOTAL</b></td><td style="text-align:right;"><b>${formatPrice(inv.total_amount)}</b></td></tr>
+    </table>
+    ${inv.payment_method ? `<p style="font-family:sans-serif; font-size:13px; margin-top:20px;">Forma de pago: ${inv.payment_method}</p>` : ''}
+  `;
+  window.print();
+}
+
+/* ---------- Bootstrap ---------- */
+async function checkSession(){
+  const { data: { session } } = await supabase.auth.getSession();
+  if (session){
+    loginScreen.hidden = true;
+    appScreen.hidden = false;
+    await loadCourts();
+    await loadReservations();
+  } else {
+    loginScreen.hidden = false;
+    appScreen.hidden = true;
+  }
+}
+supabase.auth.onAuthStateChange((_event, session) => {
+  if (session){
+    loginScreen.hidden = true;
+    appScreen.hidden = false;
+    loadCourts();
+    loadReservations();
+  } else {
+    loginScreen.hidden = false;
+    appScreen.hidden = true;
+  }
+});
+checkSession();
+</script>
+</body>
+</html>
