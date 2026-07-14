@@ -478,7 +478,17 @@
         <button type="submit" class="btn btn-primary">Entrar</button>
       </form>
       <p style="text-align:center; margin-top:14px; font-size:14px; color:var(--ink-soft);" id="showSignupWrap">
+        <a href="#" id="showForgotLink">¿Has olvidado tu contraseña?</a><br>
         ¿No tienes cuenta? <a href="#" id="showSignupLink">Regístrate</a>
+      </p>
+
+      <form id="forgotPasswordForm" hidden>
+        <div class="field"><label for="forgot_email">Email</label><input type="email" id="forgot_email" required></div>
+        <div class="form-msg" id="forgotPasswordMsg"></div>
+        <button type="submit" class="btn btn-primary">Enviar enlace para restablecer</button>
+      </form>
+      <p style="text-align:center; margin-top:14px; font-size:14px; color:var(--ink-soft);" id="showLoginFromForgotWrap" hidden>
+        <a href="#" id="showLoginFromForgotLink">Volver a iniciar sesión</a>
       </p>
 
       <form id="signupAccountForm" hidden>
@@ -498,6 +508,15 @@
       <p style="font-size:14px; color:var(--ink-soft); margin:-8px 0 14px;">Sesión iniciada como <b id="accountEmail"></b></p>
       <div id="myReservationsList"></div>
       <button type="button" class="btn btn-ghost" id="accountLogoutBtn" style="margin-top:16px; width:100%;">Cerrar sesión</button>
+    </div>
+
+    <div id="resetPasswordView" hidden>
+      <p style="font-size:14px; color:var(--ink-soft); margin:0 0 16px;">Elige una nueva contraseña para tu cuenta.</p>
+      <form id="resetPasswordForm">
+        <div class="field"><label for="new_password">Nueva contraseña (mínimo 6 caracteres)</label><input type="password" id="new_password" required minlength="6"></div>
+        <div class="form-msg" id="resetPasswordMsg"></div>
+        <button type="submit" class="btn btn-primary">Guardar nueva contraseña</button>
+      </form>
     </div>
   </div>
 </div>
@@ -544,10 +563,16 @@ const signupAccountForm = document.getElementById('signupAccountForm');
 const loginMsg = document.getElementById('loginMsg');
 const signupAccountMsg = document.getElementById('signupAccountMsg');
 
+const resetPasswordView = document.getElementById('resetPasswordView');
+const forgotPasswordForm = document.getElementById('forgotPasswordForm');
+const forgotPasswordMsg = document.getElementById('forgotPasswordMsg');
+
 function showLoginForm(){
   accountModalTitle.textContent = 'Iniciar sesión';
   loginForm.hidden = false;
   document.getElementById('showSignupWrap').hidden = false;
+  forgotPasswordForm.hidden = true;
+  document.getElementById('showLoginFromForgotWrap').hidden = true;
   signupAccountForm.hidden = true;
   document.getElementById('showLoginWrap').hidden = true;
   loginMsg.textContent = '';
@@ -556,11 +581,24 @@ function showSignupForm(){
   accountModalTitle.textContent = 'Crear cuenta';
   loginForm.hidden = true;
   document.getElementById('showSignupWrap').hidden = true;
+  forgotPasswordForm.hidden = true;
+  document.getElementById('showLoginFromForgotWrap').hidden = true;
   signupAccountForm.hidden = false;
   document.getElementById('showLoginWrap').hidden = false;
   signupAccountMsg.textContent = '';
 }
+function showForgotPasswordForm(){
+  accountModalTitle.textContent = 'Recuperar contraseña';
+  loginForm.hidden = true;
+  document.getElementById('showSignupWrap').hidden = true;
+  forgotPasswordForm.hidden = false;
+  document.getElementById('showLoginFromForgotWrap').hidden = false;
+  signupAccountForm.hidden = true;
+  document.getElementById('showLoginWrap').hidden = true;
+  forgotPasswordMsg.textContent = '';
+}
 function renderAccountModal(){
+  resetPasswordView.hidden = true;
   if (currentUser){
     accountModalTitle.textContent = 'Mi cuenta';
     authView.hidden = true;
@@ -573,6 +611,13 @@ function renderAccountModal(){
     myAccountView.hidden = true;
     showLoginForm();
   }
+}
+function showResetPasswordView(){
+  accountModal.hidden = false;
+  authView.hidden = true;
+  myAccountView.hidden = true;
+  resetPasswordView.hidden = false;
+  accountModalTitle.textContent = 'Nueva contraseña';
 }
 let awaitingLoginForBooking = false;
 
@@ -596,6 +641,8 @@ document.getElementById('accountModalClose').addEventListener('click', closeAcco
 accountModal.addEventListener('click', (e) => { if (e.target.id === 'accountModal') closeAccountModal(); });
 document.getElementById('showSignupLink').addEventListener('click', (e) => { e.preventDefault(); showSignupForm(); });
 document.getElementById('showLoginLink').addEventListener('click', (e) => { e.preventDefault(); showLoginForm(); });
+document.getElementById('showForgotLink').addEventListener('click', (e) => { e.preventDefault(); showForgotPasswordForm(); });
+document.getElementById('showLoginFromForgotLink').addEventListener('click', (e) => { e.preventDefault(); showLoginForm(); });
 
 loginForm.addEventListener('submit', async (e) => {
   e.preventDefault();
@@ -605,12 +652,52 @@ loginForm.addEventListener('submit', async (e) => {
   const password = document.getElementById('login_password').value;
   const { error } = await supabase.auth.signInWithPassword({ email, password });
   if (error){
-    loginMsg.textContent = 'Email o contraseña incorrectos.';
+    if (/email not confirmed/i.test(error.message)){
+      loginMsg.textContent = 'Todavía no has confirmado tu email. Revisa tu bandeja de entrada (y spam) y pulsa el enlace de confirmación.';
+    } else {
+      loginMsg.textContent = 'Email o contraseña incorrectos.';
+    }
     loginMsg.className = 'form-msg err';
     return;
   }
   loginForm.reset();
   resumePendingBooking();
+});
+
+forgotPasswordForm.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  forgotPasswordMsg.textContent = 'Enviando…';
+  forgotPasswordMsg.className = 'form-msg';
+  const email = document.getElementById('forgot_email').value.trim();
+  const { error } = await supabase.auth.resetPasswordForEmail(email, {
+    redirectTo: window.location.origin + window.location.pathname,
+  });
+  if (error){
+    forgotPasswordMsg.textContent = 'No se ha podido enviar el correo. Inténtalo de nuevo.';
+    forgotPasswordMsg.className = 'form-msg err';
+    return;
+  }
+  forgotPasswordForm.reset();
+  forgotPasswordMsg.textContent = 'Te hemos enviado un enlace a tu email para elegir una nueva contraseña.';
+  forgotPasswordMsg.className = 'form-msg ok';
+});
+
+document.getElementById('resetPasswordForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const msg = document.getElementById('resetPasswordMsg');
+  msg.textContent = 'Guardando…';
+  msg.className = 'form-msg';
+  const password = document.getElementById('new_password').value;
+  const { error } = await supabase.auth.updateUser({ password });
+  if (error){
+    msg.textContent = 'No se ha podido guardar la contraseña. Inténtalo de nuevo.';
+    msg.className = 'form-msg err';
+    return;
+  }
+  e.target.reset();
+  msg.textContent = '¡Contraseña actualizada! Ya puedes usarla la próxima vez que inicies sesión.';
+  msg.className = 'form-msg ok';
+  setTimeout(() => { resetPasswordView.hidden = true; renderAccountModal(); }, 2000);
 });
 
 signupAccountForm.addEventListener('submit', async (e) => {
@@ -697,9 +784,13 @@ async function loadMyReservations(){
   });
 }
 
-supabase.auth.onAuthStateChange((_event, session) => {
+supabase.auth.onAuthStateChange((event, session) => {
   currentUser = session ? session.user : null;
   accountBtn.textContent = currentUser ? 'Mi cuenta' : 'Iniciar sesión';
+  if (event === 'PASSWORD_RECOVERY'){
+    showResetPasswordView();
+    return;
+  }
   if (!accountModal.hidden) renderAccountModal();
 });
 

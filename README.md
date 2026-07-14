@@ -111,6 +111,13 @@ que comprueba que la reserva es suya y que todavía no ha pasado, así que no
 se puede manipular directamente. El administrador sigue viendo y gestionando
 todas las reservas (con o sin cuenta) desde `admin.html` como hasta ahora.
 
+Al registrarse, Supabase manda un email de confirmación; hasta que el cliente
+no pulsa el enlace de ese correo no puede iniciar sesión (si lo intenta antes,
+ahora se le avisa explícitamente de que falta confirmar el email, en vez de
+un mensaje genérico de "contraseña incorrecta"). También hay un enlace
+**"¿Has olvidado tu contraseña?"** en el login que manda un correo con un
+enlace para elegir una nueva.
+
 Seguridad (Row Level Security):
 - Cualquiera puede **leer** pistas, duraciones/precios, mantenimientos, extras y
   disponibilidad.
