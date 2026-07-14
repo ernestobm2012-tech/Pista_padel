@@ -43,6 +43,7 @@
   .btn-danger:hover{ background:rgba(255,107,107,.1); }
   .btn-sm{ padding:6px 12px; font-size:12.5px; }
   .btn:disabled{ opacity:.5; cursor:not-allowed; }
+  .btn[hidden]{ display:none; }
 
   /* ---------- Login ---------- */
   #loginScreen{ min-height:100vh; display:flex; align-items:center; justify-content:center; padding:20px; }
@@ -145,6 +146,17 @@
   .client-card .count{ font-family:'Outfit'; font-weight:700; font-size:22px; color:var(--lime); text-align:center; }
   .client-card .count-lbl{ font-size:10.5px; text-transform:uppercase; color:var(--ink-soft); text-align:center; }
   .frequent-badge{ font-size:11px; background:rgba(198,255,61,.15); color:var(--lime); padding:3px 10px; border-radius:999px; font-weight:600; }
+  .stats-kpis{ display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:14px; }
+  .stat-kpi{ background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); padding:16px 18px; }
+  .stat-kpi .num{ font-family:'Outfit',sans-serif; font-size:26px; font-weight:700; color:var(--lime); line-height:1.2; }
+  .stat-kpi .lbl{ font-size:12.5px; color:var(--ink-soft); margin-top:4px; }
+  .stats-grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(320px,1fr)); gap:20px; }
+  .bar-row{ display:flex; align-items:center; gap:10px; margin:10px 0; font-size:13px; }
+  .bar-row .bar-lbl{ width:96px; flex-shrink:0; color:var(--ink-soft); }
+  .bar-track{ flex:1; background:var(--surface-2); border-radius:6px; height:14px; overflow:hidden; }
+  .bar-fill{ height:100%; background:var(--lime); border-radius:6px; }
+  .bar-fill.top{ background:#8FCB1F; box-shadow:0 0 0 2px rgba(198,255,61,.25) inset; }
+  .bar-val{ width:66px; text-align:right; flex-shrink:0; font-weight:600; }
   .empty-msg{ color:var(--ink-soft); font-size:14px; }
 
   /* ---------- Modal genérico (editar reserva) ---------- */
@@ -192,6 +204,7 @@
     <button data-tab="tabCalendario" class="active">Calendario</button>
     <button data-tab="tabReservas">Reservas</button>
     <button data-tab="tabClientes">Clientes</button>
+    <button data-tab="tabEstadisticas">Estadísticas</button>
     <button data-tab="tabTorneos">Torneos</button>
     <button data-tab="tabPistas">Pistas</button>
     <button data-tab="tabPrecios">Precios</button>
@@ -281,6 +294,41 @@
       </div>
       <p style="color:var(--ink-soft); font-size:14px; margin:-10px 0 0;">Clientes ordenados por número de reservas confirmadas.</p>
       <div id="clientsList"></div>
+    </section>
+
+    <!-- ---------- Estadísticas ---------- -->
+    <section id="tabEstadisticas" class="tab-panel" hidden>
+      <div class="panel-head">
+        <h2>Estadísticas</h2>
+        <div class="field" style="min-width:180px;">
+          <label for="statsRange">Periodo</label>
+          <select id="statsRange">
+            <option value="30">Últimos 30 días</option>
+            <option value="90">Últimos 90 días</option>
+            <option value="365" selected>Último año</option>
+            <option value="all">Todo el historial</option>
+          </select>
+        </div>
+      </div>
+      <div class="stats-kpis" id="statsKpis"></div>
+      <div class="stats-grid">
+        <div class="card">
+          <h3 style="margin:0 0 12px;">💶 Ingresos por mes</h3>
+          <div id="statsRevenueChart"></div>
+        </div>
+        <div class="card">
+          <h3 style="margin:0 0 12px;">⏱️ Duración más solicitada</h3>
+          <div id="statsDurationChart"></div>
+        </div>
+        <div class="card">
+          <h3 style="margin:0 0 12px;">🕐 Horas con más demanda</h3>
+          <div id="statsHoursChart"></div>
+        </div>
+        <div class="card">
+          <h3 style="margin:0 0 12px;">🏆 Clientes más frecuentes</h3>
+          <div id="statsTopClients"></div>
+        </div>
+      </div>
     </section>
 
     <!-- ---------- Torneos ---------- -->
@@ -613,6 +661,7 @@ document.querySelectorAll('nav.tabs button').forEach(btn => {
     if (btn.dataset.tab === 'tabReservas') loadReservations();
     if (btn.dataset.tab === 'tabCalendario'){ if (!window._COURTS_CACHE) await loadCourts(); renderCalendarState(); }
     if (btn.dataset.tab === 'tabClientes'){ if (!window._COURTS_CACHE) await loadCourts(); renderClients(); }
+    if (btn.dataset.tab === 'tabEstadisticas'){ if (!window._COURTS_CACHE) await loadCourts(); renderStats(); }
     if (btn.dataset.tab === 'tabTorneos'){ if (!window._COURTS_CACHE) await loadCourts(); renderCompetitions(); }
     if (btn.dataset.tab === 'tabPistas'){ await loadCourts(); loadMaintenance(); }
     if (btn.dataset.tab === 'tabPrecios'){ loadDurations(); loadExtras(); }
@@ -968,6 +1017,140 @@ document.getElementById('clientSearchInput').addEventListener('input', (e) => {
   );
   renderClientsList(filtered);
 });
+
+/* ---------- Estadísticas ---------- */
+document.getElementById('statsRange').addEventListener('change', renderStats);
+
+async function renderStats(){
+  const kpisEl = document.getElementById('statsKpis');
+  kpisEl.innerHTML = '<p class="empty-msg">Cargando…</p>';
+
+  const { data, error } = await supabase.from('reservas_padel').select('*');
+  if (error || !data){
+    kpisEl.innerHTML = '<p class="empty-msg">Error cargando estadísticas.</p>';
+    return;
+  }
+
+  const range = document.getElementById('statsRange').value;
+  let rows = data;
+  if (range !== 'all'){
+    const days = Number(range);
+    const cutoff = new Date();
+    cutoff.setDate(cutoff.getDate() - days);
+    const cutoffStr = cutoff.toISOString().slice(0, 10);
+    rows = data.filter(r => r.reservation_date >= cutoffStr);
+  }
+
+  const confirmed = rows.filter(r => r.status === 'confirmada');
+  const uniqueClients = new Set(confirmed.map(clientKey)).size;
+  const revenueRows = confirmed.filter(r => !r.is_municipal);
+  const totalRevenue = revenueRows.reduce((sum, r) => sum + Number(r.price || 0) + Number(r.light_price || 0), 0);
+  const avgTicket = revenueRows.length ? totalRevenue / revenueRows.length : 0;
+
+  kpisEl.innerHTML = `
+    <div class="stat-kpi"><div class="num">${confirmed.length}</div><div class="lbl">Reservas confirmadas</div></div>
+    <div class="stat-kpi"><div class="num">${uniqueClients}</div><div class="lbl">Clientes distintos</div></div>
+    <div class="stat-kpi"><div class="num">${formatPrice(totalRevenue)}</div><div class="lbl">Dinero ganado</div></div>
+    <div class="stat-kpi"><div class="num">${formatPrice(avgTicket)}</div><div class="lbl">Ticket medio</div></div>
+  `;
+
+  renderRevenueChart(revenueRows);
+  renderDurationChart(confirmed);
+  renderHoursChart(confirmed);
+  renderTopClients(confirmed);
+}
+
+function renderRevenueChart(rows){
+  const el = document.getElementById('statsRevenueChart');
+  const byMonth = {};
+  rows.forEach(r => {
+    const key = r.reservation_date.slice(0, 7);
+    byMonth[key] = (byMonth[key] || 0) + Number(r.price || 0) + Number(r.light_price || 0);
+  });
+  const months = Object.keys(byMonth).sort().slice(-12);
+  if (!months.length){ el.innerHTML = '<p class="empty-msg">Sin datos en este periodo.</p>'; return; }
+  const max = Math.max(...months.map(m => byMonth[m]), 1);
+  el.innerHTML = months.map(m => {
+    const value = byMonth[m];
+    const pct = Math.max(4, Math.round((value / max) * 100));
+    const label = new Date(m + '-01T00:00:00').toLocaleDateString('es-ES', { month: 'short', year: '2-digit' });
+    return `
+      <div class="bar-row">
+        <div class="bar-lbl">${label}</div>
+        <div class="bar-track"><div class="bar-fill" style="width:${pct}%;"></div></div>
+        <div class="bar-val">${formatPrice(value)}</div>
+      </div>`;
+  }).join('');
+}
+
+function renderDurationChart(rows){
+  const el = document.getElementById('statsDurationChart');
+  const buckets = {};
+  rows.forEach(r => {
+    const key = r.duration_minutes || null;
+    buckets[key] = (buckets[key] || 0) + 1;
+  });
+  const entries = Object.entries(buckets).sort((a, b) => b[1] - a[1]);
+  if (!entries.length){ el.innerHTML = '<p class="empty-msg">Sin datos en este periodo.</p>'; return; }
+  const max = Math.max(...entries.map(e => e[1]), 1);
+  const total = entries.reduce((s, e) => s + e[1], 0);
+  el.innerHTML = entries.map(([mins, count], i) => {
+    const pct = Math.max(4, Math.round((count / max) * 100));
+    const label = mins === 'null' ? 'Sin registrar' : durationLabel(Number(mins));
+    const share = Math.round((count / total) * 100);
+    return `
+      <div class="bar-row">
+        <div class="bar-lbl">${label}</div>
+        <div class="bar-track"><div class="bar-fill ${i === 0 ? 'top' : ''}" style="width:${pct}%;"></div></div>
+        <div class="bar-val">${count} (${share}%)</div>
+      </div>`;
+  }).join('');
+}
+
+function renderHoursChart(rows){
+  const el = document.getElementById('statsHoursChart');
+  const buckets = {};
+  rows.forEach(r => {
+    const hour = Number((r.start_time || '').slice(0, 2));
+    if (Number.isNaN(hour)) return;
+    buckets[hour] = (buckets[hour] || 0) + 1;
+  });
+  const entries = Object.entries(buckets).sort((a, b) => Number(a[0]) - Number(b[0]));
+  if (!entries.length){ el.innerHTML = '<p class="empty-msg">Sin datos en este periodo.</p>'; return; }
+  const max = Math.max(...entries.map(e => e[1]), 1);
+  const topHour = entries.reduce((best, e) => (e[1] > best[1] ? e : best), entries[0])[0];
+  el.innerHTML = entries.map(([hour, count]) => {
+    const pct = Math.max(4, Math.round((count / max) * 100));
+    return `
+      <div class="bar-row">
+        <div class="bar-lbl">${hour.padStart(2, '0')}:00</div>
+        <div class="bar-track"><div class="bar-fill ${hour === topHour ? 'top' : ''}" style="width:${pct}%;"></div></div>
+        <div class="bar-val">${count}</div>
+      </div>`;
+  }).join('');
+}
+
+function renderTopClients(rows){
+  const el = document.getElementById('statsTopClients');
+  const byClient = {};
+  rows.forEach(r => {
+    const key = clientKey(r);
+    if (!byClient[key]) byClient[key] = { name: r.full_name, phone: r.phone, count: 0 };
+    byClient[key].count += 1;
+  });
+  const top = Object.values(byClient).sort((a, b) => b.count - a.count).slice(0, 8);
+  if (!top.length){ el.innerHTML = '<p class="empty-msg">Sin datos en este periodo.</p>'; return; }
+  const max = Math.max(...top.map(c => c.count), 1);
+  el.innerHTML = top.map((c, i) => {
+    const pct = Math.max(4, Math.round((c.count / max) * 100));
+    return `
+      <div class="bar-row">
+        <div class="bar-lbl" title="${c.name}">${c.name}</div>
+        <div class="bar-track"><div class="bar-fill ${i === 0 ? 'top' : ''}" style="width:${pct}%;"></div></div>
+        <div class="bar-val">${c.count}</div>
+      </div>`;
+  }).join('');
+}
 
 /* ---------- Modal: modificar reserva ---------- */
 function openEditReservationModal(r){

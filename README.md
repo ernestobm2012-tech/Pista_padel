@@ -39,6 +39,19 @@ cualquier otra app. La web de reservas (`index.html`) además guarda su
 el panel (`admin.html`) reutiliza el service worker de las notificaciones
 (`sw-padel.js`).
 
+## Estadísticas
+
+En `admin.html` → pestaña «Estadísticas» tienes, con un selector de periodo
+(últimos 30/90 días, último año o todo el historial):
+
+- Resumen: reservas confirmadas, clientes distintos, dinero ganado y ticket
+  medio (el uso municipal no cuenta como ingreso).
+- Ingresos por mes (últimos 12 meses del periodo elegido).
+- Qué duración se reserva más (1 hora / 1h30 / 2 horas), con el número de
+  reservas y el porcentaje sobre el total.
+- A qué horas hay más demanda, para detectar las franjas más solicitadas.
+- Los clientes más frecuentes del periodo.
+
 ## Fotos de pistas y torneos
 
 Desde `admin.html` (pestañas «Pistas» y «Torneos») puedes subir una foto por
