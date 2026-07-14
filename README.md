@@ -17,6 +17,14 @@ Netlify, Vercel...).
 - Todo el contenido de pistas/precios se lee de la base de datos, así que puedes
   cambiarlo sin tocar código.
 
+## Fotos de pistas y torneos
+
+Desde `admin.html` (pestañas «Pistas» y «Torneos») puedes subir una foto por
+pista y por torneo/liga con un simple selector de archivo — se guarda en el
+bucket público de Supabase Storage `galeria-padel` y aparece automáticamente
+en la web pública (si no hay foto, se muestra un icono/emoji por defecto).
+Solo el administrador puede subir o borrar fotos; cualquiera puede verlas.
+
 ## Base de datos (Supabase)
 
 Este proyecto reutiliza el proyecto Supabase **`paseo-perros-app`** (ref

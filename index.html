@@ -125,6 +125,7 @@
     padding:24px; text-align:center;
   }
   .court-card .icon{ font-size:32px; margin-bottom:10px; }
+  .court-card .court-photo{ width:100%; height:140px; object-fit:cover; border-radius:10px; margin-bottom:12px; }
   .court-card h3{ font-size:19px; }
   .court-card .surface{ color:var(--ink-soft); font-size:14px; margin-top:6px; }
 
@@ -141,6 +142,7 @@
   /* ---------- Torneos ---------- */
   .competitions-grid{ display:grid; grid-template-columns:repeat(auto-fit, minmax(280px,1fr)); gap:20px; }
   .competition-card{ background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); padding:24px; }
+  .competition-card .comp-photo{ width:100%; height:140px; object-fit:cover; border-radius:10px; margin-bottom:14px; }
   .competition-card h3{ font-size:18px; }
   .competition-card .comp-type{ font-size:11.5px; text-transform:uppercase; letter-spacing:.06em; color:var(--lime); font-weight:600; margin-bottom:8px; }
   .competition-card .comp-meta{ color:var(--ink-soft); font-size:13.5px; margin:10px 0 16px; display:grid; gap:4px; }
@@ -447,6 +449,9 @@ const ALL_SLOTS = buildSlots();
 function formatPrice(n){
   return new Intl.NumberFormat('es-ES', { style:'currency', currency:'EUR', minimumFractionDigits:0 }).format(n);
 }
+function padelImageUrl(path){
+  return supabase.storage.from('galeria-padel').getPublicUrl(path).data.publicUrl;
+}
 function addDays(dateStr, n){
   const d = new Date(dateStr + 'T00:00:00');
   d.setDate(d.getDate() + n);
@@ -493,7 +498,7 @@ async function loadCourts(){
   } else {
     grid.innerHTML = ALL_COURTS.map(c => `
       <div class="court-card">
-        <div class="icon">🎾</div>
+        ${c.image_path ? `<img class="court-photo" src="${padelImageUrl(c.image_path)}" alt="${c.name}">` : `<div class="icon">🎾</div>`}
         <h3>${c.name}</h3>
         ${c.surface ? `<div class="surface">${c.surface}</div>` : ''}
       </div>
@@ -632,6 +637,7 @@ async function loadCompetitions(){
     const open = c.status === 'inscripciones_abiertas' && c.registration_deadline >= today && (!c.max_pairs || count < c.max_pairs);
     return `
       <div class="competition-card">
+        ${c.image_path ? `<img class="comp-photo" src="${padelImageUrl(c.image_path)}" alt="${c.name}">` : ''}
         <div class="comp-type">${TYPE_LABELS[c.type] || c.type}</div>
         <h3>${c.name}</h3>
         <div class="comp-meta">

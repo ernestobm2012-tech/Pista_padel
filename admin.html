@@ -325,7 +325,7 @@
       </div>
       <div class="card table-wrap">
         <table>
-          <thead><tr><th>Nombre</th><th>Superficie</th><th>Orden</th><th>Activa</th><th></th></tr></thead>
+          <thead><tr><th>Foto</th><th>Nombre</th><th>Superficie</th><th>Orden</th><th>Activa</th><th></th></tr></thead>
           <tbody id="courtsBody"></tbody>
         </table>
       </div>
@@ -553,6 +553,15 @@ function fmtDate(d){
 }
 function formatPrice(n){
   return new Intl.NumberFormat('es-ES', { style:'currency', currency:'EUR' }).format(n);
+}
+function padelImageUrl(path){
+  return supabase.storage.from('galeria-padel').getPublicUrl(path).data.publicUrl;
+}
+async function uploadPadelImage(file, folder, id){
+  const ext = (file.name.split('.').pop() || 'jpg').toLowerCase().replace(/[^a-z0-9]/g, '') || 'jpg';
+  const path = `${folder}/${id}-${Date.now()}.${ext}`;
+  const { error } = await supabase.storage.from('galeria-padel').upload(path, file);
+  return { path, error };
 }
 
 /* ---------- Reservas ---------- */
@@ -1383,10 +1392,18 @@ async function renderCompetitions(){
     return `
       <div class="card" style="margin-bottom:16px;">
         <div class="panel-head">
-          <div>
-            <h3 style="font-size:17px;">${c.name} <span class="pill" style="background:rgba(255,255,255,.1);">${c.type === 'torneo' ? 'Torneo' : 'Liga'}</span></h3>
-            <div style="color:var(--ink-soft); font-size:12.5px; margin-top:4px;">
-              ${fmtDate(c.start_date)} – ${fmtDate(c.end_date)} · Inscripción hasta ${fmtDate(c.registration_deadline)} · ${insc.length}${c.max_pairs ? '/'+c.max_pairs : ''} parejas · ${STATUS_LABELS[c.status]}
+          <div style="display:flex; gap:14px; align-items:flex-start;">
+            ${c.image_path ? `<img src="${padelImageUrl(c.image_path)}" style="width:64px; height:64px; object-fit:cover; border-radius:10px; flex-shrink:0;">` : ''}
+            <div>
+              <h3 style="font-size:17px;">${c.name} <span class="pill" style="background:rgba(255,255,255,.1);">${c.type === 'torneo' ? 'Torneo' : 'Liga'}</span></h3>
+              <div style="color:var(--ink-soft); font-size:12.5px; margin-top:4px;">
+                ${fmtDate(c.start_date)} – ${fmtDate(c.end_date)} · Inscripción hasta ${fmtDate(c.registration_deadline)} · ${insc.length}${c.max_pairs ? '/'+c.max_pairs : ''} parejas · ${STATUS_LABELS[c.status]}
+              </div>
+              <div style="margin-top:8px; display:flex; gap:6px; align-items:center; flex-wrap:wrap;">
+                <input type="file" accept="image/*" data-comp-file="${c.id}" style="font-size:11px; width:160px;">
+                <button class="btn btn-ghost btn-sm" data-comp-upload="${c.id}">Subir foto</button>
+                ${c.image_path ? `<button class="btn btn-danger btn-sm" data-comp-remove-photo="${c.id}" data-path="${c.image_path}">Quitar</button>` : ''}
+              </div>
             </div>
           </div>
           <div class="row-actions">
@@ -1415,6 +1432,27 @@ async function renderCompetitions(){
         await supabase.from('reservas_padel').delete().eq('competicion_partido_id', p.id);
       }
       await supabase.from('competiciones_padel').delete().eq('id', compId);
+      renderCompetitions();
+    });
+  });
+  container.querySelectorAll('[data-comp-upload]').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const compId = btn.dataset.compUpload;
+      const fileInput = container.querySelector(`input[data-comp-file="${compId}"]`);
+      const file = fileInput.files[0];
+      if (!file){ alert('Elige antes una foto.'); return; }
+      btn.disabled = true;
+      const { path, error: uploadError } = await uploadPadelImage(file, 'torneos', compId);
+      if (uploadError){ alert('No se ha podido subir: ' + uploadError.message); btn.disabled = false; return; }
+      await supabase.from('competiciones_padel').update({ image_path: path }).eq('id', compId);
+      renderCompetitions();
+    });
+  });
+  container.querySelectorAll('[data-comp-remove-photo]').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      if (!confirm('¿Quitar la foto de esta competición?')) return;
+      await supabase.storage.from('galeria-padel').remove([btn.dataset.path]);
+      await supabase.from('competiciones_padel').update({ image_path: null }).eq('id', btn.dataset.compRemovePhoto);
       renderCompetitions();
     });
   });
@@ -1513,11 +1551,21 @@ async function loadCourts(){
   const { data, error } = await supabase.from('pistas_padel').select('*').order('sort_order');
   const body = document.getElementById('courtsBody');
   COURTS_BY_ID = {};
-  if (error || !data){ body.innerHTML = `<tr><td colspan="5">Error cargando pistas.</td></tr>`; return; }
+  if (error || !data){ body.innerHTML = `<tr><td colspan="6">Error cargando pistas.</td></tr>`; return; }
   data.forEach(c => COURTS_BY_ID[c.id] = c.name);
-  if (!data.length){ body.innerHTML = `<tr><td colspan="5">No hay pistas todavía.</td></tr>`; return; }
+  if (!data.length){ body.innerHTML = `<tr><td colspan="6">No hay pistas todavía.</td></tr>`; return; }
   body.innerHTML = data.map(c => `
     <tr data-id="${c.id}">
+      <td>
+        ${c.image_path ? `<img src="${padelImageUrl(c.image_path)}" style="width:56px; height:56px; object-fit:cover; border-radius:8px;">` : '<span style="color:var(--ink-soft); font-size:12.5px;">Sin foto</span>'}
+        <div style="margin-top:6px; display:flex; flex-direction:column; gap:4px; max-width:150px;">
+          <input type="file" accept="image/*" data-court-file="${c.id}" style="font-size:11px;">
+          <div class="row-actions">
+            <button class="btn btn-ghost btn-sm" data-court-upload="${c.id}">Subir</button>
+            ${c.image_path ? `<button class="btn btn-danger btn-sm" data-court-remove-photo="${c.id}" data-path="${c.image_path}">Quitar</button>` : ''}
+          </div>
+        </div>
+      </td>
       <td>${c.name}</td>
       <td>${c.surface || '—'}</td>
       <td>${c.sort_order}</td>
@@ -1529,6 +1577,28 @@ async function loadCourts(){
     </tr>
   `).join('');
   window._COURTS_CACHE = data;
+
+  body.querySelectorAll('[data-court-upload]').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const courtId = btn.dataset.courtUpload;
+      const fileInput = body.querySelector(`input[data-court-file="${courtId}"]`);
+      const file = fileInput.files[0];
+      if (!file){ alert('Elige antes una foto.'); return; }
+      btn.disabled = true;
+      const { path, error: uploadError } = await uploadPadelImage(file, 'pistas', courtId);
+      if (uploadError){ alert('No se ha podido subir: ' + uploadError.message); btn.disabled = false; return; }
+      await supabase.from('pistas_padel').update({ image_path: path }).eq('id', courtId);
+      loadCourts();
+    });
+  });
+  body.querySelectorAll('[data-court-remove-photo]').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      if (!confirm('¿Quitar la foto de esta pista?')) return;
+      await supabase.storage.from('galeria-padel').remove([btn.dataset.path]);
+      await supabase.from('pistas_padel').update({ image_path: null }).eq('id', btn.dataset.courtRemovePhoto);
+      loadCourts();
+    });
+  });
 }
 
 document.getElementById('newCourtBtn').addEventListener('click', () => {
