@@ -357,35 +357,12 @@
 
     <!-- ---------- Precios ---------- -->
     <section id="tabPrecios" class="tab-panel" hidden>
-      <div class="panel-head"><h2>Precios</h2><button class="btn btn-primary btn-sm" id="newPriceBtn">+ Nuevo precio</button></div>
-      <div class="card" id="priceFormCard" hidden>
-        <form id="priceForm" class="form-grid">
-          <input type="hidden" id="price_id">
-          <div class="field">
-            <label for="price_day_group">Tipo de día</label>
-            <select id="price_day_group">
-              <option value="laborable">Lunes a viernes</option>
-              <option value="fin_semana_festivo">Fin de semana / festivo</option>
-            </select>
-          </div>
-          <div class="field"><label for="price_label">Etiqueta</label><input type="text" id="price_label" required placeholder="Mañana"></div>
-          <div class="field"><label for="price_hours_range">Franja horaria</label><input type="text" id="price_hours_range" required placeholder="08:00 - 17:00"></div>
-          <div class="field"><label for="price_amount">Precio (€)</label><input type="number" step="0.01" id="price_amount" required></div>
-          <div class="field"><label for="price_sort">Orden</label><input type="number" id="price_sort" value="0"></div>
-          <div class="field" style="display:flex; align-items:flex-end; gap:8px;">
-            <label style="margin:0; display:flex; align-items:center; gap:6px;"><input type="checkbox" id="price_active" style="width:auto;" checked> Activo</label>
-          </div>
-          <div style="grid-column:1/-1; display:flex; gap:10px; align-items:center;">
-            <button type="submit" class="btn btn-primary btn-sm">Guardar</button>
-            <button type="button" class="btn btn-ghost btn-sm" id="cancelPriceBtn">Cancelar</button>
-            <span class="form-msg" id="priceFormMsg"></span>
-          </div>
-        </form>
-      </div>
+      <div class="panel-head"><h2>Precios por duración</h2></div>
+      <p style="color:var(--ink-soft); font-size:13.5px; margin:-10px 0 0;">El precio de una reserva depende de cuánto tiempo elija jugar el cliente.</p>
       <div class="card table-wrap">
         <table>
-          <thead><tr><th>Tipo de día</th><th>Etiqueta</th><th>Franja</th><th>Precio</th><th>Activo</th><th></th></tr></thead>
-          <tbody id="pricesBody"></tbody>
+          <thead><tr><th>Duración</th><th>Precio</th><th>Activo</th><th></th></tr></thead>
+          <tbody id="durationsBody"></tbody>
         </table>
       </div>
 
@@ -543,7 +520,7 @@ document.querySelectorAll('nav.tabs button').forEach(btn => {
     if (btn.dataset.tab === 'tabClientes'){ if (!window._COURTS_CACHE) await loadCourts(); renderClients(); }
     if (btn.dataset.tab === 'tabTorneos'){ if (!window._COURTS_CACHE) await loadCourts(); renderCompetitions(); }
     if (btn.dataset.tab === 'tabPistas'){ await loadCourts(); loadMaintenance(); }
-    if (btn.dataset.tab === 'tabPrecios'){ loadPrices(); loadExtras(); }
+    if (btn.dataset.tab === 'tabPrecios'){ loadDurations(); loadExtras(); }
     if (btn.dataset.tab === 'tabFacturas') loadInvoices();
   });
 });
@@ -1708,79 +1685,37 @@ document.getElementById('maintenanceForm').addEventListener('submit', async (e) 
   loadMaintenance();
 });
 
-/* ---------- Precios ---------- */
-async function loadPrices(){
-  const { data, error } = await supabase.from('precios_padel').select('*').order('sort_order');
-  const body = document.getElementById('pricesBody');
-  if (error || !data){ body.innerHTML = `<tr><td colspan="6">Error cargando precios.</td></tr>`; return; }
-  if (!data.length){ body.innerHTML = `<tr><td colspan="6">No hay precios todavía.</td></tr>`; return; }
-  const dayLabels = { laborable: 'Lunes a viernes', fin_semana_festivo: 'Fin de semana / festivo' };
-  body.innerHTML = data.map(p => `
-    <tr data-id="${p.id}">
-      <td>${dayLabels[p.day_group] || p.day_group}</td>
-      <td>${p.label}</td>
-      <td>${p.hours_range}</td>
-      <td>${formatPrice(p.price)}</td>
-      <td>${p.active ? 'Sí' : 'No'}</td>
-      <td class="row-actions">
-        <button class="btn btn-ghost btn-sm" data-action="edit">Editar</button>
-        <button class="btn btn-danger btn-sm" data-action="delete">Borrar</button>
-      </td>
+/* ---------- Precios por duración ---------- */
+function durationLabel(mins){
+  if (mins === 60) return '1 hora';
+  if (mins % 60 === 0) return `${mins / 60} horas`;
+  return `${Math.floor(mins/60)}h ${mins%60}min`;
+}
+async function loadDurations(){
+  const { data, error } = await supabase.from('duraciones_padel').select('*').order('sort_order');
+  const body = document.getElementById('durationsBody');
+  if (error || !data){ body.innerHTML = `<tr><td colspan="4">Error cargando precios.</td></tr>`; return; }
+  if (!data.length){ body.innerHTML = `<tr><td colspan="4">No hay duraciones configuradas todavía.</td></tr>`; return; }
+  body.innerHTML = data.map(d => `
+    <tr data-id="${d.id}">
+      <td>${durationLabel(d.duration_minutes)}</td>
+      <td><input type="number" step="0.01" class="duration-price" value="${d.price}" style="max-width:120px;"></td>
+      <td><input type="checkbox" class="duration-active" style="width:auto;" ${d.active ? 'checked' : ''}></td>
+      <td class="row-actions"><button class="btn btn-ghost btn-sm" data-action="save">Guardar</button></td>
     </tr>
   `).join('');
-  window._PRICES_CACHE = data;
 }
 
-document.getElementById('newPriceBtn').addEventListener('click', () => {
-  document.getElementById('priceForm').reset();
-  document.getElementById('price_id').value = '';
-  document.getElementById('price_active').checked = true;
-  document.getElementById('priceFormMsg').textContent = '';
-  document.getElementById('priceFormCard').hidden = false;
-});
-document.getElementById('cancelPriceBtn').addEventListener('click', () => {
-  document.getElementById('priceFormCard').hidden = true;
-});
-document.getElementById('pricesBody').addEventListener('click', async (e) => {
-  const btn = e.target.closest('button[data-action]');
+document.getElementById('durationsBody').addEventListener('click', async (e) => {
+  const btn = e.target.closest('button[data-action="save"]');
   if (!btn) return;
-  const id = btn.closest('tr').dataset.id;
-  if (btn.dataset.action === 'delete'){
-    if (!confirm('¿Borrar este precio?')) return;
-    await supabase.from('precios_padel').delete().eq('id', id);
-    loadPrices();
-  } else if (btn.dataset.action === 'edit'){
-    const p = (window._PRICES_CACHE || []).find(x => x.id === id);
-    if (!p) return;
-    document.getElementById('price_id').value = p.id;
-    document.getElementById('price_day_group').value = p.day_group;
-    document.getElementById('price_label').value = p.label;
-    document.getElementById('price_hours_range').value = p.hours_range;
-    document.getElementById('price_amount').value = p.price;
-    document.getElementById('price_sort').value = p.sort_order;
-    document.getElementById('price_active').checked = p.active;
-    document.getElementById('priceFormMsg').textContent = '';
-    document.getElementById('priceFormCard').hidden = false;
-  }
-});
-document.getElementById('priceForm').addEventListener('submit', async (e) => {
-  e.preventDefault();
-  const id = document.getElementById('price_id').value;
-  const payload = {
-    day_group: document.getElementById('price_day_group').value,
-    label: document.getElementById('price_label').value.trim(),
-    hours_range: document.getElementById('price_hours_range').value.trim(),
-    price: Number(document.getElementById('price_amount').value),
-    sort_order: Number(document.getElementById('price_sort').value || 0),
-    active: document.getElementById('price_active').checked,
-  };
-  const { error } = id
-    ? await supabase.from('precios_padel').update(payload).eq('id', id)
-    : await supabase.from('precios_padel').insert(payload);
-  const msg = document.getElementById('priceFormMsg');
-  if (error){ msg.textContent = 'Error al guardar.'; msg.className = 'form-msg err'; return; }
-  document.getElementById('priceFormCard').hidden = true;
-  loadPrices();
+  const tr = btn.closest('tr');
+  const id = tr.dataset.id;
+  const price = Number(tr.querySelector('.duration-price').value);
+  const active = tr.querySelector('.duration-active').checked;
+  const { error } = await supabase.from('duraciones_padel').update({ price, active }).eq('id', id);
+  if (error){ alert('Error al guardar el precio.'); return; }
+  loadDurations();
 });
 
 /* ---------- Extras ---------- */

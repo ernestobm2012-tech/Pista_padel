@@ -173,6 +173,17 @@
   .slot-btn.taken:hover{ border-color:var(--line); }
   .slots-empty{ color:var(--ink-soft); font-size:14px; padding:20px 0; text-align:center; }
 
+  .duration-options{ display:grid; grid-template-columns:repeat(3, 1fr); gap:10px; }
+  .duration-btn{
+    background:var(--bg-soft); border:1px solid var(--line); border-radius:10px; padding:12px 6px;
+    color:var(--ink); font-family:'Outfit'; font-weight:600; font-size:13.5px; cursor:pointer; text-align:center;
+    display:flex; flex-direction:column; gap:2px; transition:border-color .15s ease;
+  }
+  .duration-btn .amt{ color:var(--lime); font-size:15px; }
+  .duration-btn:hover{ border-color:var(--lime); }
+  .duration-btn.selected{ border-color:var(--lime); background:rgba(198,255,61,.08); }
+  .duration-btn:disabled{ opacity:.35; cursor:not-allowed; text-decoration:line-through; }
+
   /* ---------- Modal ---------- */
   .modal-backdrop{
     position:fixed; inset:0; background:rgba(0,0,0,.6); display:flex; align-items:center; justify-content:center;
@@ -240,7 +251,7 @@
     </div>
     <div class="hero-card">
       <div class="hero-stat"><span>Pistas disponibles</span><b id="statCourts">—</b></div>
-      <div class="hero-stat"><span>Reserva mínima</span><b>90 min</b></div>
+      <div class="hero-stat"><span>Reserva mínima</span><b id="statMinDuration">—</b></div>
       <div class="hero-stat"><span>Horario</span><b>08:00–23:00</b></div>
     </div>
   </div>
@@ -263,8 +274,8 @@
   <div class="wrap">
     <div class="section-head">
       <span class="eyebrow">Tarifas</span>
-      <h2>Precios por franja horaria</h2>
-      <p>Precio por pista y turno de 90 minutos.</p>
+      <h2>Precios por duración</h2>
+      <p>Elige cuánto tiempo quieres jugar al reservar.</p>
     </div>
     <div class="price-groups" id="priceGroups">
       <p style="text-align:center; color:var(--ink-soft);">Cargando precios…</p>
@@ -348,6 +359,10 @@
     </div>
     <form id="bookingForm">
       <div class="field">
+        <label>Duración</label>
+        <div class="duration-options" id="durationOptions"></div>
+      </div>
+      <div class="field">
         <label for="full_name">Nombre y apellidos</label>
         <input type="text" id="full_name" required>
       </div>
@@ -423,7 +438,7 @@ document.getElementById('year').textContent = new Date().getFullYear();
 
 const OPEN_TIME = '08:00';
 const CLOSE_TIME = '23:00';
-const SLOT_MINUTES = 90;
+const START_STEP_MINUTES = 30;
 
 function toMinutes(hhmm){
   const [h, m] = hhmm.split(':').map(Number);
@@ -434,17 +449,25 @@ function toHHMM(mins){
   const m = String(mins % 60).padStart(2, '0');
   return `${h}:${m}`;
 }
-function buildSlots(){
-  const slots = [];
-  let start = toMinutes(OPEN_TIME);
-  const close = toMinutes(CLOSE_TIME);
-  while (start + SLOT_MINUTES <= close){
-    slots.push({ start: toHHMM(start), end: toHHMM(start + SLOT_MINUTES) });
-    start += SLOT_MINUTES;
-  }
-  return slots;
+function durationLabel(mins){
+  if (mins === 60) return '1 hora';
+  if (mins % 60 === 0) return `${mins / 60} horas`;
+  return `${Math.floor(mins/60)}h ${mins%60}min`;
 }
-const ALL_SLOTS = buildSlots();
+
+let DURATIONS = [];
+let ALL_START_TIMES = [];
+function buildStartTimes(){
+  const minDuration = DURATIONS.length ? Math.min(...DURATIONS.map(d => d.duration_minutes)) : 60;
+  const starts = [];
+  let t = toMinutes(OPEN_TIME);
+  const close = toMinutes(CLOSE_TIME);
+  while (t + minDuration <= close){
+    starts.push(toHHMM(t));
+    t += START_STEP_MINUTES;
+  }
+  return starts;
+}
 
 function formatPrice(n){
   return new Intl.NumberFormat('es-ES', { style:'currency', currency:'EUR', minimumFractionDigits:0 }).format(n);
@@ -456,12 +479,6 @@ function addDays(dateStr, n){
   const d = new Date(dateStr + 'T00:00:00');
   d.setDate(d.getDate() + n);
   return d.toISOString().slice(0,10);
-}
-
-let FESTIVOS = new Set();
-async function loadFestivos(){
-  const { data } = await supabase.from('festivos_padel').select('event_date');
-  FESTIVOS = new Set((data || []).map(r => r.event_date));
 }
 
 let LIGHT_EXTRA = null;
@@ -478,12 +495,6 @@ async function loadMaintenance(){
 }
 function maintenanceFor(pistaId, dateStr){
   return MAINTENANCE.find(m => m.pista_id === pistaId && dateStr >= m.start_date && dateStr <= m.end_date) || null;
-}
-function dayGroupFor(dateStr){
-  const d = new Date(dateStr + 'T00:00:00');
-  const dow = d.getDay(); // 0 domingo, 6 sábado
-  const isWeekend = dow === 0 || dow === 6;
-  return (isWeekend || FESTIVOS.has(dateStr)) ? 'fin_semana_festivo' : 'laborable';
 }
 
 let ALL_COURTS = [];
@@ -509,45 +520,56 @@ async function loadCourts(){
   select.innerHTML = ALL_COURTS.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
 }
 
-async function loadPricing(){
-  const { data, error } = await supabase.from('precios_padel').select('*').eq('active', true).order('sort_order');
+async function loadDurations(){
+  const { data, error } = await supabase.from('duraciones_padel').select('*').eq('active', true).order('sort_order');
+  DURATIONS = data || [];
+  if (DURATIONS.length){
+    document.getElementById('statMinDuration').textContent = durationLabel(Math.min(...DURATIONS.map(d => d.duration_minutes)));
+  }
   const wrap = document.getElementById('priceGroups');
-  if (error || !data || !data.length){
+  if (error || !DURATIONS.length){
     wrap.innerHTML = '<p style="text-align:center; color:var(--ink-soft);">Aún no hay precios configurados.</p>';
     return;
   }
-  const groups = {
-    laborable: { title: 'Lunes a viernes', rows: [] },
-    fin_semana_festivo: { title: 'Fines de semana y festivos', rows: [] },
-  };
-  data.forEach(p => { if (groups[p.day_group]) groups[p.day_group].rows.push(p); });
-
-  wrap.innerHTML = Object.values(groups).filter(g => g.rows.length).map(g => `
+  wrap.innerHTML = `
     <div class="price-group">
-      <h3>${g.title}</h3>
-      ${g.rows.map(r => `
+      ${DURATIONS.map(d => `
         <div class="price-row">
-          <span class="label">${r.label}<span class="range">${r.hours_range}</span></span>
-          <span class="amt">${formatPrice(r.price)}</span>
+          <span class="label">${durationLabel(d.duration_minutes)}</span>
+          <span class="amt">${formatPrice(d.price)}</span>
         </div>
       `).join('')}
     </div>
-  `).join('');
+  `;
 }
 
-let BUSY_SLOTS = new Set();
+let BUSY_INTERVALS = [];
 async function loadAvailability(pistaId, dateStr){
   const { data } = await supabase
     .from('disponibilidad_padel')
     .select('start_time, end_time')
     .eq('pista_id', pistaId)
     .eq('reservation_date', dateStr);
-  BUSY_SLOTS = new Set((data || []).map(r => `${r.start_time.slice(0,5)}-${r.end_time.slice(0,5)}`));
+  BUSY_INTERVALS = (data || []).map(r => [toMinutes(r.start_time.slice(0,5)), toMinutes(r.end_time.slice(0,5))]);
+}
+
+function overlapsBusy(startMin, endMin){
+  return BUSY_INTERVALS.some(([bStart, bEnd]) => startMin < bEnd && endMin > bStart);
+}
+
+function availableDurationsFor(startStr){
+  const startMin = toMinutes(startStr);
+  const close = toMinutes(CLOSE_TIME);
+  return DURATIONS.filter(d => {
+    const endMin = startMin + d.duration_minutes;
+    return endMin <= close && !overlapsBusy(startMin, endMin);
+  });
 }
 
 function renderSlots(dateStr, maintenance){
   const grid = document.getElementById('slotsGrid');
-  const isPast = dateStr < new Date().toISOString().slice(0,10);
+  const today = new Date().toISOString().slice(0,10);
+  const isPast = dateStr < today;
   if (isPast){
     grid.innerHTML = '<p class="slots-empty">Elige una fecha a partir de hoy.</p>';
     return;
@@ -558,10 +580,12 @@ function renderSlots(dateStr, maintenance){
     grid.innerHTML = `<div class="maintenance-note">🔧 Esta pista está en mantenimiento del ${desde} al ${hasta}${maintenance.reason ? ` (${maintenance.reason})` : ''}. Elige otra pista u otra fecha.</div>`;
     return;
   }
-  grid.innerHTML = ALL_SLOTS.map(s => {
-    const key = `${s.start}-${s.end}`;
-    const taken = BUSY_SLOTS.has(key);
-    return `<button type="button" class="slot-btn ${taken ? 'taken' : ''}" ${taken ? 'disabled' : ''} data-start="${s.start}" data-end="${s.end}">${s.start}</button>`;
+  const isToday = dateStr === today;
+  const nowMinutes = toMinutes(new Date().toTimeString().slice(0,5));
+  grid.innerHTML = ALL_START_TIMES.map(s => {
+    const isPastToday = isToday && toMinutes(s) <= nowMinutes;
+    const taken = isPastToday || !availableDurationsFor(s).length;
+    return `<button type="button" class="slot-btn ${taken ? 'taken' : ''}" ${taken ? 'disabled' : ''} data-start="${s}">${s}</button>`;
   }).join('');
 }
 
@@ -583,8 +607,8 @@ async function refreshSlots(){
 }
 
 let selectedSlot = null;
-function openBookingModal(startTime, endTime){
-  selectedSlot = { start: startTime, end: endTime };
+function openBookingModal(startTime){
+  selectedSlot = null;
   const pistaId = document.getElementById('pistaSelect').value;
   const court = ALL_COURTS.find(c => c.id === pistaId);
   const dateStr = document.getElementById('dateInput').value;
@@ -592,10 +616,32 @@ function openBookingModal(startTime, endTime){
 
   document.getElementById('modalPista').textContent = court ? court.name : '';
   document.getElementById('modalDateTime').textContent =
-    `${d.toLocaleDateString('es-ES', { weekday:'long', day:'numeric', month:'long' })} · ${startTime}–${endTime}`;
+    `${d.toLocaleDateString('es-ES', { weekday:'long', day:'numeric', month:'long' })} · ${startTime}`;
 
   document.getElementById('bookingForm').reset();
   document.getElementById('formMsg').textContent = '';
+
+  const validDurations = availableDurationsFor(startTime);
+  const durationsWrap = document.getElementById('durationOptions');
+  durationsWrap.innerHTML = DURATIONS.map(d => {
+    const isValid = validDurations.some(v => v.duration_minutes === d.duration_minutes);
+    return `<button type="button" class="duration-btn" data-duration="${d.duration_minutes}" ${isValid ? '' : 'disabled'}>
+      <span>${durationLabel(d.duration_minutes)}</span><span class="amt">${formatPrice(d.price)}</span>
+    </button>`;
+  }).join('');
+
+  durationsWrap.querySelectorAll('.duration-btn:not(:disabled)').forEach(btn => {
+    btn.addEventListener('click', () => {
+      durationsWrap.querySelectorAll('.duration-btn').forEach(b => b.classList.remove('selected'));
+      btn.classList.add('selected');
+      const dur = Number(btn.dataset.duration);
+      const durationInfo = DURATIONS.find(x => x.duration_minutes === dur);
+      const startMin = toMinutes(startTime);
+      selectedSlot = { start: startTime, duration: dur, end: toHHMM(startMin + dur), price: durationInfo.price };
+    });
+  });
+  const firstValidBtn = durationsWrap.querySelector('.duration-btn:not(:disabled)');
+  if (firstValidBtn) firstValidBtn.click();
 
   const lightField = document.getElementById('lightField');
   if (LIGHT_EXTRA){
@@ -669,7 +715,8 @@ function closeSignupModal(){
 }
 
 async function init(){
-  await Promise.all([loadCourts(), loadPricing(), loadFestivos(), loadExtras(), loadMaintenance(), loadCompetitions()]);
+  await Promise.all([loadCourts(), loadDurations(), loadExtras(), loadMaintenance(), loadCompetitions()]);
+  ALL_START_TIMES = buildStartTimes();
 
   const today = new Date().toISOString().slice(0,10);
   const dateInput = document.getElementById('dateInput');
@@ -681,7 +728,7 @@ async function init(){
 
   document.getElementById('slotsGrid').addEventListener('click', (e) => {
     const btn = e.target.closest('.slot-btn');
-    if (btn && !btn.disabled) openBookingModal(btn.dataset.start, btn.dataset.end);
+    if (btn && !btn.disabled) openBookingModal(btn.dataset.start);
   });
 
   document.getElementById('modalClose').addEventListener('click', closeBookingModal);
@@ -733,6 +780,11 @@ async function init(){
       return;
     }
 
+    if (!selectedSlot){
+      setMsg('Elige una duración.', 'err');
+      return;
+    }
+
     const wantsLight = document.getElementById('wants_light').checked;
 
     const payload = {
@@ -740,6 +792,8 @@ async function init(){
       reservation_date: reservationDate,
       start_time: selectedSlot.start,
       end_time: selectedSlot.end,
+      duration_minutes: selectedSlot.duration,
+      price: selectedSlot.price,
       full_name: document.getElementById('full_name').value.trim(),
       phone: document.getElementById('phone').value.trim(),
       email: document.getElementById('email').value.trim() || null,

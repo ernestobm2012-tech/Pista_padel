@@ -8,9 +8,9 @@ Netlify, Vercel...).
 
 ## Qué incluye
 
-- Portada con pistas, precios por franja horaria y calendario de disponibilidad
-  (por pista + fecha) para reservar un turno de 90 minutos directamente desde el
-  navegador, con opción de añadir luz a la reserva.
+- Portada con pistas, calendario de disponibilidad (por pista + fecha) y
+  reserva con duración a elegir (1h / 1h30 / 2h, cada una con su precio, al
+  estilo Playtomic) directamente desde el navegador, con opción de añadir luz.
 - Panel de administración (`admin.html`, protegido con login) para confirmar o
   cancelar reservas, gestionar pistas, precios, extras (luz) y cierres de
   mantenimiento, y emitir facturas simples.
@@ -32,14 +32,16 @@ Este proyecto reutiliza el proyecto Supabase **`paseo-perros-app`** (ref
 `_padel` para no mezclarse con las tablas de esa otra app:
 
 - `pistas_padel` — pistas del club (nombre, superficie, orden, activa).
-- `precios_padel` — tarifas por franja (`laborable` / `fin_semana_festivo`).
-- `festivos_padel` — días festivos, para aplicar la tarifa de fin de semana.
+- `duraciones_padel` — precio según cuánto tiempo se reserva (1h = 3€, 1h30 =
+  4,5€, 2h = 6€ por defecto); el cliente elige duración al reservar, como en
+  Playtomic. La reserva mínima es la duración más corta activa.
 - `mantenimientos_padel` — cierres temporales de una pista (fecha inicio/fin +
   motivo); mientras una pista está en mantenimiento no se puede reservar esas
   fechas.
 - `extras_padel` — extras opcionales de la reserva (de momento, "Luz").
-- `reservas_padel` — cada solicitud de reserva (estado `pendiente` por defecto),
-  incluye si el cliente ha pedido luz y a qué precio se congeló en ese momento.
+- `reservas_padel` — cada solicitud de reserva (estado `confirmada` en cuanto
+  se guarda si la hora está libre), incluye duración, precio, y si el cliente
+  ha pedido luz y a qué precio se congeló en ese momento.
 - `disponibilidad_padel` (vista) — solo pista/fecha/hora de reservas activas,
   para pintar los horarios libres/ocupados (sin datos personales).
 - `invoices_padel` — facturas simples (numeración correlativa por año).
@@ -53,15 +55,15 @@ solapadas en la misma pista; la segunda petición recibe un error y la app le
 pide elegir otro horario.
 
 Seguridad (Row Level Security):
-- Cualquiera puede **leer** pistas, precios, festivos, mantenimientos, extras y
+- Cualquiera puede **leer** pistas, duraciones/precios, mantenimientos, extras y
   disponibilidad.
 - Cualquiera puede **crear** una reserva (INSERT), pero **nadie puede leer, editar
   ni borrar** reservas ni facturas desde el navegador salvo el administrador
   logueado (`ernestobm2012@gmail.com`, mismo usuario que ya usas en Supabase).
 
-Para cambiar precios, pistas, extras o mantenimientos: hazlo desde `admin.html`
-(pestañas «Pistas» y «Precios»), o directamente en el dashboard de Supabase →
-Table Editor.
+Para cambiar precios por duración, pistas, extras o mantenimientos: hazlo desde
+`admin.html` (pestañas «Pistas» y «Precios»), o directamente en el dashboard de
+Supabase → Table Editor.
 
 ## Bot de WhatsApp
 
@@ -72,9 +74,10 @@ dashboard de Supabase → Edge Functions.
 
 Funciona con la API de WhatsApp Cloud de Meta:
 1. El cliente escribe al número de WhatsApp del ayuntamiento/pistas.
-2. El bot le pregunta pista → fecha → hora libre → nombre → jugadores → si
-   quiere luz, y al confirmar crea la reserva directamente en `reservas_padel`
-   (estado `pendiente`, igual que si reservara por la web).
+2. El bot le pregunta pista → fecha → hora libre → duración (con su precio)
+   → nombre → jugadores → si quiere luz, y al confirmar crea la reserva
+   directamente en `reservas_padel` ya **confirmada** (si la hora sigue libre
+   en ese momento), igual que si reservara por la web.
 3. Respeta los mantenimientos (`mantenimientos_padel`) y los horarios ya
    ocupados, igual que el calendario de `index.html`.
 4. Si el cliente escribe algo que no encaja en el guion (una pregunta libre),
@@ -161,12 +164,13 @@ La forma más rápida y gratuita es **GitHub Pages**:
 
 - Sustituye los datos de contacto de ejemplo (teléfono, email, dirección, redes
   sociales, mapa) por los reales en `index.html` (sección «Contacto»).
-- Ya se han creado 2 pistas y 3 precios de ejemplo en Supabase — ajústalos desde
-  `admin.html` a los reales.
-- El extra de "Luz" tiene un precio de ejemplo (4 €) — ajústalo desde `admin.html`
+- Ya se han creado 2 pistas y los 3 precios por duración de ejemplo (1h=3€,
+  1h30=4,5€, 2h=6€) en Supabase — ajústalos desde `admin.html` → pestaña
+  «Precios» a los reales.
+- El extra de "Luz" tiene un precio de ejemplo — ajústalo desde `admin.html`
   → pestaña «Precios» → «Extras».
-- El horario de reserva está fijado de 08:00 a 23:00 en turnos de 90 minutos
-  (constantes `OPEN_TIME`, `CLOSE_TIME`, `SLOT_MINUTES` en `index.html`); cámbialo
-  si tu club tiene otro horario o duración de turno.
+- El horario de apertura está fijado de 08:00 a 23:00, con horarios de inicio
+  cada 30 minutos (constantes `OPEN_TIME`, `CLOSE_TIME`, `START_STEP_MINUTES`
+  en `index.html`); cámbialo si tu club tiene otro horario.
 - Este proyecto está pensado para poder migrar más adelante a un stack con build
   (ej. Next.js) si el negocio crece — Supabase seguiría siendo la base de datos.
