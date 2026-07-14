@@ -75,6 +75,7 @@
   .btn-ghost:hover{ border-color:var(--lime); color:var(--lime); }
   .btn:disabled{ opacity:.5; cursor:not-allowed; }
   .btn[hidden]{ display:none; }
+  .btn-sm{ padding:8px 16px; font-size:13px; }
 
   /* ---------- Header ---------- */
   header{
@@ -205,7 +206,14 @@
   }
   .modal-head{ display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:18px; }
   .modal-close{ background:none; border:0; color:var(--ink-soft); font-size:22px; cursor:pointer; line-height:1; }
+  .my-res-card{ background:var(--bg-soft); border:1px solid var(--line); border-radius:12px; padding:14px 16px; margin-bottom:10px; display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap; }
+  .my-res-card .info{ font-size:14px; }
+  .my-res-card .info b{ display:block; margin-bottom:2px; }
+  .my-res-card .status{ font-size:12px; text-transform:uppercase; color:var(--ink-soft); }
+  .my-res-card .status.confirmada{ color:var(--lime); }
+  .my-res-card .status.cancelada{ color:#FF6B6B; }
   .modal form{ display:grid; gap:14px; }
+  .modal form[hidden]{ display:none; }
   .light-check{ display:flex; align-items:center; gap:10px; font-size:14.5px; color:var(--ink); cursor:pointer; }
   .light-check input{ width:18px; height:18px; accent-color:var(--lime); }
   .maintenance-note{
@@ -244,6 +252,7 @@
     </ul>
     <div class="nav-cta">
       <button class="btn btn-ghost" id="installBtn" hidden>📲 Instalar app</button>
+      <button class="btn btn-ghost" id="accountBtn">Iniciar sesión</button>
       <a href="#reserva" class="btn btn-primary">Reservar pista</a>
     </div>
     <button class="burger" id="burgerBtn" aria-label="Menú">☰</button>
@@ -439,6 +448,49 @@
   </div>
 </div>
 
+<!-- ---------- Modal de cuenta (login / registro / mis reservas) ---------- -->
+<div class="modal-backdrop" id="accountModal" hidden>
+  <div class="modal">
+    <div class="modal-head">
+      <div>
+        <span class="eyebrow">Mi cuenta</span>
+        <h3 id="accountModalTitle" style="margin-top:6px; font-size:20px;">Iniciar sesión</h3>
+      </div>
+      <button class="modal-close" id="accountModalClose" aria-label="Cerrar">✕</button>
+    </div>
+
+    <div id="authView">
+      <form id="loginForm">
+        <div class="field"><label for="login_email">Email</label><input type="email" id="login_email" required></div>
+        <div class="field"><label for="login_password">Contraseña</label><input type="password" id="login_password" required></div>
+        <div class="form-msg" id="loginMsg"></div>
+        <button type="submit" class="btn btn-primary">Entrar</button>
+      </form>
+      <p style="text-align:center; margin-top:14px; font-size:14px; color:var(--ink-soft);" id="showSignupWrap">
+        ¿No tienes cuenta? <a href="#" id="showSignupLink">Regístrate</a>
+      </p>
+
+      <form id="signupAccountForm" hidden>
+        <div class="field"><label for="signup_full_name">Nombre y apellidos</label><input type="text" id="signup_full_name" required></div>
+        <div class="field"><label for="signup_phone">Teléfono</label><input type="tel" id="signup_phone" required></div>
+        <div class="field"><label for="signup_email">Email</label><input type="email" id="signup_email" required></div>
+        <div class="field"><label for="signup_password">Contraseña (mínimo 6 caracteres)</label><input type="password" id="signup_password" required minlength="6"></div>
+        <div class="form-msg" id="signupAccountMsg"></div>
+        <button type="submit" class="btn btn-primary">Crear cuenta</button>
+      </form>
+      <p style="text-align:center; margin-top:14px; font-size:14px; color:var(--ink-soft);" id="showLoginWrap" hidden>
+        ¿Ya tienes cuenta? <a href="#" id="showLoginLink">Inicia sesión</a>
+      </p>
+    </div>
+
+    <div id="myAccountView" hidden>
+      <p style="font-size:14px; color:var(--ink-soft); margin:-8px 0 14px;">Sesión iniciada como <b id="accountEmail"></b></p>
+      <div id="myReservationsList"></div>
+      <button type="button" class="btn btn-ghost" id="accountLogoutBtn" style="margin-top:16px; width:100%;">Cerrar sesión</button>
+    </div>
+  </div>
+</div>
+
 <script type="module">
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
@@ -467,6 +519,168 @@ installBtn.addEventListener('click', async () => {
   deferredInstallPrompt = null;
 });
 window.addEventListener('appinstalled', () => { installBtn.hidden = true; });
+
+/* ---------- Cuenta de cliente (login / registro / mis reservas) ---------- */
+let currentUser = null;
+
+const accountBtn = document.getElementById('accountBtn');
+const accountModal = document.getElementById('accountModal');
+const accountModalTitle = document.getElementById('accountModalTitle');
+const authView = document.getElementById('authView');
+const myAccountView = document.getElementById('myAccountView');
+const loginForm = document.getElementById('loginForm');
+const signupAccountForm = document.getElementById('signupAccountForm');
+const loginMsg = document.getElementById('loginMsg');
+const signupAccountMsg = document.getElementById('signupAccountMsg');
+
+function showLoginForm(){
+  accountModalTitle.textContent = 'Iniciar sesión';
+  loginForm.hidden = false;
+  document.getElementById('showSignupWrap').hidden = false;
+  signupAccountForm.hidden = true;
+  document.getElementById('showLoginWrap').hidden = true;
+  loginMsg.textContent = '';
+}
+function showSignupForm(){
+  accountModalTitle.textContent = 'Crear cuenta';
+  loginForm.hidden = true;
+  document.getElementById('showSignupWrap').hidden = true;
+  signupAccountForm.hidden = false;
+  document.getElementById('showLoginWrap').hidden = false;
+  signupAccountMsg.textContent = '';
+}
+function renderAccountModal(){
+  if (currentUser){
+    accountModalTitle.textContent = 'Mi cuenta';
+    authView.hidden = true;
+    myAccountView.hidden = false;
+    document.getElementById('accountEmail').textContent = currentUser.email;
+    loadMyReservations();
+  } else {
+    accountModalTitle.textContent = 'Iniciar sesión';
+    authView.hidden = false;
+    myAccountView.hidden = true;
+    showLoginForm();
+  }
+}
+function openAccountModal(){
+  accountModal.hidden = false;
+  renderAccountModal();
+}
+function closeAccountModal(){
+  accountModal.hidden = true;
+}
+
+accountBtn.addEventListener('click', openAccountModal);
+document.getElementById('accountModalClose').addEventListener('click', closeAccountModal);
+accountModal.addEventListener('click', (e) => { if (e.target.id === 'accountModal') closeAccountModal(); });
+document.getElementById('showSignupLink').addEventListener('click', (e) => { e.preventDefault(); showSignupForm(); });
+document.getElementById('showLoginLink').addEventListener('click', (e) => { e.preventDefault(); showLoginForm(); });
+
+loginForm.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  loginMsg.textContent = 'Entrando…';
+  loginMsg.className = 'form-msg';
+  const email = document.getElementById('login_email').value.trim();
+  const password = document.getElementById('login_password').value;
+  const { error } = await supabase.auth.signInWithPassword({ email, password });
+  if (error){
+    loginMsg.textContent = 'Email o contraseña incorrectos.';
+    loginMsg.className = 'form-msg err';
+    return;
+  }
+  loginForm.reset();
+});
+
+signupAccountForm.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  signupAccountMsg.textContent = 'Creando cuenta…';
+  signupAccountMsg.className = 'form-msg';
+  const full_name = document.getElementById('signup_full_name').value.trim();
+  const phone = document.getElementById('signup_phone').value.trim();
+  const email = document.getElementById('signup_email').value.trim();
+  const password = document.getElementById('signup_password').value;
+  const { data, error } = await supabase.auth.signUp({
+    email, password,
+    options: { data: { full_name, phone } },
+  });
+  if (error){
+    signupAccountMsg.textContent = /already registered|already exists/i.test(error.message)
+      ? 'Ya existe una cuenta con ese email. Inicia sesión.'
+      : 'No se ha podido crear la cuenta. Inténtalo de nuevo.';
+    signupAccountMsg.className = 'form-msg err';
+    return;
+  }
+  signupAccountForm.reset();
+  if (data.session) return;
+  signupAccountMsg.textContent = 'Cuenta creada. Revisa tu email para confirmarla y luego inicia sesión.';
+  signupAccountMsg.className = 'form-msg ok';
+  setTimeout(showLoginForm, 2500);
+});
+
+document.getElementById('accountLogoutBtn').addEventListener('click', async () => {
+  await supabase.auth.signOut();
+  closeAccountModal();
+});
+
+function fmtResDate(d){
+  return new Date(d + 'T00:00:00').toLocaleDateString('es-ES', { day:'numeric', month:'short', year:'numeric' });
+}
+
+async function loadMyReservations(){
+  const list = document.getElementById('myReservationsList');
+  list.innerHTML = '<p style="color:var(--ink-soft); font-size:14px;">Cargando…</p>';
+  const { data, error } = await supabase.from('reservas_padel').select('*')
+    .eq('user_id', currentUser.id)
+    .order('reservation_date', { ascending: false })
+    .order('start_time', { ascending: false });
+  if (error || !data){
+    list.innerHTML = '<p style="color:var(--ink-soft); font-size:14px;">Error cargando tus reservas.</p>';
+    return;
+  }
+  if (!data.length){
+    list.innerHTML = '<p style="color:var(--ink-soft); font-size:14px;">Todavía no tienes reservas hechas con esta cuenta.</p>';
+    return;
+  }
+  const now = new Date();
+  list.innerHTML = data.map(r => {
+    const court = ALL_COURTS.find(c => c.id === r.pista_id);
+    const resDateTime = new Date(`${r.reservation_date}T${r.start_time}`);
+    const canCancel = r.status !== 'cancelada' && resDateTime > now;
+    return `
+      <div class="my-res-card" data-id="${r.id}">
+        <div class="info">
+          <b>${court ? court.name : 'Pista'} · ${fmtResDate(r.reservation_date)}</b>
+          <span>${r.start_time.slice(0,5)}–${r.end_time.slice(0,5)}${r.wants_light ? ' · con luz' : ''}</span>
+          <div class="status ${r.status}">${r.status}</div>
+        </div>
+        ${canCancel ? `<button type="button" class="btn btn-ghost btn-sm" data-cancel="${r.id}">Cancelar</button>` : ''}
+      </div>`;
+  }).join('');
+
+  list.querySelectorAll('[data-cancel]').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      if (!confirm('¿Seguro que quieres cancelar esta reserva?')) return;
+      btn.disabled = true;
+      btn.textContent = 'Cancelando…';
+      const { error } = await supabase.rpc('cancelar_reserva_cliente', { p_reserva_id: btn.dataset.cancel });
+      if (error){
+        alert('No se ha podido cancelar: ' + error.message);
+        btn.disabled = false;
+        btn.textContent = 'Cancelar';
+        return;
+      }
+      loadMyReservations();
+      refreshSlots();
+    });
+  });
+}
+
+supabase.auth.onAuthStateChange((_event, session) => {
+  currentUser = session ? session.user : null;
+  accountBtn.textContent = currentUser ? 'Mi cuenta' : 'Iniciar sesión';
+  if (!accountModal.hidden) renderAccountModal();
+});
 
 const OPEN_TIME = '08:00';
 const CLOSE_TIME = '23:00';
@@ -652,6 +866,11 @@ function openBookingModal(startTime){
 
   document.getElementById('bookingForm').reset();
   document.getElementById('formMsg').textContent = '';
+  if (currentUser){
+    document.getElementById('full_name').value = currentUser.user_metadata?.full_name || '';
+    document.getElementById('phone').value = currentUser.user_metadata?.phone || '';
+    document.getElementById('email').value = currentUser.email || '';
+  }
 
   const validDurations = availableDurationsFor(startTime);
   const durationsWrap = document.getElementById('durationOptions');
@@ -834,6 +1053,7 @@ async function init(){
       wants_light: wantsLight,
       light_price: wantsLight && LIGHT_EXTRA ? LIGHT_EXTRA.price : null,
       status: 'confirmada',
+      user_id: currentUser ? currentUser.id : null,
     };
 
     const submitBtn = e.target.querySelector('button[type="submit"]');

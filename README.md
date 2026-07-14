@@ -89,6 +89,28 @@ hay una restricción a nivel de base de datos (`reservas_padel_no_overlap`, con
 solapadas en la misma pista; la segunda petición recibe un error y la app le
 pide elegir otro horario.
 
+## Cuentas de cliente
+
+Reservar **no requiere cuenta** — se puede seguir reservando como invitado
+igual que siempre, solo con nombre y teléfono. Pero si el cliente quiere,
+puede crear una cuenta (botón **"Iniciar sesión"** arriba a la derecha en
+`index.html`) con email y contraseña para:
+
+- Que sus próximas reservas se guarden ligadas a su cuenta automáticamente
+  (el formulario de reserva se rellena solo con su nombre/teléfono/email).
+- Ver y **cancelar sus propias reservas futuras** desde "Mi cuenta", sin
+  tener que llamar o escribir al ayuntamiento.
+
+Técnicamente, `reservas_padel` tiene una columna `user_id` (rellena solo si
+el cliente estaba logueado al reservar) y usa el sistema de usuarios de
+Supabase Auth — el mismo que ya usa el administrador, pero cualquiera puede
+registrarse como cliente. Cada cliente solo puede ver/cancelar sus propias
+reservas (nunca las de otros) gracias a las políticas de seguridad a nivel
+de fila; cancelarlas pasa siempre por una función segura (`cancelar_reserva_cliente`)
+que comprueba que la reserva es suya y que todavía no ha pasado, así que no
+se puede manipular directamente. El administrador sigue viendo y gestionando
+todas las reservas (con o sin cuenta) desde `admin.html` como hasta ahora.
+
 Seguridad (Row Level Security):
 - Cualquiera puede **leer** pistas, duraciones/precios, mantenimientos, extras y
   disponibilidad.
