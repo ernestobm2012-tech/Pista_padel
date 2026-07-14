@@ -118,6 +118,20 @@ un mensaje genérico de "contraseña incorrecta"). También hay un enlace
 **"¿Has olvidado tu contraseña?"** en el login que manda un correo con un
 enlace para elegir una nueva.
 
+El acceso a `admin.html` está restringido a tu cuenta (`ernestobm2012@gmail.com`)
+por email, no solo por tener sesión iniciada: si una cuenta de cliente intenta
+entrar ahí, se le cierra la sesión automáticamente y se le avisa de que no
+tiene acceso.
+
+### Listado de clientes registrados
+
+En `admin.html` → pestaña «Clientes» → «Cuentas dadas de alta en la web» ves
+la lista de quienes se han creado una cuenta (no las reservas de invitado),
+con un **número de cliente** correlativo y los datos que aportaron al
+registrarse (nombre, teléfono, email, fecha de alta). Se guarda en la tabla
+`clientes_padel`, rellenada automáticamente por un disparador cada vez que
+alguien se registra.
+
 Seguridad (Row Level Security):
 - Cualquiera puede **leer** pistas, duraciones/precios, mantenimientos, extras y
   disponibilidad.

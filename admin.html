@@ -294,6 +294,15 @@
       </div>
       <p style="color:var(--ink-soft); font-size:14px; margin:-10px 0 0;">Clientes ordenados por número de reservas confirmadas.</p>
       <div id="clientsList"></div>
+
+      <h3 style="margin:28px 0 4px;">Cuentas dadas de alta en la web</h3>
+      <p style="color:var(--ink-soft); font-size:14px; margin:0 0 12px;">Clientes que se han registrado con email y contraseña en index.html, con los datos que aportaron.</p>
+      <div class="card table-wrap">
+        <table>
+          <thead><tr><th>Nº cliente</th><th>Nombre</th><th>Teléfono</th><th>Email</th><th>Fecha de alta</th></tr></thead>
+          <tbody id="registeredClientsBody"></tbody>
+        </table>
+      </div>
     </section>
 
     <!-- ---------- Estadísticas ---------- -->
@@ -666,7 +675,7 @@ document.querySelectorAll('nav.tabs button').forEach(btn => {
     panel.hidden = false;
     if (btn.dataset.tab === 'tabReservas') loadReservations();
     if (btn.dataset.tab === 'tabCalendario'){ if (!window._COURTS_CACHE) await loadCourts(); renderCalendarState(); }
-    if (btn.dataset.tab === 'tabClientes'){ if (!window._COURTS_CACHE) await loadCourts(); renderClients(); }
+    if (btn.dataset.tab === 'tabClientes'){ if (!window._COURTS_CACHE) await loadCourts(); renderClients(); loadRegisteredClients(); }
     if (btn.dataset.tab === 'tabEstadisticas'){ if (!window._COURTS_CACHE) await loadCourts(); renderStats(); }
     if (btn.dataset.tab === 'tabTorneos'){ if (!window._COURTS_CACHE) await loadCourts(); renderCompetitions(); }
     if (btn.dataset.tab === 'tabPistas'){ await loadCourts(); loadMaintenance(); }
@@ -1023,6 +1032,29 @@ document.getElementById('clientSearchInput').addEventListener('input', (e) => {
   );
   renderClientsList(filtered);
 });
+
+async function loadRegisteredClients(){
+  const body = document.getElementById('registeredClientsBody');
+  body.innerHTML = `<tr><td colspan="5">Cargando…</td></tr>`;
+  const { data, error } = await supabase.from('clientes_padel').select('*').order('numero_cliente');
+  if (error){
+    body.innerHTML = `<tr><td colspan="5">Error cargando clientes registrados.</td></tr>`;
+    return;
+  }
+  if (!data.length){
+    body.innerHTML = `<tr><td colspan="5">Todavía no hay clientes registrados con cuenta.</td></tr>`;
+    return;
+  }
+  body.innerHTML = data.map(c => `
+    <tr>
+      <td>#${c.numero_cliente}</td>
+      <td>${c.full_name || '—'}</td>
+      <td>${c.phone || '—'}</td>
+      <td>${c.email || '—'}</td>
+      <td>${fmtDate(c.created_at.slice(0, 10))}</td>
+    </tr>
+  `).join('');
+}
 
 /* ---------- Estadísticas ---------- */
 document.getElementById('statsRange').addEventListener('change', renderStats);
