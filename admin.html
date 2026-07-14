@@ -684,7 +684,11 @@ document.getElementById('reservationForm').addEventListener('submit', async (e) 
   };
 
   const { error } = await supabase.from('reservas_padel').insert(payload);
-  if (error){ msg.textContent = 'Error al guardar.'; msg.className = 'form-msg err'; return; }
+  if (error){
+    msg.textContent = error.code === '23P01' ? 'Ya hay otra reserva en esa pista y franja horaria.' : 'Error al guardar.';
+    msg.className = 'form-msg err';
+    return;
+  }
   document.getElementById('reservationFormCard').hidden = true;
   loadReservations();
 });
@@ -953,7 +957,11 @@ document.getElementById('editReservationForm').addEventListener('submit', async 
   };
 
   const { error } = await supabase.from('reservas_padel').update(payload).eq('id', id);
-  if (error){ msg.textContent = 'Error al guardar los cambios.'; msg.className = 'form-msg err'; return; }
+  if (error){
+    msg.textContent = error.code === '23P01' ? 'Ya hay otra reserva en esa pista y franja horaria.' : 'Error al guardar los cambios.';
+    msg.className = 'form-msg err';
+    return;
+  }
   closeEditReservationModal();
   loadReservations();
   renderCalendarState();

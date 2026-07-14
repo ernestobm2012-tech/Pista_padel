@@ -36,6 +36,14 @@ Este proyecto reutiliza el proyecto Supabase **`paseo-perros-app`** (ref
   para pintar los horarios libres/ocupados (sin datos personales).
 - `invoices_padel` — facturas simples (numeración correlativa por año).
 
+Las reservas hechas desde la web, WhatsApp o el panel se **confirman solas**
+(estado `confirmada`) si la hora sigue libre en ese momento — nadie tiene que
+aceptarlas a mano. Por si dos personas reservan la misma pista y hora a la vez,
+hay una restricción a nivel de base de datos (`reservas_padel_no_overlap`, con
+`btree_gist`) que impide físicamente que se guarden dos reservas activas
+solapadas en la misma pista; la segunda petición recibe un error y la app le
+pide elegir otro horario.
+
 Seguridad (Row Level Security):
 - Cualquiera puede **leer** pistas, precios, festivos, mantenimientos, extras y
   disponibilidad.

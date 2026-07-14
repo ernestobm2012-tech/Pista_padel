@@ -741,6 +741,7 @@ async function init(){
       message: document.getElementById('message').value.trim() || null,
       wants_light: wantsLight,
       light_price: wantsLight && LIGHT_EXTRA ? LIGHT_EXTRA.price : null,
+      status: 'confirmada',
     };
 
     const submitBtn = e.target.querySelector('button[type="submit"]');
@@ -753,11 +754,16 @@ async function init(){
     submitBtn.textContent = 'Confirmar reserva';
 
     if (error){
-      setMsg('No se ha podido enviar la reserva. Inténtalo de nuevo.', 'err');
+      if (error.code === '23P01'){
+        setMsg('Vaya, justo se acaba de reservar ese horario. Elige otro.', 'err');
+        await refreshSlots();
+      } else {
+        setMsg('No se ha podido enviar la reserva. Inténtalo de nuevo.', 'err');
+      }
       return;
     }
 
-    setMsg('¡Reserva enviada! Queda pendiente de confirmación.', 'ok');
+    setMsg('¡Reserva confirmada! Te esperamos en la pista.', 'ok');
     setTimeout(() => { closeBookingModal(); refreshSlots(); }, 1800);
   });
 
