@@ -146,7 +146,45 @@
             <label for="dateFilter">Fecha</label>
             <input type="date" id="dateFilter">
           </div>
+          <button class="btn btn-primary btn-sm" id="newReservationBtn">+ Nueva reserva</button>
         </div>
+      </div>
+      <div class="card" id="reservationFormCard" hidden>
+        <form id="reservationForm" class="form-grid">
+          <div class="field">
+            <label for="res_pista">Pista</label>
+            <select id="res_pista" required></select>
+          </div>
+          <div class="field"><label for="res_date">Fecha</label><input type="date" id="res_date" required></div>
+          <div class="field"><label for="res_start">Hora inicio</label><input type="time" id="res_start" required></div>
+          <div class="field"><label for="res_end">Hora fin</label><input type="time" id="res_end" required></div>
+          <div class="field"><label for="res_name">Nombre</label><input type="text" id="res_name" required></div>
+          <div class="field"><label for="res_phone">Teléfono (opcional)</label><input type="text" id="res_phone"></div>
+          <div class="field">
+            <label for="res_players">Jugadores</label>
+            <select id="res_players">
+              <option value="">—</option>
+              <option value="2">2</option>
+              <option value="4">4</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="res_status">Estado</label>
+            <select id="res_status">
+              <option value="confirmada" selected>Confirmada</option>
+              <option value="pendiente">Pendiente</option>
+            </select>
+          </div>
+          <div class="field" style="display:flex; align-items:flex-end; gap:16px;">
+            <label style="margin:0; display:flex; align-items:center; gap:6px;"><input type="checkbox" id="res_light" style="width:auto;"> Con luz</label>
+            <label style="margin:0; display:flex; align-items:center; gap:6px;"><input type="checkbox" id="res_municipal" style="width:auto;"> Uso municipal</label>
+          </div>
+          <div style="grid-column:1/-1; display:flex; gap:10px; align-items:center;">
+            <button type="submit" class="btn btn-primary btn-sm">Guardar</button>
+            <button type="button" class="btn btn-ghost btn-sm" id="cancelReservationBtn">Cancelar</button>
+            <span class="form-msg" id="reservationFormMsg"></span>
+          </div>
+        </form>
       </div>
       <div class="card table-wrap">
         <table>
@@ -378,8 +416,8 @@ async function loadReservations(){
       <td>${fmtDate(r.reservation_date)}</td>
       <td>${r.start_time.slice(0,5)}–${r.end_time.slice(0,5)}</td>
       <td>${COURTS_BY_ID[r.pista_id] || '—'}</td>
-      <td>${r.full_name}</td>
-      <td>${r.phone}</td>
+      <td>${r.full_name}${r.is_municipal ? ' <span class="pill" style="background:rgba(255,255,255,.12); color:var(--ink);">🏛️ Municipal</span>' : ''}</td>
+      <td>${r.phone || '—'}</td>
       <td>${r.players_count || '—'}</td>
       <td>${r.wants_light ? `💡 +${formatPrice(r.light_price || 0)}` : '—'}</td>
       <td><span class="pill pill-${r.status}">${r.status}</span></td>
@@ -409,6 +447,83 @@ document.getElementById('reservationsBody').addEventListener('click', async (e) 
 
 document.getElementById('statusFilter').addEventListener('change', loadReservations);
 document.getElementById('dateFilter').addEventListener('change', loadReservations);
+
+function populateReservationCourtSelect(){
+  const select = document.getElementById('res_pista');
+  select.innerHTML = (window._COURTS_CACHE || []).map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+}
+
+document.getElementById('newReservationBtn').addEventListener('click', async () => {
+  if (!window._COURTS_CACHE) await loadCourts();
+  document.getElementById('reservationForm').reset();
+  populateReservationCourtSelect();
+  document.getElementById('res_status').value = 'confirmada';
+  document.getElementById('reservationFormMsg').textContent = '';
+  document.getElementById('reservationFormCard').hidden = false;
+});
+document.getElementById('cancelReservationBtn').addEventListener('click', () => {
+  document.getElementById('reservationFormCard').hidden = true;
+});
+document.getElementById('res_municipal').addEventListener('change', (e) => {
+  const nameField = document.getElementById('res_name');
+  if (e.target.checked && !nameField.value.trim()) nameField.value = 'Ayuntamiento (uso municipal)';
+});
+
+document.getElementById('reservationForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const msg = document.getElementById('reservationFormMsg');
+  const pistaId = document.getElementById('res_pista').value;
+  const date = document.getElementById('res_date').value;
+  const start = document.getElementById('res_start').value;
+  const end = document.getElementById('res_end').value;
+
+  if (end <= start){
+    msg.textContent = 'La hora de fin debe ser posterior a la de inicio.';
+    msg.className = 'form-msg err';
+    return;
+  }
+
+  const { data: overlaps } = await supabase
+    .from('reservas_padel')
+    .select('id, start_time, end_time')
+    .eq('pista_id', pistaId)
+    .eq('reservation_date', date)
+    .neq('status', 'cancelada');
+  const hasOverlap = (overlaps || []).some(r => start < r.end_time.slice(0,5) && end > r.start_time.slice(0,5));
+  if (hasOverlap){
+    msg.textContent = 'Ya hay otra reserva en esa pista y franja horaria.';
+    msg.className = 'form-msg err';
+    return;
+  }
+
+  const wantsLight = document.getElementById('res_light').checked;
+  let lightPrice = null;
+  if (wantsLight){
+    const { data: extras } = await supabase.from('extras_padel').select('*').eq('active', true);
+    const luz = (extras || []).find(x => x.name.toLowerCase().includes('luz'));
+    lightPrice = luz ? luz.price : null;
+  }
+
+  const payload = {
+    pista_id: pistaId,
+    reservation_date: date,
+    start_time: start,
+    end_time: end,
+    full_name: document.getElementById('res_name').value.trim(),
+    phone: document.getElementById('res_phone').value.trim() || null,
+    players_count: document.getElementById('res_players').value ? Number(document.getElementById('res_players').value) : null,
+    status: document.getElementById('res_status').value,
+    wants_light: wantsLight,
+    light_price: lightPrice,
+    is_municipal: document.getElementById('res_municipal').checked,
+    source: 'admin',
+  };
+
+  const { error } = await supabase.from('reservas_padel').insert(payload);
+  if (error){ msg.textContent = 'Error al guardar.'; msg.className = 'form-msg err'; return; }
+  document.getElementById('reservationFormCard').hidden = true;
+  loadReservations();
+});
 
 /* ---------- Pistas ---------- */
 async function loadCourts(){
