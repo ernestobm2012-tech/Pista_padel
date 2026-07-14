@@ -96,6 +96,52 @@
     #invoicePrintArea, #invoicePrintArea *{ visibility:visible; }
     #invoicePrintArea{ display:block; position:absolute; top:0; left:0; width:100%; color:#000; background:#fff; padding:40px; }
   }
+
+  /* ---------- Calendario ---------- */
+  .cal-nav{ display:flex; align-items:center; justify-content:space-between; }
+  .cal-grid{ display:grid; grid-template-columns:repeat(7,1fr); gap:6px; }
+  .cal-grid .dow{ font-size:11px; text-transform:uppercase; letter-spacing:.04em; color:var(--ink-soft); text-align:center; padding-bottom:4px; }
+  .cal-day{
+    background:var(--bg-soft); border:1px solid var(--line); border-radius:8px; min-height:56px; padding:6px;
+    font-size:12.5px; position:relative;
+  }
+  .cal-day.empty{ background:none; border:none; }
+  .cal-day.clickable{ cursor:pointer; }
+  .cal-day.clickable:hover{ border-color:var(--lime); }
+  .cal-day .daynum{ font-weight:600; }
+  .cal-day.has-pendiente{ background:rgba(255,200,87,.12); border-color:rgba(255,200,87,.35); }
+  .cal-day.has-confirmada{ background:rgba(198,255,61,.10); border-color:rgba(198,255,61,.3); }
+  .cal-day-badge{
+    position:absolute; top:4px; right:4px; background:var(--lime); color:#0B1210;
+    font-weight:700; font-size:10.5px; min-width:16px; height:16px; border-radius:50%;
+    display:flex; align-items:center; justify-content:center; padding:0 3px; line-height:1;
+  }
+  .res-card{ background:var(--bg-soft); border:1px solid var(--line); border-radius:10px; padding:14px 16px; margin-bottom:10px; }
+  .res-card .res-head{ display:flex; justify-content:space-between; align-items:center; gap:10px; }
+  .res-card .res-meta{ font-size:13px; color:var(--ink-soft); margin-top:8px; display:grid; gap:3px; }
+  .res-card .res-actions{ margin-top:10px; }
+
+  /* ---------- Clientes ---------- */
+  .client-card{ background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); padding:16px 20px; margin-bottom:12px; display:flex; justify-content:space-between; align-items:center; gap:16px; flex-wrap:wrap; }
+  .client-card .name{ font-weight:600; }
+  .client-card .meta{ font-size:12.5px; color:var(--ink-soft); margin-top:3px; }
+  .client-card .count{ font-family:'Outfit'; font-weight:700; font-size:22px; color:var(--lime); text-align:center; }
+  .client-card .count-lbl{ font-size:10.5px; text-transform:uppercase; color:var(--ink-soft); text-align:center; }
+  .frequent-badge{ font-size:11px; background:rgba(198,255,61,.15); color:var(--lime); padding:3px 10px; border-radius:999px; font-weight:600; }
+  .empty-msg{ color:var(--ink-soft); font-size:14px; }
+
+  /* ---------- Modal genérico (editar reserva) ---------- */
+  .modal-backdrop{
+    position:fixed; inset:0; background:rgba(0,0,0,.6); display:flex; align-items:center; justify-content:center;
+    padding:20px; z-index:100;
+  }
+  .modal-backdrop[hidden]{ display:none; }
+  .modal{
+    background:var(--bg-soft); border:1px solid var(--line); border-radius:20px; padding:28px;
+    width:100%; max-width:520px; max-height:90vh; overflow:auto;
+  }
+  .modal-head{ display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:18px; }
+  .modal-close{ background:none; border:0; color:var(--ink-soft); font-size:22px; cursor:pointer; line-height:1; }
 </style>
 </head>
 <body>
@@ -122,6 +168,8 @@
 
   <nav class="tabs">
     <button data-tab="tabReservas" class="active">Reservas</button>
+    <button data-tab="tabCalendario">Calendario</button>
+    <button data-tab="tabClientes">Clientes</button>
     <button data-tab="tabPistas">Pistas</button>
     <button data-tab="tabPrecios">Precios</button>
     <button data-tab="tabFacturas">Facturas</button>
@@ -194,6 +242,29 @@
           <tbody id="reservationsBody"></tbody>
         </table>
       </div>
+    </section>
+
+    <!-- ---------- Calendario ---------- -->
+    <section id="tabCalendario" class="tab-panel" hidden>
+      <div class="cal-nav">
+        <button type="button" class="btn btn-ghost btn-sm" id="calPrevBtn">← Mes anterior</button>
+        <h2 id="calLabel" style="font-size:18px; text-transform:capitalize;"></h2>
+        <button type="button" class="btn btn-ghost btn-sm" id="calNextBtn">Mes siguiente →</button>
+      </div>
+      <div class="cal-grid" id="calGrid"></div>
+      <div id="calDayList"></div>
+    </section>
+
+    <!-- ---------- Clientes ---------- -->
+    <section id="tabClientes" class="tab-panel" hidden>
+      <div class="panel-head">
+        <h2>Clientes</h2>
+        <div class="field" style="min-width:260px;">
+          <input type="text" id="clientSearchInput" placeholder="Buscar por nombre o teléfono…">
+        </div>
+      </div>
+      <p style="color:var(--ink-soft); font-size:14px; margin:-10px 0 0;">Clientes ordenados por número de reservas confirmadas.</p>
+      <div id="clientsList"></div>
     </section>
 
     <!-- ---------- Pistas ---------- -->
@@ -329,6 +400,53 @@
   </main>
 </div>
 
+<!-- ---------- Modal: modificar reserva ---------- -->
+<div class="modal-backdrop" id="editReservationModal" hidden>
+  <div class="modal">
+    <div class="modal-head">
+      <h3>Modificar reserva</h3>
+      <button class="modal-close" id="editResModalClose" aria-label="Cerrar">✕</button>
+    </div>
+    <form id="editReservationForm" class="form-grid">
+      <input type="hidden" id="edit_res_id">
+      <div class="field">
+        <label for="edit_res_pista">Pista</label>
+        <select id="edit_res_pista" required></select>
+      </div>
+      <div class="field"><label for="edit_res_date">Fecha</label><input type="date" id="edit_res_date" required></div>
+      <div class="field"><label for="edit_res_start">Hora inicio</label><input type="time" id="edit_res_start" required></div>
+      <div class="field"><label for="edit_res_end">Hora fin</label><input type="time" id="edit_res_end" required></div>
+      <div class="field"><label for="edit_res_name">Nombre</label><input type="text" id="edit_res_name" required></div>
+      <div class="field"><label for="edit_res_phone">Teléfono (opcional)</label><input type="text" id="edit_res_phone"></div>
+      <div class="field">
+        <label for="edit_res_players">Jugadores</label>
+        <select id="edit_res_players">
+          <option value="">—</option>
+          <option value="2">2</option>
+          <option value="4">4</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="edit_res_status">Estado</label>
+        <select id="edit_res_status">
+          <option value="pendiente">Pendiente</option>
+          <option value="confirmada">Confirmada</option>
+          <option value="cancelada">Cancelada</option>
+        </select>
+      </div>
+      <div class="field" style="display:flex; align-items:flex-end; gap:16px;">
+        <label style="margin:0; display:flex; align-items:center; gap:6px;"><input type="checkbox" id="edit_res_light" style="width:auto;"> Con luz</label>
+        <label style="margin:0; display:flex; align-items:center; gap:6px;"><input type="checkbox" id="edit_res_municipal" style="width:auto;"> Uso municipal</label>
+      </div>
+      <div style="grid-column:1/-1; display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+        <button type="submit" class="btn btn-primary btn-sm">Guardar cambios</button>
+        <button type="button" class="btn btn-danger btn-sm" id="editResDeleteBtn">Borrar reserva</button>
+        <span class="form-msg" id="editReservationFormMsg"></span>
+      </div>
+    </form>
+  </div>
+</div>
+
 <div id="invoicePrintArea">
   <div id="invoicePrintContent"></div>
 </div>
@@ -384,6 +502,8 @@ document.querySelectorAll('nav.tabs button').forEach(btn => {
     const panel = document.getElementById(btn.dataset.tab);
     panel.hidden = false;
     if (btn.dataset.tab === 'tabReservas') loadReservations();
+    if (btn.dataset.tab === 'tabCalendario'){ if (!window._COURTS_CACHE) await loadCourts(); renderCalendarState(); }
+    if (btn.dataset.tab === 'tabClientes'){ if (!window._COURTS_CACHE) await loadCourts(); renderClients(); }
     if (btn.dataset.tab === 'tabPistas'){ await loadCourts(); loadMaintenance(); }
     if (btn.dataset.tab === 'tabPrecios'){ loadPrices(); loadExtras(); }
     if (btn.dataset.tab === 'tabFacturas') loadInvoices();
@@ -411,6 +531,7 @@ async function loadReservations(){
   if (error){ body.innerHTML = `<tr><td colspan="9">Error cargando reservas.</td></tr>`; return; }
   if (!data.length){ body.innerHTML = `<tr><td colspan="9">No hay reservas.</td></tr>`; return; }
 
+  window._RESERVATIONS_CACHE = data;
   body.innerHTML = data.map(r => `
     <tr data-id="${r.id}">
       <td>${fmtDate(r.reservation_date)}</td>
@@ -424,6 +545,7 @@ async function loadReservations(){
       <td class="row-actions">
         ${r.status !== 'confirmada' ? `<button class="btn btn-ghost btn-sm" data-action="confirm">Confirmar</button>` : ''}
         ${r.status !== 'cancelada' ? `<button class="btn btn-danger btn-sm" data-action="cancel">Cancelar</button>` : ''}
+        <button class="btn btn-ghost btn-sm" data-action="edit">✏️ Modificar</button>
         <button class="btn btn-ghost btn-sm" data-action="delete">Borrar</button>
       </td>
     </tr>
@@ -441,6 +563,10 @@ document.getElementById('reservationsBody').addEventListener('click', async (e) 
   } else if (btn.dataset.action === 'delete'){
     if (!confirm('¿Borrar esta reserva definitivamente?')) return;
     await supabase.from('reservas_padel').delete().eq('id', id);
+  } else if (btn.dataset.action === 'edit'){
+    const res = (window._RESERVATIONS_CACHE || []).find(x => x.id === id);
+    if (res) openEditReservationModal(res);
+    return;
   }
   loadReservations();
 });
@@ -523,6 +649,285 @@ document.getElementById('reservationForm').addEventListener('submit', async (e) 
   if (error){ msg.textContent = 'Error al guardar.'; msg.className = 'form-msg err'; return; }
   document.getElementById('reservationFormCard').hidden = true;
   loadReservations();
+});
+
+/* ---------- Calendario ---------- */
+const MONTH_NAMES = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+const DOWS = ['L','M','X','J','V','S','D'];
+const calState = { year: new Date().getFullYear(), month: new Date().getMonth() };
+
+function ymd(d){
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
+async function renderCalendarState(){
+  document.getElementById('calLabel').textContent = `${MONTH_NAMES[calState.month]} ${calState.year}`;
+  document.getElementById('calDayList').innerHTML = '';
+
+  const monthStart = `${calState.year}-${String(calState.month+1).padStart(2,'0')}-01`;
+  const monthEnd = calState.month === 11 ? `${calState.year+1}-01-01` : `${calState.year}-${String(calState.month+2).padStart(2,'0')}-01`;
+  const { data } = await supabase.from('reservas_padel').select('*')
+    .gte('reservation_date', monthStart)
+    .lt('reservation_date', monthEnd)
+    .neq('status', 'cancelada');
+
+  const byDate = {};
+  (data || []).forEach(r => {
+    if (!byDate[r.reservation_date]) byDate[r.reservation_date] = [];
+    byDate[r.reservation_date].push(r);
+  });
+
+  const first = new Date(calState.year, calState.month, 1);
+  const startOffset = (first.getDay() + 6) % 7;
+  const daysInMonth = new Date(calState.year, calState.month + 1, 0).getDate();
+
+  let html = '';
+  DOWS.forEach(d => html += `<div class="dow">${d}</div>`);
+  for (let i = 0; i < startOffset; i++) html += `<div class="cal-day empty"></div>`;
+  for (let day = 1; day <= daysInMonth; day++){
+    const key = ymd(new Date(calState.year, calState.month, day));
+    const dayRes = byDate[key] || [];
+    const hasPendiente = dayRes.some(r => r.status === 'pendiente');
+    const cls = 'cal-day' + (dayRes.length ? ' clickable' : '') + (hasPendiente ? ' has-pendiente' : dayRes.length ? ' has-confirmada' : '');
+    html += `<div class="${cls}" ${dayRes.length ? `data-date="${key}"` : ''}>
+        ${dayRes.length ? `<span class="cal-day-badge">${dayRes.length}</span>` : ''}
+        <span class="daynum">${day}</span>
+      </div>`;
+  }
+  const grid = document.getElementById('calGrid');
+  grid.innerHTML = html;
+  grid.querySelectorAll('[data-date]').forEach(el => {
+    el.addEventListener('click', () => showCalDay(el.dataset.date, byDate[el.dataset.date]));
+  });
+}
+
+function showCalDay(dateStr, reservations){
+  const list = document.getElementById('calDayList');
+  list.innerHTML = `<h3 style="font-size:16px; margin:20px 0 14px; text-transform:capitalize;">${fmtDate(dateStr)}</h3>` +
+    reservations.map(r => `
+      <div class="res-card">
+        <div class="res-head">
+          <h3 style="font-size:15px;">${COURTS_BY_ID[r.pista_id] || '—'} — ${r.full_name}${r.is_municipal ? ' 🏛️' : ''}</h3>
+          <span class="pill pill-${r.status}">${r.status}</span>
+        </div>
+        <div class="res-meta">
+          <div>⏰ ${r.start_time.slice(0,5)}-${r.end_time.slice(0,5)} · 👥 ${r.players_count || '—'} jugadores</div>
+          <div>📞 ${r.phone || '—'}</div>
+          <div>${r.wants_light ? `💡 Con luz (+${formatPrice(r.light_price || 0)})` : 'Sin luz'}</div>
+        </div>
+        <div class="res-actions">
+          <button class="btn btn-ghost btn-sm" data-cal-edit="${r.id}">✏️ Modificar</button>
+        </div>
+      </div>`).join('');
+  list.querySelectorAll('[data-cal-edit]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const r = reservations.find(x => x.id === btn.dataset.calEdit);
+      if (r) openEditReservationModal(r);
+    });
+  });
+}
+
+document.getElementById('calPrevBtn').addEventListener('click', () => {
+  calState.month--;
+  if (calState.month < 0){ calState.month = 11; calState.year--; }
+  renderCalendarState();
+});
+document.getElementById('calNextBtn').addEventListener('click', () => {
+  calState.month++;
+  if (calState.month > 11){ calState.month = 0; calState.year++; }
+  renderCalendarState();
+});
+
+/* ---------- Clientes ---------- */
+function clientKey(r){
+  return (r.phone && r.phone.trim()) || `sin-telefono-${r.full_name.toLowerCase().trim()}`;
+}
+
+async function renderClients(){
+  const container = document.getElementById('clientsList');
+  container.innerHTML = '<p class="empty-msg">Cargando…</p>';
+
+  const { data, error } = await supabase.from('reservas_padel').select('*').order('reservation_date', { ascending: false });
+  if (error || !data){
+    container.innerHTML = `<p class="empty-msg">Error cargando clientes.</p>`;
+    return;
+  }
+
+  const byClient = {};
+  data.forEach(r => {
+    const key = clientKey(r);
+    if (!byClient[key]) byClient[key] = { name: r.full_name, phone: r.phone, reservations: [] };
+    byClient[key].reservations.push(r);
+  });
+
+  const clients = Object.values(byClient).map(c => ({
+    ...c,
+    confirmed: c.reservations.filter(r => r.status === 'confirmada'),
+    pending: c.reservations.filter(r => r.status === 'pendiente').length,
+  })).filter(c => c.reservations.some(r => r.status !== 'cancelada'))
+    .sort((a, b) => b.confirmed.length - a.confirmed.length);
+
+  window._CLIENTS_CACHE = clients;
+  renderClientsList(clients);
+}
+
+function renderClientsList(clients){
+  const container = document.getElementById('clientsList');
+  if (!clients.length){
+    container.innerHTML = '<p class="empty-msg">No hay clientes con reservas todavía.</p>';
+    return;
+  }
+  container.innerHTML = clients.map((c, ci) => `
+    <div class="client-card">
+      <div style="flex:1; min-width:220px;">
+        <div class="name">${c.name} ${c.confirmed.length >= 5 ? '<span class="frequent-badge">🎖 Cliente frecuente</span>' : ''}</div>
+        <div class="meta">📞 ${c.phone || '—'}${c.pending ? ` · ${c.pending} pendiente(s)` : ''}</div>
+        <div class="meta">${c.reservations.slice(0,5).map(r => fmtDate(r.reservation_date)).join(' · ')}</div>
+      </div>
+      <div>
+        <div class="count">${c.confirmed.length}</div>
+        <div class="count-lbl">reservas</div>
+      </div>
+      <div class="row-actions">
+        <button class="btn btn-ghost btn-sm" data-client-idx="${ci}">Ver reservas</button>
+      </div>
+    </div>
+    <div class="client-reservations" id="clientRes${ci}" hidden style="margin:-4px 0 12px;">
+      ${c.reservations.map(r => `
+        <div class="res-card">
+          <div class="res-head">
+            <h3 style="font-size:14px;">${fmtDate(r.reservation_date)} · ${COURTS_BY_ID[r.pista_id] || '—'}</h3>
+            <span class="pill pill-${r.status}">${r.status}</span>
+          </div>
+          <div class="res-meta">
+            <div>⏰ ${r.start_time.slice(0,5)}-${r.end_time.slice(0,5)}</div>
+          </div>
+          <div class="res-actions">
+            <button class="btn btn-ghost btn-sm" data-edit-res="${r.id}">✏️ Modificar</button>
+          </div>
+        </div>
+      `).join('')}
+    </div>
+  `).join('');
+
+  container.querySelectorAll('[data-client-idx]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const panel = document.getElementById(`clientRes${btn.dataset.clientIdx}`);
+      panel.hidden = !panel.hidden;
+    });
+  });
+  container.querySelectorAll('[data-edit-res]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const allRes = clients.flatMap(c => c.reservations);
+      const r = allRes.find(x => x.id === btn.dataset.editRes);
+      if (r) openEditReservationModal(r);
+    });
+  });
+}
+
+document.getElementById('clientSearchInput').addEventListener('input', (e) => {
+  const term = e.target.value.trim().toLowerCase();
+  const all = window._CLIENTS_CACHE || [];
+  if (!term){ renderClientsList(all); return; }
+  const filtered = all.filter(c =>
+    c.name.toLowerCase().includes(term) || (c.phone || '').toLowerCase().includes(term)
+  );
+  renderClientsList(filtered);
+});
+
+/* ---------- Modal: modificar reserva ---------- */
+function openEditReservationModal(r){
+  document.getElementById('edit_res_id').value = r.id;
+  document.getElementById('edit_res_pista').innerHTML = (window._COURTS_CACHE || []).map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+  document.getElementById('edit_res_pista').value = r.pista_id;
+  document.getElementById('edit_res_date').value = r.reservation_date;
+  document.getElementById('edit_res_start').value = r.start_time.slice(0,5);
+  document.getElementById('edit_res_end').value = r.end_time.slice(0,5);
+  document.getElementById('edit_res_name').value = r.full_name;
+  document.getElementById('edit_res_phone').value = r.phone || '';
+  document.getElementById('edit_res_players').value = r.players_count || '';
+  document.getElementById('edit_res_status').value = r.status;
+  document.getElementById('edit_res_light').checked = !!r.wants_light;
+  document.getElementById('edit_res_municipal').checked = !!r.is_municipal;
+  document.getElementById('editReservationFormMsg').textContent = '';
+  document.getElementById('editReservationModal').hidden = false;
+}
+function closeEditReservationModal(){
+  document.getElementById('editReservationModal').hidden = true;
+}
+document.getElementById('editResModalClose').addEventListener('click', closeEditReservationModal);
+document.getElementById('editReservationModal').addEventListener('click', (e) => {
+  if (e.target.id === 'editReservationModal') closeEditReservationModal();
+});
+
+document.getElementById('editReservationForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const msg = document.getElementById('editReservationFormMsg');
+  const id = document.getElementById('edit_res_id').value;
+  const pistaId = document.getElementById('edit_res_pista').value;
+  const date = document.getElementById('edit_res_date').value;
+  const start = document.getElementById('edit_res_start').value;
+  const end = document.getElementById('edit_res_end').value;
+
+  if (end <= start){
+    msg.textContent = 'La hora de fin debe ser posterior a la de inicio.';
+    msg.className = 'form-msg err';
+    return;
+  }
+
+  const { data: overlaps } = await supabase
+    .from('reservas_padel')
+    .select('id, start_time, end_time')
+    .eq('pista_id', pistaId)
+    .eq('reservation_date', date)
+    .neq('status', 'cancelada')
+    .neq('id', id);
+  const hasOverlap = (overlaps || []).some(r => start < r.end_time.slice(0,5) && end > r.start_time.slice(0,5));
+  if (hasOverlap){
+    msg.textContent = 'Ya hay otra reserva en esa pista y franja horaria.';
+    msg.className = 'form-msg err';
+    return;
+  }
+
+  const wantsLight = document.getElementById('edit_res_light').checked;
+  let lightPrice = null;
+  if (wantsLight){
+    const { data: extras } = await supabase.from('extras_padel').select('*').eq('active', true);
+    const luz = (extras || []).find(x => x.name.toLowerCase().includes('luz'));
+    lightPrice = luz ? luz.price : null;
+  }
+
+  const payload = {
+    pista_id: pistaId,
+    reservation_date: date,
+    start_time: start,
+    end_time: end,
+    full_name: document.getElementById('edit_res_name').value.trim(),
+    phone: document.getElementById('edit_res_phone').value.trim() || null,
+    players_count: document.getElementById('edit_res_players').value ? Number(document.getElementById('edit_res_players').value) : null,
+    status: document.getElementById('edit_res_status').value,
+    wants_light: wantsLight,
+    light_price: lightPrice,
+    is_municipal: document.getElementById('edit_res_municipal').checked,
+  };
+
+  const { error } = await supabase.from('reservas_padel').update(payload).eq('id', id);
+  if (error){ msg.textContent = 'Error al guardar los cambios.'; msg.className = 'form-msg err'; return; }
+  closeEditReservationModal();
+  loadReservations();
+  renderCalendarState();
+});
+
+document.getElementById('editResDeleteBtn').addEventListener('click', async () => {
+  const id = document.getElementById('edit_res_id').value;
+  if (!confirm('¿Borrar esta reserva definitivamente?')) return;
+  await supabase.from('reservas_padel').delete().eq('id', id);
+  closeEditReservationModal();
+  loadReservations();
+  renderCalendarState();
 });
 
 /* ---------- Pistas ---------- */
