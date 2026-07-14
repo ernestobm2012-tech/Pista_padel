@@ -86,20 +86,23 @@
   .nav{ display:flex; align-items:center; justify-content:space-between; padding:16px 0; }
   .logo{ font-family:'Outfit', sans-serif; font-weight:800; font-size:20px; display:flex; align-items:center; gap:8px; }
   .logo .dot{ width:12px; height:12px; border-radius:50%; background:var(--lime); }
+  .nav-menu{ display:contents; }
   .nav-links{ display:flex; gap:28px; list-style:none; margin:0; padding:0; }
   .nav-links a{ text-decoration:none; font-size:14.5px; font-weight:500; color:var(--ink-soft); }
   .nav-links a:hover{ color:var(--lime); }
-  .nav-cta{ display:flex; }
+  .nav-cta{ display:flex; align-items:center; gap:12px; }
   .burger{ display:none; background:none; border:0; color:var(--ink); font-size:24px; cursor:pointer; }
   @media (max-width:760px){
-    .nav-links, .nav-cta{ display:none; }
+    .nav-menu{ display:none; }
     .burger{ display:block; }
-    header.nav-open .nav-links{
-      display:flex; flex-direction:column; gap:0; position:absolute; top:100%; left:0; right:0;
-      background:var(--bg-soft); border-bottom:1px solid var(--line); padding:8px 24px 20px;
+    header.nav-open .nav-menu{
+      display:flex; flex-direction:column; gap:18px; position:absolute; top:100%; left:0; right:0;
+      background:var(--bg-soft); border-bottom:1px solid var(--line); padding:8px 24px 24px;
     }
+    header.nav-open .nav-links{ display:flex; flex-direction:column; gap:0; }
     header.nav-open .nav-links a{ padding:12px 0; border-bottom:1px solid var(--line); }
     header.nav-open .nav-links li:last-child a{ border-bottom:0; }
+    header.nav-open .nav-cta{ flex-direction:column; align-items:stretch; gap:10px; }
   }
 
   /* ---------- Hero ---------- */
@@ -243,17 +246,19 @@
 <header>
   <div class="wrap nav">
     <div class="logo"><span class="dot"></span> Pistas Municipales · Chozas de Canales</div>
-    <ul class="nav-links">
-      <li><a href="#pistas">Pistas</a></li>
-      <li><a href="#precios">Precios</a></li>
-      <li><a href="#reserva">Reservar</a></li>
-      <li><a href="#torneos">Torneos</a></li>
-      <li><a href="#contacto">Contacto</a></li>
-    </ul>
-    <div class="nav-cta">
-      <button class="btn btn-ghost" id="installBtn" hidden>📲 Instalar app</button>
-      <button class="btn btn-ghost" id="accountBtn">Iniciar sesión</button>
-      <a href="#reserva" class="btn btn-primary">Reservar pista</a>
+    <div class="nav-menu">
+      <ul class="nav-links">
+        <li><a href="#pistas">Pistas</a></li>
+        <li><a href="#precios">Precios</a></li>
+        <li><a href="#reserva">Reservar</a></li>
+        <li><a href="#torneos">Torneos</a></li>
+        <li><a href="#contacto">Contacto</a></li>
+      </ul>
+      <div class="nav-cta">
+        <button class="btn btn-ghost" id="installBtn" hidden>📲 Instalar app</button>
+        <button class="btn btn-ghost" id="accountBtn">Iniciar sesión</button>
+        <a href="#reserva" class="btn btn-primary">Reservar pista</a>
+      </div>
     </div>
     <button class="burger" id="burgerBtn" aria-label="Menú">☰</button>
   </div>
@@ -377,6 +382,12 @@
         <h3 id="modalDateTime" style="margin-top:6px; font-size:20px;"></h3>
       </div>
       <button class="modal-close" id="modalClose" aria-label="Cerrar">✕</button>
+    </div>
+    <div id="guestChoiceStep" hidden>
+      <p style="font-size:14px; color:var(--ink); margin:0 0 16px;">¿Cómo quieres reservar esta pista?</p>
+      <button type="button" class="btn btn-primary" id="chooseGuestBtn" style="width:100%; justify-content:center;">Reservar como invitado</button>
+      <p style="font-size:12.5px; color:var(--ink-soft); margin:8px 0 20px;">No podrás cancelarla online después; para eso hace falta tener una cuenta.</p>
+      <button type="button" class="btn btn-ghost" id="chooseAccountBtn" style="width:100%; justify-content:center;">Iniciar sesión o crear cuenta</button>
     </div>
     <form id="bookingForm">
       <div class="field">
@@ -563,12 +574,21 @@ function renderAccountModal(){
     showLoginForm();
   }
 }
+let awaitingLoginForBooking = false;
+
 function openAccountModal(){
   accountModal.hidden = false;
   renderAccountModal();
 }
 function closeAccountModal(){
   accountModal.hidden = true;
+  awaitingLoginForBooking = false;
+}
+function resumePendingBooking(){
+  if (!awaitingLoginForBooking || !pendingStartTime) return;
+  awaitingLoginForBooking = false;
+  accountModal.hidden = true;
+  openBookingModal(pendingStartTime);
 }
 
 accountBtn.addEventListener('click', openAccountModal);
@@ -590,6 +610,7 @@ loginForm.addEventListener('submit', async (e) => {
     return;
   }
   loginForm.reset();
+  resumePendingBooking();
 });
 
 signupAccountForm.addEventListener('submit', async (e) => {
@@ -612,7 +633,7 @@ signupAccountForm.addEventListener('submit', async (e) => {
     return;
   }
   signupAccountForm.reset();
-  if (data.session) return;
+  if (data.session){ resumePendingBooking(); return; }
   signupAccountMsg.textContent = 'Cuenta creada. Revisa tu email para confirmarla y luego inicia sesión.';
   signupAccountMsg.className = 'form-msg ok';
   setTimeout(showLoginForm, 2500);
@@ -853,7 +874,10 @@ async function refreshSlots(){
 }
 
 let selectedSlot = null;
+let pendingStartTime = null;
+
 function openBookingModal(startTime){
+  pendingStartTime = startTime;
   selectedSlot = null;
   const pistaId = document.getElementById('pistaSelect').value;
   const court = ALL_COURTS.find(c => c.id === pistaId);
@@ -864,6 +888,19 @@ function openBookingModal(startTime){
   document.getElementById('modalDateTime').textContent =
     `${d.toLocaleDateString('es-ES', { weekday:'long', day:'numeric', month:'long' })} · ${startTime}`;
 
+  document.getElementById('bookingModal').hidden = false;
+
+  if (currentUser){
+    showBookingForm(startTime);
+  } else {
+    document.getElementById('guestChoiceStep').hidden = false;
+    document.getElementById('bookingForm').hidden = true;
+  }
+}
+
+function showBookingForm(startTime){
+  document.getElementById('guestChoiceStep').hidden = true;
+  document.getElementById('bookingForm').hidden = false;
   document.getElementById('bookingForm').reset();
   document.getElementById('formMsg').textContent = '';
   if (currentUser){
@@ -902,7 +939,6 @@ function openBookingModal(startTime){
     lightField.hidden = true;
   }
 
-  document.getElementById('bookingModal').hidden = false;
 }
 function closeBookingModal(){
   document.getElementById('bookingModal').hidden = true;
@@ -985,6 +1021,14 @@ async function init(){
   document.getElementById('modalClose').addEventListener('click', closeBookingModal);
   document.getElementById('bookingModal').addEventListener('click', (e) => {
     if (e.target.id === 'bookingModal') closeBookingModal();
+  });
+  document.getElementById('chooseGuestBtn').addEventListener('click', () => {
+    showBookingForm(pendingStartTime);
+  });
+  document.getElementById('chooseAccountBtn').addEventListener('click', () => {
+    closeBookingModal();
+    awaitingLoginForBooking = true;
+    openAccountModal();
   });
 
   document.getElementById('signupModalClose').addEventListener('click', closeSignupModal);
