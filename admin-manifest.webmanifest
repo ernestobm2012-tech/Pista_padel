@@ -1,0 +1,10 @@
+{
+  "name": "Pistas Municipales de Pádel — Admin",
+  "short_name": "Padel Admin",
+  "start_url": "./admin.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#0f1720",
+  "theme_color": "#1d4ed8",
+  "icons": []
+}
