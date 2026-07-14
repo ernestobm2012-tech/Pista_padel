@@ -170,6 +170,7 @@
     <button data-tab="tabReservas" class="active">Reservas</button>
     <button data-tab="tabCalendario">Calendario</button>
     <button data-tab="tabClientes">Clientes</button>
+    <button data-tab="tabTorneos">Torneos</button>
     <button data-tab="tabPistas">Pistas</button>
     <button data-tab="tabPrecios">Precios</button>
     <button data-tab="tabFacturas">Facturas</button>
@@ -265,6 +266,42 @@
       </div>
       <p style="color:var(--ink-soft); font-size:14px; margin:-10px 0 0;">Clientes ordenados por número de reservas confirmadas.</p>
       <div id="clientsList"></div>
+    </section>
+
+    <!-- ---------- Torneos ---------- -->
+    <section id="tabTorneos" class="tab-panel" hidden>
+      <div class="panel-head"><h2>Torneos y ligas</h2><button class="btn btn-primary btn-sm" id="newCompetitionBtn">+ Nueva competición</button></div>
+      <div class="card" id="competitionFormCard" hidden>
+        <form id="competitionForm" class="form-grid">
+          <div class="field"><label for="comp_name">Nombre</label><input type="text" id="comp_name" required placeholder="Torneo de Verano 2026"></div>
+          <div class="field">
+            <label for="comp_type">Tipo</label>
+            <select id="comp_type">
+              <option value="torneo">Torneo (eliminatoria)</option>
+              <option value="liga">Liga (todos contra todos)</option>
+            </select>
+          </div>
+          <div class="field"><label for="comp_start">Fecha inicio</label><input type="date" id="comp_start" required></div>
+          <div class="field"><label for="comp_end">Fecha fin</label><input type="date" id="comp_end" required></div>
+          <div class="field"><label for="comp_deadline">Fecha límite de inscripción</label><input type="date" id="comp_deadline" required></div>
+          <div class="field"><label for="comp_duration">Duración de partido (min)</label><input type="number" id="comp_duration" value="90" step="15" required></div>
+          <div class="field"><label for="comp_max">Máx. parejas (opcional)</label><input type="number" id="comp_max" min="2"></div>
+          <div class="field" style="grid-column:1/-1;">
+            <label>Pistas donde se juega</label>
+            <div id="comp_pistas_check" style="display:flex; gap:16px; flex-wrap:wrap;"></div>
+          </div>
+          <div class="field" style="grid-column:1/-1;">
+            <label for="comp_description">Descripción (opcional)</label>
+            <textarea id="comp_description" rows="2"></textarea>
+          </div>
+          <div style="grid-column:1/-1; display:flex; gap:10px; align-items:center;">
+            <button type="submit" class="btn btn-primary btn-sm">Crear competición</button>
+            <button type="button" class="btn btn-ghost btn-sm" id="cancelCompetitionBtn">Cancelar</button>
+            <span class="form-msg" id="competitionFormMsg"></span>
+          </div>
+        </form>
+      </div>
+      <div id="competitionsList"></div>
     </section>
 
     <!-- ---------- Pistas ---------- -->
@@ -504,6 +541,7 @@ document.querySelectorAll('nav.tabs button').forEach(btn => {
     if (btn.dataset.tab === 'tabReservas') loadReservations();
     if (btn.dataset.tab === 'tabCalendario'){ if (!window._COURTS_CACHE) await loadCourts(); renderCalendarState(); }
     if (btn.dataset.tab === 'tabClientes'){ if (!window._COURTS_CACHE) await loadCourts(); renderClients(); }
+    if (btn.dataset.tab === 'tabTorneos'){ if (!window._COURTS_CACHE) await loadCourts(); renderCompetitions(); }
     if (btn.dataset.tab === 'tabPistas'){ await loadCourts(); loadMaintenance(); }
     if (btn.dataset.tab === 'tabPrecios'){ loadPrices(); loadExtras(); }
     if (btn.dataset.tab === 'tabFacturas') loadInvoices();
@@ -929,6 +967,538 @@ document.getElementById('editResDeleteBtn').addEventListener('click', async () =
   loadReservations();
   renderCalendarState();
 });
+
+/* ---------- Torneos y ligas ---------- */
+const COMP_OPEN_TIME = '08:00';
+const COMP_CLOSE_TIME = '23:00';
+
+function compToMinutes(hhmm){ const [h,m] = hhmm.split(':').map(Number); return h*60+m; }
+function compToHHMM(mins){ const h=String(Math.floor(mins/60)).padStart(2,'0'); const m=String(mins%60).padStart(2,'0'); return `${h}:${m}`; }
+function buildDaySlots(durationMinutes){
+  const slots = [];
+  let start = compToMinutes(COMP_OPEN_TIME);
+  const close = compToMinutes(COMP_CLOSE_TIME);
+  while (start + durationMinutes <= close){
+    slots.push({ start: compToHHMM(start), end: compToHHMM(start + durationMinutes) });
+    start += durationMinutes;
+  }
+  return slots;
+}
+function addDaysStr(dateStr, n){
+  const d = new Date(dateStr + 'T00:00:00');
+  d.setDate(d.getDate() + n);
+  return d.toISOString().slice(0,10);
+}
+function shuffleArr(arr){
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--){
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+function parejaLabel(parejaId, insc){
+  if (!parejaId) return null;
+  const p = insc.find(i => i.id === parejaId);
+  if (!p) return '—';
+  return p.player1_name + (p.player2_name ? ' / ' + p.player2_name : '');
+}
+
+/* ---- Bracket de eliminatoria directa (con byes repartidos, sin dos byes en el mismo cruce) ---- */
+function buildBracketPlan(pairs){
+  const n = pairs.length;
+  let nextPow2 = 1; while (nextPow2 < n) nextPow2 *= 2;
+  const numByes = nextPow2 - n;
+  const shuffledPairs = shuffleArr(pairs);
+  const totalMatches = nextPow2 / 2;
+  const byeMatchIndices = new Set(shuffleArr([...Array(totalMatches).keys()]).slice(0, numByes));
+
+  const slots = new Array(nextPow2).fill(null);
+  let idx = 0;
+  for (let m = 0; m < totalMatches; m++){
+    if (byeMatchIndices.has(m)){
+      slots[2*m] = { pareja_id: shuffledPairs[idx++].id };
+      slots[2*m+1] = null;
+    } else {
+      slots[2*m] = { pareja_id: shuffledPairs[idx++].id };
+      slots[2*m+1] = { pareja_id: shuffledPairs[idx++].id };
+    }
+  }
+
+  const rounds = [];
+  let current = slots;
+  while (current.length > 1){
+    const next = [];
+    const roundMatches = [];
+    for (let i = 0; i < current.length; i += 2){
+      const a = current[i], b = current[i+1];
+      if (a && b){
+        roundMatches.push({ a, b });
+        next.push({ pending_index: roundMatches.length - 1 });
+      } else {
+        next.push(a || b || null);
+      }
+    }
+    rounds.push(roundMatches);
+    current = next;
+  }
+  return rounds;
+}
+
+/* ---- Calendario de liga (todos contra todos, método del círculo) ---- */
+function buildLeaguePlan(pairs){
+  const list = pairs.map(p => ({ pareja_id: p.id }));
+  if (list.length % 2 !== 0) list.push(null);
+  const n = list.length;
+  const rounds = [];
+  let arr = [...list];
+  for (let r = 0; r < n - 1; r++){
+    const roundMatches = [];
+    for (let i = 0; i < n / 2; i++){
+      const a = arr[i], b = arr[n - 1 - i];
+      if (a && b) roundMatches.push({ a, b });
+    }
+    rounds.push(roundMatches);
+    arr.splice(1, 0, arr.pop());
+  }
+  return rounds;
+}
+
+function roundNameFor(type, roundIndex, totalRounds){
+  if (type === 'liga') return `Jornada ${roundIndex + 1}`;
+  const fromEnd = totalRounds - roundIndex;
+  if (fromEnd === 1) return 'Final';
+  if (fromEnd === 2) return 'Semifinal';
+  if (fromEnd === 3) return 'Cuartos de final';
+  if (fromEnd === 4) return 'Octavos de final';
+  return `Ronda ${roundIndex + 1}`;
+}
+
+async function generateCrosses(compId){
+  const comp = (window._COMPETITIONS_CACHE || []).find(c => c.id === compId);
+  if (!comp) return;
+  const pistaIds = (window._COMP_PISTAS_CACHE || []).filter(cp => cp.competicion_id === compId).map(cp => cp.pista_id);
+  if (!pistaIds.length){ alert('Esta competición no tiene pistas asignadas.'); return; }
+  const pairs = (window._INSCRIPCIONES_CACHE || []).filter(i => i.competicion_id === compId && i.status === 'activa');
+  if (pairs.length < 2){ alert('Hacen falta al menos 2 parejas inscritas.'); return; }
+
+  if (new Date(comp.registration_deadline) > new Date()){
+    if (!confirm(`El plazo de inscripción (${fmtDate(comp.registration_deadline)}) todavía no ha pasado. ¿Generar los cruces igualmente con las ${pairs.length} parejas apuntadas hasta ahora?`)) return;
+  } else if (!confirm(`¿Generar los cruces de "${comp.name}" con ${pairs.length} parejas? Se bloquearán las pistas correspondientes en el calendario.`)) {
+    return;
+  }
+
+  const roundsPlan = comp.type === 'torneo' ? buildBracketPlan(pairs) : buildLeaguePlan(pairs);
+
+  const marginEnd = addDaysStr(comp.end_date, 14);
+  const [{ data: existingReservas }, { data: mantenimientos }] = await Promise.all([
+    supabase.from('reservas_padel').select('pista_id, reservation_date, start_time, end_time')
+      .in('pista_id', pistaIds).gte('reservation_date', comp.start_date).lte('reservation_date', marginEnd).neq('status', 'cancelada'),
+    supabase.from('mantenimientos_padel').select('pista_id, start_date, end_date').in('pista_id', pistaIds),
+  ]);
+
+  const daySlots = buildDaySlots(comp.match_duration_minutes);
+  const busyKey = (pistaId, date, start) => `${pistaId}|${date}|${start}`;
+  const busy = new Set();
+  (existingReservas || []).forEach(r => busy.add(busyKey(r.pista_id, r.reservation_date, r.start_time.slice(0,5))));
+
+  function isUnderMaintenance(pistaId, date){
+    return (mantenimientos || []).some(m => m.pista_id === pistaId && date >= m.start_date && date <= m.end_date);
+  }
+  function findNextSlot(fromDate){
+    let date = fromDate;
+    let guard = 0;
+    while (guard < 200 && date <= marginEnd){
+      for (const pistaId of pistaIds){
+        if (isUnderMaintenance(pistaId, date)) continue;
+        for (const slot of daySlots){
+          const key = busyKey(pistaId, date, slot.start);
+          if (!busy.has(key)) return { pistaId, date, start: slot.start, end: slot.end, key };
+        }
+      }
+      date = addDaysStr(date, 1);
+      guard++;
+    }
+    return null;
+  }
+
+  let floorDate = comp.start_date;
+  let overflowWarning = false;
+  for (const roundMatches of roundsPlan){
+    let maxDateThisRound = floorDate;
+    for (const m of roundMatches){
+      const slot = findNextSlot(floorDate);
+      if (!slot){ overflowWarning = true; continue; }
+      busy.add(slot.key);
+      m.assigned = slot;
+      if (slot.date > maxDateThisRound) maxDateThisRound = slot.date;
+    }
+    floorDate = addDaysStr(maxDateThisRound, 1);
+  }
+
+  const totalRounds = roundsPlan.length;
+  let previousRoundIds = [];
+  for (let r = 0; r < roundsPlan.length; r++){
+    const roundName = roundNameFor(comp.type, r, totalRounds);
+    const roundMatches = roundsPlan[r];
+    const inserts = roundMatches.map(m => ({
+      competicion_id: compId,
+      round_number: r + 1,
+      round_name: roundName,
+      pista_id: m.assigned ? m.assigned.pistaId : null,
+      match_date: m.assigned ? m.assigned.date : null,
+      start_time: m.assigned ? m.assigned.start : null,
+      end_time: m.assigned ? m.assigned.end : null,
+      pareja1_id: m.a.pareja_id || null,
+      pareja2_id: m.b.pareja_id || null,
+    }));
+    const { data: insertedRows, error } = await supabase.from('competicion_partidos_padel').insert(inserts).select();
+    if (error){ alert('Error guardando los partidos: ' + error.message); return; }
+
+    for (let i = 0; i < roundMatches.length; i++){
+      const m = roundMatches[i];
+      const row = insertedRows[i];
+      const patch = {};
+      if (m.a.pending_index !== undefined) patch.pareja1_origen_partido_id = previousRoundIds[m.a.pending_index];
+      if (m.b.pending_index !== undefined) patch.pareja2_origen_partido_id = previousRoundIds[m.b.pending_index];
+      if (Object.keys(patch).length) await supabase.from('competicion_partidos_padel').update(patch).eq('id', row.id);
+
+      if (row.pista_id && row.match_date){
+        const bothKnown = m.a.pareja_id && m.b.pareja_id;
+        const label = bothKnown
+          ? `${comp.type === 'liga' ? 'Liga' : 'Torneo'}: ${parejaLabel(m.a.pareja_id, pairs)} vs ${parejaLabel(m.b.pareja_id, pairs)}`
+          : `${comp.name} — ${roundName} (por determinar)`;
+        await supabase.from('reservas_padel').insert({
+          pista_id: row.pista_id,
+          reservation_date: row.match_date,
+          start_time: row.start_time,
+          end_time: row.end_time,
+          full_name: label,
+          status: 'confirmada',
+          source: comp.type === 'liga' ? 'liga' : 'torneo',
+          competicion_partido_id: row.id,
+        });
+      }
+    }
+    previousRoundIds = insertedRows.map(x => x.id);
+  }
+
+  await supabase.from('competiciones_padel').update({ status: 'inscripciones_cerradas' }).eq('id', compId);
+  if (overflowWarning){
+    alert('Algunos partidos no encontraron hueco libre dentro del rango de fechas (ni con 14 días de margen) y se han dejado sin programar. Revisa la competición o amplía las fechas.');
+  }
+  await refreshCompetitionsCacheAndRerender(compId);
+}
+
+async function recordMatchWinner(matchId, winnerParejaId){
+  await supabase.from('competicion_partidos_padel').update({ winner_pareja_id: winnerParejaId, status: 'jugado' }).eq('id', matchId);
+  const { data: dependents } = await supabase.from('competicion_partidos_padel')
+    .select('*')
+    .or(`pareja1_origen_partido_id.eq.${matchId},pareja2_origen_partido_id.eq.${matchId}`);
+  for (const dep of (dependents || [])){
+    const patch = {};
+    if (dep.pareja1_origen_partido_id === matchId) patch.pareja1_id = winnerParejaId;
+    if (dep.pareja2_origen_partido_id === matchId) patch.pareja2_id = winnerParejaId;
+    await supabase.from('competicion_partidos_padel').update(patch).eq('id', dep.id);
+    const merged = { ...dep, ...patch };
+    if (merged.pareja1_id && merged.pareja2_id){
+      const insc = window._INSCRIPCIONES_CACHE || [];
+      const label = `Torneo: ${parejaLabel(merged.pareja1_id, insc)} vs ${parejaLabel(merged.pareja2_id, insc)}`;
+      await supabase.from('reservas_padel').update({ full_name: label }).eq('competicion_partido_id', dep.id);
+    }
+  }
+}
+
+function matchSlotLabel(match, side, insc, allPartidos){
+  const parejaId = side === 1 ? match.pareja1_id : match.pareja2_id;
+  const origenId = side === 1 ? match.pareja1_origen_partido_id : match.pareja2_origen_partido_id;
+  if (parejaId) return parejaLabel(parejaId, insc);
+  if (origenId){
+    const origenMatch = allPartidos.find(p => p.id === origenId);
+    return `Ganador de ${origenMatch ? origenMatch.round_name : '?'}`;
+  }
+  return 'Por determinar';
+}
+
+function matchCardHtml(m, label1, label2, insc, canPick){
+  return `
+    <div class="res-card">
+      <div class="res-head">
+        <h3 style="font-size:14px;">${label1} vs ${label2}</h3>
+        <span class="pill pill-${m.status === 'jugado' ? 'confirmada' : 'pendiente'}">${m.status}</span>
+      </div>
+      <div class="res-meta">
+        <div>🎾 ${COURTS_BY_ID[m.pista_id] || '—'} · 📅 ${m.match_date ? fmtDate(m.match_date) : '—'} · ⏰ ${m.start_time ? m.start_time.slice(0,5) : '--'}-${m.end_time ? m.end_time.slice(0,5) : '--'}</div>
+        ${m.winner_pareja_id ? `<div>🏆 Ganador: ${parejaLabel(m.winner_pareja_id, insc)}</div>` : ''}
+      </div>
+      ${canPick ? `
+        <div class="res-actions">
+          <select data-mark-winner="${m.id}">
+            <option value="">Marcar ganador…</option>
+            <option value="${m.pareja1_id}">${label1}</option>
+            <option value="${m.pareja2_id}">${label2}</option>
+          </select>
+        </div>` : ''}
+    </div>`;
+}
+
+function renderBracketHtml(partidos, insc){
+  const rounds = {};
+  partidos.forEach(p => { (rounds[p.round_number] = rounds[p.round_number] || []).push(p); });
+  const roundNumbers = Object.keys(rounds).map(Number).sort((a,b) => a-b);
+
+  let html = '<h4 style="font-size:14px; color:var(--ink-soft); text-transform:uppercase; letter-spacing:.04em; margin:18px 0 10px;">Cuadro</h4>';
+  roundNumbers.forEach(rn => {
+    const matches = rounds[rn];
+    html += `<div style="margin-bottom:14px;"><b style="font-size:13px;">${matches[0].round_name}</b>`;
+    html += matches.map(m => {
+      const label1 = matchSlotLabel(m, 1, insc, partidos);
+      const label2 = matchSlotLabel(m, 2, insc, partidos);
+      const canPick = m.status === 'pendiente' && m.pareja1_id && m.pareja2_id;
+      return matchCardHtml(m, label1, label2, insc, canPick);
+    }).join('');
+    html += '</div>';
+  });
+  return html;
+}
+
+function renderLeagueHtml(partidos, insc){
+  const rounds = {};
+  partidos.forEach(p => { (rounds[p.round_number] = rounds[p.round_number] || []).push(p); });
+  const roundNumbers = Object.keys(rounds).map(Number).sort((a,b) => a-b);
+
+  const standings = {};
+  insc.filter(i => i.status === 'activa').forEach(i => { standings[i.id] = { name: parejaLabel(i.id, insc), wins: 0, losses: 0, played: 0 }; });
+  partidos.forEach(m => {
+    if (m.status === 'jugado' && m.winner_pareja_id){
+      const loserId = m.winner_pareja_id === m.pareja1_id ? m.pareja2_id : m.pareja1_id;
+      if (standings[m.winner_pareja_id]){ standings[m.winner_pareja_id].wins++; standings[m.winner_pareja_id].played++; }
+      if (standings[loserId]){ standings[loserId].losses++; standings[loserId].played++; }
+    }
+  });
+  const table = Object.values(standings).sort((a,b) => b.wins - a.wins);
+
+  let html = '<h4 style="font-size:14px; color:var(--ink-soft); text-transform:uppercase; letter-spacing:.04em; margin:18px 0 10px;">Clasificación</h4>';
+  html += `<div class="table-wrap"><table><thead><tr><th>Pareja</th><th>PJ</th><th>G</th><th>P</th></tr></thead><tbody>`;
+  html += table.map(t => `<tr><td>${t.name}</td><td>${t.played}</td><td>${t.wins}</td><td>${t.losses}</td></tr>`).join('') || '<tr><td colspan="4">Sin datos.</td></tr>';
+  html += `</tbody></table></div>`;
+
+  html += '<h4 style="font-size:14px; color:var(--ink-soft); text-transform:uppercase; letter-spacing:.04em; margin:18px 0 10px;">Jornadas</h4>';
+  roundNumbers.forEach(rn => {
+    const matches = rounds[rn];
+    html += `<div style="margin-bottom:14px;"><b style="font-size:13px;">${matches[0].round_name}</b>`;
+    html += matches.map(m => {
+      const label1 = parejaLabel(m.pareja1_id, insc);
+      const label2 = parejaLabel(m.pareja2_id, insc);
+      return matchCardHtml(m, label1, label2, insc, m.status === 'pendiente');
+    }).join('');
+    html += '</div>';
+  });
+  return html;
+}
+
+async function loadCompetitionCourtsCheckboxes(){
+  const wrap = document.getElementById('comp_pistas_check');
+  wrap.innerHTML = (window._COURTS_CACHE || []).map(c => `
+    <label style="display:flex; align-items:center; gap:6px; font-weight:400; font-size:14px; color:var(--ink);">
+      <input type="checkbox" class="comp-pista-check" value="${c.id}" style="width:auto;"> ${c.name}
+    </label>`).join('');
+}
+
+document.getElementById('newCompetitionBtn').addEventListener('click', () => {
+  document.getElementById('competitionForm').reset();
+  loadCompetitionCourtsCheckboxes();
+  document.getElementById('competitionFormMsg').textContent = '';
+  document.getElementById('competitionFormCard').hidden = false;
+});
+document.getElementById('cancelCompetitionBtn').addEventListener('click', () => {
+  document.getElementById('competitionFormCard').hidden = true;
+});
+
+document.getElementById('competitionForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const msg = document.getElementById('competitionFormMsg');
+  const pistaIds = Array.from(document.querySelectorAll('.comp-pista-check:checked')).map(c => c.value);
+  if (!pistaIds.length){ msg.textContent = 'Elige al menos una pista.'; msg.className = 'form-msg err'; return; }
+  const start = document.getElementById('comp_start').value;
+  const end = document.getElementById('comp_end').value;
+  const deadline = document.getElementById('comp_deadline').value;
+  if (end < start){ msg.textContent = 'La fecha de fin no puede ser anterior al inicio.'; msg.className = 'form-msg err'; return; }
+  if (deadline > end){ msg.textContent = 'La fecha límite de inscripción debe ser antes o igual al fin.'; msg.className = 'form-msg err'; return; }
+
+  const payload = {
+    name: document.getElementById('comp_name').value.trim(),
+    type: document.getElementById('comp_type').value,
+    start_date: start,
+    end_date: end,
+    registration_deadline: deadline,
+    match_duration_minutes: Number(document.getElementById('comp_duration').value || 90),
+    max_pairs: document.getElementById('comp_max').value ? Number(document.getElementById('comp_max').value) : null,
+    description: document.getElementById('comp_description').value.trim() || null,
+  };
+  const { data: comp, error } = await supabase.from('competiciones_padel').insert(payload).select().single();
+  if (error){ msg.textContent = 'Error al crear la competición.'; msg.className = 'form-msg err'; return; }
+  await supabase.from('competicion_pistas_padel').insert(pistaIds.map(pid => ({ competicion_id: comp.id, pista_id: pid })));
+  document.getElementById('competitionFormCard').hidden = true;
+  renderCompetitions();
+});
+
+async function renderCompetitions(){
+  const container = document.getElementById('competitionsList');
+  container.innerHTML = '<p class="empty-msg">Cargando…</p>';
+  const { data: comps, error } = await supabase.from('competiciones_padel').select('*').order('start_date', { ascending: false });
+  if (error || !comps){ container.innerHTML = '<p class="empty-msg">Error cargando competiciones.</p>'; return; }
+
+  const [{ data: allInsc }, { data: allPartidos }, { data: allCompPistas }] = await Promise.all([
+    supabase.from('competicion_inscripciones_padel').select('*'),
+    supabase.from('competicion_partidos_padel').select('*'),
+    supabase.from('competicion_pistas_padel').select('*'),
+  ]);
+  window._COMPETITIONS_CACHE = comps;
+  window._INSCRIPCIONES_CACHE = allInsc || [];
+  window._PARTIDOS_CACHE = allPartidos || [];
+  window._COMP_PISTAS_CACHE = allCompPistas || [];
+
+  if (!comps.length){ container.innerHTML = '<p class="empty-msg">No hay torneos ni ligas todavía.</p>'; return; }
+
+  const STATUS_LABELS = {
+    inscripciones_abiertas: 'Inscripciones abiertas',
+    inscripciones_cerradas: 'Inscripciones cerradas',
+    en_curso: 'En curso',
+    finalizado: 'Finalizado',
+  };
+
+  container.innerHTML = comps.map(c => {
+    const insc = (allInsc || []).filter(i => i.competicion_id === c.id && i.status === 'activa');
+    const partidos = (allPartidos || []).filter(p => p.competicion_id === c.id);
+    return `
+      <div class="card" style="margin-bottom:16px;">
+        <div class="panel-head">
+          <div>
+            <h3 style="font-size:17px;">${c.name} <span class="pill" style="background:rgba(255,255,255,.1);">${c.type === 'torneo' ? 'Torneo' : 'Liga'}</span></h3>
+            <div style="color:var(--ink-soft); font-size:12.5px; margin-top:4px;">
+              ${fmtDate(c.start_date)} – ${fmtDate(c.end_date)} · Inscripción hasta ${fmtDate(c.registration_deadline)} · ${insc.length}${c.max_pairs ? '/'+c.max_pairs : ''} parejas · ${STATUS_LABELS[c.status]}
+            </div>
+          </div>
+          <div class="row-actions">
+            <button class="btn btn-ghost btn-sm" data-toggle-comp="${c.id}">Ver</button>
+            ${partidos.length === 0 ? `<button class="btn btn-primary btn-sm" data-generate-comp="${c.id}">🎲 Generar cruces</button>` : ''}
+            <button class="btn btn-danger btn-sm" data-delete-comp="${c.id}">Borrar</button>
+          </div>
+        </div>
+        <div id="compDetail${c.id}" hidden style="margin-top:16px;"></div>
+      </div>
+    `;
+  }).join('');
+
+  container.querySelectorAll('[data-toggle-comp]').forEach(btn => {
+    btn.addEventListener('click', () => toggleCompetitionDetail(btn.dataset.toggleComp));
+  });
+  container.querySelectorAll('[data-generate-comp]').forEach(btn => {
+    btn.addEventListener('click', () => generateCrosses(btn.dataset.generateComp));
+  });
+  container.querySelectorAll('[data-delete-comp]').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      if (!confirm('¿Borrar esta competición y todos sus partidos e inscripciones? También se liberarán las pistas reservadas para sus partidos.')) return;
+      const compId = btn.dataset.deleteComp;
+      const partidos = (window._PARTIDOS_CACHE || []).filter(p => p.competicion_id === compId);
+      for (const p of partidos){
+        await supabase.from('reservas_padel').delete().eq('competicion_partido_id', p.id);
+      }
+      await supabase.from('competiciones_padel').delete().eq('id', compId);
+      renderCompetitions();
+    });
+  });
+}
+
+function toggleCompetitionDetail(compId){
+  const panel = document.getElementById(`compDetail${compId}`);
+  if (!panel) return;
+  panel.hidden = !panel.hidden;
+  if (!panel.hidden) renderCompetitionDetail(compId);
+}
+
+function renderCompetitionDetail(compId){
+  const panel = document.getElementById(`compDetail${compId}`);
+  if (!panel) return;
+  const comp = (window._COMPETITIONS_CACHE || []).find(c => c.id === compId);
+  const insc = (window._INSCRIPCIONES_CACHE || []).filter(i => i.competicion_id === compId);
+  const partidos = (window._PARTIDOS_CACHE || []).filter(p => p.competicion_id === compId)
+    .sort((a,b) => a.round_number - b.round_number || (a.match_date||'').localeCompare(b.match_date||'') || (a.start_time||'').localeCompare(b.start_time||''));
+
+  let html = '<h4 style="font-size:14px; color:var(--ink-soft); text-transform:uppercase; letter-spacing:.04em; margin-bottom:10px;">Parejas inscritas</h4>';
+  html += `<div class="table-wrap"><table><thead><tr><th>Pareja</th><th>Teléfono</th><th>Estado</th><th></th></tr></thead><tbody>`;
+  html += insc.map(i => `
+    <tr>
+      <td>${i.player1_name}${i.player2_name ? ' / ' + i.player2_name : ''}</td>
+      <td>${i.player1_phone}${i.player2_phone ? ' / ' + i.player2_phone : ''}</td>
+      <td>${i.status}</td>
+      <td class="row-actions">${i.status === 'activa' ? `<button class="btn btn-ghost btn-sm" data-withdraw="${i.id}">Retirar</button>` : ''}</td>
+    </tr>`).join('') || '<tr><td colspan="4">Sin inscripciones todavía.</td></tr>';
+  html += `</tbody></table></div>`;
+
+  html += `
+    <div class="card" style="margin-top:14px;">
+      <form class="form-grid" data-add-pair-form="1">
+        <div class="field"><label>Jugador 1</label><input type="text" class="pair-p1-name" required></div>
+        <div class="field"><label>Teléfono 1</label><input type="text" class="pair-p1-phone" required></div>
+        <div class="field"><label>Jugador 2 (opcional)</label><input type="text" class="pair-p2-name"></div>
+        <div class="field"><label>Teléfono 2 (opcional)</label><input type="text" class="pair-p2-phone"></div>
+        <div style="grid-column:1/-1;"><button type="submit" class="btn btn-ghost btn-sm">+ Añadir pareja manualmente</button></div>
+      </form>
+    </div>
+  `;
+
+  if (partidos.length){
+    html += comp.type === 'torneo' ? renderBracketHtml(partidos, insc) : renderLeagueHtml(partidos, insc);
+  }
+
+  panel.innerHTML = html;
+
+  panel.querySelector('[data-add-pair-form]')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const form = e.target;
+    const payload = {
+      competicion_id: compId,
+      player1_name: form.querySelector('.pair-p1-name').value.trim(),
+      player1_phone: form.querySelector('.pair-p1-phone').value.trim(),
+      player2_name: form.querySelector('.pair-p2-name').value.trim() || null,
+      player2_phone: form.querySelector('.pair-p2-phone').value.trim() || null,
+    };
+    await supabase.from('competicion_inscripciones_padel').insert(payload);
+    await refreshCompetitionsCacheAndRerender(compId);
+  });
+
+  panel.querySelectorAll('[data-withdraw]').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      await supabase.from('competicion_inscripciones_padel').update({ status: 'retirada' }).eq('id', btn.dataset.withdraw);
+      await refreshCompetitionsCacheAndRerender(compId);
+    });
+  });
+
+  panel.querySelectorAll('[data-mark-winner]').forEach(sel => {
+    sel.addEventListener('change', async (e) => {
+      const matchId = sel.dataset.markWinner;
+      const winnerId = e.target.value;
+      if (!winnerId) return;
+      await recordMatchWinner(matchId, winnerId);
+      await refreshCompetitionsCacheAndRerender(compId);
+    });
+  });
+}
+
+async function refreshCompetitionsCacheAndRerender(compId){
+  const [{ data: allInsc }, { data: allPartidos }] = await Promise.all([
+    supabase.from('competicion_inscripciones_padel').select('*'),
+    supabase.from('competicion_partidos_padel').select('*'),
+  ]);
+  window._INSCRIPCIONES_CACHE = allInsc || [];
+  window._PARTIDOS_CACHE = allPartidos || [];
+  await renderCompetitions();
+  const panel = document.getElementById(`compDetail${compId}`);
+  if (panel){ panel.hidden = false; renderCompetitionDetail(compId); }
+}
 
 /* ---------- Pistas ---------- */
 async function loadCourts(){

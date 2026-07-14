@@ -97,6 +97,34 @@ Antes de escribir tráfico real, cambia también `OWNER_PHONE` dentro del códig
 de la función por el teléfono real de contacto (ahora mismo tiene un número de
 ejemplo).
 
+## Torneos y ligas
+
+Desde `admin.html` → pestaña «Torneos» puedes crear un torneo (eliminatoria
+directa) o una liga (todos contra todos), eligiendo pistas, fechas y fecha
+límite de inscripción. La gente se apunta por parejas desde `index.html`
+(sección «Torneos»), hasta esa fecha límite.
+
+Cuando cierras inscripciones, el botón **"🎲 Generar cruces"**:
+- Sortea las parejas y arma el cuadro (con "byes" repartidos si el número de
+  parejas no es potencia de 2) o el calendario de la liga (método del círculo,
+  todos contra todos).
+- Asigna fecha, hora y pista real a cada partido dentro del rango de la
+  competición, sin chocar con reservas o mantenimientos ya existentes — y
+  **bloquea automáticamente esas pistas en el calendario** (se ven como
+  reservas normales, con origen "torneo"/"liga").
+- En el torneo, las rondas siguientes empiezan con casillas "Ganador de
+  Cuartos de final" etc.; al marcar el ganador de un partido en el panel, el
+  cuadro avanza solo y actualiza el nombre en la reserva bloqueada.
+- En la liga se calcula una tabla de clasificación simple (partidos jugados,
+  ganados, perdidos) a medida que registras resultados.
+
+Tablas: `competiciones_padel`, `competicion_pistas_padel`,
+`competicion_inscripciones_padel` (con vista pública sin teléfonos,
+`inscripciones_padel_publico`, para mostrar el cuadro/apuntados en la web) y
+`competicion_partidos_padel`. Cada partido con pista/fecha asignada crea una
+fila en `reservas_padel` (columna `competicion_partido_id`) para que bloquee
+el hueco igual que cualquier otra reserva.
+
 ## Cómo lo pruebas en local
 
 Solo hace falta un servidor estático simple (los módulos ES no funcionan con `file://`):

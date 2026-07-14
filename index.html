@@ -138,6 +138,14 @@
   .price-row .label{ color:var(--ink-soft); }
   .price-row .range{ display:block; font-size:12.5px; color:var(--ink-soft); opacity:.8; }
 
+  /* ---------- Torneos ---------- */
+  .competitions-grid{ display:grid; grid-template-columns:repeat(auto-fit, minmax(280px,1fr)); gap:20px; }
+  .competition-card{ background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); padding:24px; }
+  .competition-card h3{ font-size:18px; }
+  .competition-card .comp-type{ font-size:11.5px; text-transform:uppercase; letter-spacing:.06em; color:var(--lime); font-weight:600; margin-bottom:8px; }
+  .competition-card .comp-meta{ color:var(--ink-soft); font-size:13.5px; margin:10px 0 16px; display:grid; gap:4px; }
+  .competition-card .btn{ width:100%; }
+
   /* ---------- Reserva ---------- */
   .booking-panel{
     background:var(--surface); border:1px solid var(--line); border-radius:20px; padding:28px;
@@ -209,6 +217,7 @@
       <li><a href="#pistas">Pistas</a></li>
       <li><a href="#precios">Precios</a></li>
       <li><a href="#reserva">Reservar</a></li>
+      <li><a href="#torneos">Torneos</a></li>
       <li><a href="#contacto">Contacto</a></li>
     </ul>
     <div class="nav-cta"><a href="#reserva" class="btn btn-primary">Reservar pista</a></div>
@@ -286,6 +295,19 @@
   </div>
 </section>
 
+<section id="torneos">
+  <div class="wrap">
+    <div class="section-head">
+      <span class="eyebrow">Competiciones</span>
+      <h2>Torneos y ligas</h2>
+      <p>Apunta tu pareja antes de la fecha límite.</p>
+    </div>
+    <div class="competitions-grid" id="competitionsGrid">
+      <p style="text-align:center; color:var(--ink-soft);">Cargando torneos y ligas…</p>
+    </div>
+  </div>
+</section>
+
 <section id="contacto">
   <div class="wrap contact-grid">
     <div>
@@ -351,6 +373,39 @@
       </div>
       <div class="form-msg" id="formMsg"></div>
       <button type="submit" class="btn btn-primary">Confirmar reserva</button>
+    </form>
+  </div>
+</div>
+
+<!-- ---------- Modal de inscripción a torneo/liga ---------- -->
+<div class="modal-backdrop" id="signupModal" hidden>
+  <div class="modal">
+    <div class="modal-head">
+      <div>
+        <span class="eyebrow">Apuntarse</span>
+        <h3 id="signupCompName" style="margin-top:6px; font-size:20px;"></h3>
+      </div>
+      <button class="modal-close" id="signupModalClose" aria-label="Cerrar">✕</button>
+    </div>
+    <form id="signupForm">
+      <div class="field">
+        <label for="signup_p1_name">Jugador/a 1 — nombre</label>
+        <input type="text" id="signup_p1_name" required>
+      </div>
+      <div class="field">
+        <label for="signup_p1_phone">Jugador/a 1 — teléfono</label>
+        <input type="tel" id="signup_p1_phone" required>
+      </div>
+      <div class="field">
+        <label for="signup_p2_name">Jugador/a 2 — nombre (opcional)</label>
+        <input type="text" id="signup_p2_name">
+      </div>
+      <div class="field">
+        <label for="signup_p2_phone">Jugador/a 2 — teléfono (opcional)</label>
+        <input type="tel" id="signup_p2_phone">
+      </div>
+      <div class="form-msg" id="signupFormMsg"></div>
+      <button type="submit" class="btn btn-primary">Apuntar pareja</button>
     </form>
   </div>
 </div>
@@ -557,8 +612,58 @@ function setMsg(text, type){
   el.className = 'form-msg ' + (type || '');
 }
 
+function fmtCompDate(d){
+  return new Date(d + 'T00:00:00').toLocaleDateString('es-ES', { day:'numeric', month:'short' });
+}
+
+async function loadCompetitions(){
+  const today = new Date().toISOString().slice(0,10);
+  const { data: comps } = await supabase.from('competiciones_padel').select('*').order('start_date');
+  const { data: inscPublic } = await supabase.from('inscripciones_padel_publico').select('*').eq('status', 'activa');
+  const grid = document.getElementById('competitionsGrid');
+  window._COMPETITIONS_PUBLIC = comps || [];
+  if (!comps || !comps.length){
+    grid.innerHTML = '<p style="text-align:center; color:var(--ink-soft);">No hay torneos ni ligas programados ahora mismo.</p>';
+    return;
+  }
+  const TYPE_LABELS = { torneo: 'Torneo', liga: 'Liga' };
+  grid.innerHTML = comps.map(c => {
+    const count = (inscPublic || []).filter(i => i.competicion_id === c.id).length;
+    const open = c.status === 'inscripciones_abiertas' && c.registration_deadline >= today && (!c.max_pairs || count < c.max_pairs);
+    return `
+      <div class="competition-card">
+        <div class="comp-type">${TYPE_LABELS[c.type] || c.type}</div>
+        <h3>${c.name}</h3>
+        <div class="comp-meta">
+          <div>📅 ${fmtCompDate(c.start_date)} – ${fmtCompDate(c.end_date)}</div>
+          <div>⏳ Inscripción hasta ${fmtCompDate(c.registration_deadline)}</div>
+          <div>👥 ${count}${c.max_pairs ? '/' + c.max_pairs : ''} parejas apuntadas</div>
+        </div>
+        ${open
+          ? `<button type="button" class="btn btn-primary" data-signup="${c.id}">Apuntar mi pareja</button>`
+          : `<button type="button" class="btn btn-ghost" disabled>${c.status === 'finalizado' ? 'Finalizado' : 'Inscripciones cerradas'}</button>`}
+      </div>`;
+  }).join('');
+
+  grid.querySelectorAll('[data-signup]').forEach(btn => {
+    btn.addEventListener('click', () => openSignupModal(btn.dataset.signup));
+  });
+}
+
+function openSignupModal(compId){
+  const comp = (window._COMPETITIONS_PUBLIC || []).find(c => c.id === compId);
+  document.getElementById('signupCompName').textContent = comp ? comp.name : '';
+  document.getElementById('signupForm').dataset.compId = compId;
+  document.getElementById('signupForm').reset();
+  document.getElementById('signupFormMsg').textContent = '';
+  document.getElementById('signupModal').hidden = false;
+}
+function closeSignupModal(){
+  document.getElementById('signupModal').hidden = true;
+}
+
 async function init(){
-  await Promise.all([loadCourts(), loadPricing(), loadFestivos(), loadExtras(), loadMaintenance()]);
+  await Promise.all([loadCourts(), loadPricing(), loadFestivos(), loadExtras(), loadMaintenance(), loadCompetitions()]);
 
   const today = new Date().toISOString().slice(0,10);
   const dateInput = document.getElementById('dateInput');
@@ -576,6 +681,38 @@ async function init(){
   document.getElementById('modalClose').addEventListener('click', closeBookingModal);
   document.getElementById('bookingModal').addEventListener('click', (e) => {
     if (e.target.id === 'bookingModal') closeBookingModal();
+  });
+
+  document.getElementById('signupModalClose').addEventListener('click', closeSignupModal);
+  document.getElementById('signupModal').addEventListener('click', (e) => {
+    if (e.target.id === 'signupModal') closeSignupModal();
+  });
+  document.getElementById('signupForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const form = e.target;
+    const msg = document.getElementById('signupFormMsg');
+    msg.textContent = '';
+    const payload = {
+      competicion_id: form.dataset.compId,
+      player1_name: document.getElementById('signup_p1_name').value.trim(),
+      player1_phone: document.getElementById('signup_p1_phone').value.trim(),
+      player2_name: document.getElementById('signup_p2_name').value.trim() || null,
+      player2_phone: document.getElementById('signup_p2_phone').value.trim() || null,
+    };
+    const submitBtn = form.querySelector('button[type="submit"]');
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Enviando…';
+    const { error } = await supabase.from('competicion_inscripciones_padel').insert(payload);
+    submitBtn.disabled = false;
+    submitBtn.textContent = 'Apuntar pareja';
+    if (error){
+      msg.textContent = 'No se ha podido enviar la inscripción. Inténtalo de nuevo.';
+      msg.className = 'form-msg err';
+      return;
+    }
+    msg.textContent = '¡Pareja apuntada! Nos vemos en la pista.';
+    msg.className = 'form-msg ok';
+    setTimeout(() => { closeSignupModal(); loadCompetitions(); }, 1800);
   });
 
   document.getElementById('bookingForm').addEventListener('submit', async (e) => {
