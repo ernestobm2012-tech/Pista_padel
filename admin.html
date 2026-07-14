@@ -534,6 +534,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 const SUPABASE_URL = 'https://stnuvhlqicftjbtlybit.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN0bnV2aGxxaWNmdGpidGx5Yml0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMyNDY4NzgsImV4cCI6MjA5ODgyMjg3OH0.1a8uenfaddy_yiXPgerteMoktCEeeFhkH021qp0okPY';
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const ADMIN_EMAIL = 'ernestobm2012@gmail.com';
 
 const loginScreen = document.getElementById('loginScreen');
 const appScreen = document.getElementById('appScreen');
@@ -556,9 +557,14 @@ loginForm.addEventListener('submit', async (e) => {
   const password = document.getElementById('loginPassword').value;
   const remember = document.getElementById('loginRemember').checked;
   loginMsg.textContent = 'Entrando…';
-  const { error } = await supabase.auth.signInWithPassword({ email, password });
+  const { data, error } = await supabase.auth.signInWithPassword({ email, password });
   if (error){
     loginMsg.textContent = 'Usuario o contraseña incorrectos.';
+    return;
+  }
+  if (data.user.email !== ADMIN_EMAIL){
+    await supabase.auth.signOut();
+    loginMsg.textContent = 'Esta cuenta no tiene acceso al panel de administración.';
     return;
   }
   if (remember) localStorage.setItem(LOGIN_REMEMBER_KEY, JSON.stringify({ email, password }));
@@ -2159,6 +2165,11 @@ function printInvoice(inv){
 /* ---------- Bootstrap ---------- */
 async function checkSession(){
   const { data: { session } } = await supabase.auth.getSession();
+  if (session && session.user.email !== ADMIN_EMAIL){
+    await supabase.auth.signOut();
+    loginMsg.textContent = 'Esta cuenta no tiene acceso al panel de administración.';
+    return;
+  }
   if (session){
     loginScreen.hidden = true;
     appScreen.hidden = false;
@@ -2171,6 +2182,10 @@ async function checkSession(){
   }
 }
 supabase.auth.onAuthStateChange((_event, session) => {
+  if (session && session.user.email !== ADMIN_EMAIL){
+    supabase.auth.signOut();
+    return;
+  }
   if (session){
     loginScreen.hidden = true;
     appScreen.hidden = false;
