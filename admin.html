@@ -94,6 +94,14 @@
 
   .form-grid{ display:grid; grid-template-columns:1fr 1fr; gap:14px; }
   @media (max-width:600px){ .form-grid{ grid-template-columns:1fr; } }
+  .res-slot-grid{ display:grid; grid-template-columns:repeat(auto-fill, minmax(70px,1fr)); gap:8px; max-height:260px; overflow-y:auto; padding:4px; }
+  .res-slot-btn{
+    background:var(--surface-2); border:1px solid var(--line); border-radius:8px; padding:8px 4px;
+    color:var(--ink); font-family:'Outfit'; font-weight:600; font-size:13px; cursor:pointer; text-align:center;
+  }
+  .res-slot-btn:hover{ border-color:var(--lime); }
+  .res-slot-btn.taken{ opacity:.35; text-decoration:line-through; cursor:not-allowed; }
+  .res-slot-btn.selected{ background:var(--lime); color:#0B1210; border-color:var(--lime); }
   .form-msg{ font-size:13.5px; min-height:18px; }
   .form-msg.ok{ color:var(--lime); }
   .form-msg.err{ color:var(--red); }
@@ -251,7 +259,11 @@
             <select id="res_pista" required></select>
           </div>
           <div class="field"><label for="res_date">Fecha</label><input type="date" id="res_date" required></div>
-          <div class="field"><label for="res_start">Hora inicio</label><input type="time" id="res_start" required></div>
+          <div class="field" style="grid-column:1/-1;">
+            <label>Hora de inicio</label>
+            <div class="res-slot-grid" id="resSlotsGrid"><p class="empty-msg">Elige pista y fecha para ver los horarios libres.</p></div>
+            <input type="hidden" id="res_start">
+          </div>
           <div class="field">
             <label for="res_duration">Duración</label>
             <select id="res_duration" required></select>
@@ -503,7 +515,11 @@
         <select id="edit_res_pista" required></select>
       </div>
       <div class="field"><label for="edit_res_date">Fecha</label><input type="date" id="edit_res_date" required></div>
-      <div class="field"><label for="edit_res_start">Hora inicio</label><input type="time" id="edit_res_start" required></div>
+      <div class="field" style="grid-column:1/-1;">
+        <label>Hora de inicio</label>
+        <div class="res-slot-grid" id="editResSlotsGrid"><p class="empty-msg">Elige pista y fecha para ver los horarios libres.</p></div>
+        <input type="hidden" id="edit_res_start">
+      </div>
       <div class="field">
         <label for="edit_res_duration">Duración</label>
         <select id="edit_res_duration" required></select>
@@ -719,6 +735,100 @@ function populateDurationSelect(selectEl, selectedMinutes){
   ).join('');
   if (selectedMinutes) selectEl.value = String(selectedMinutes);
 }
+
+/* ---------- Rejilla de horarios libres/ocupados (reservas manuales) ---------- */
+const RES_OPEN_TIME = '08:00';
+const RES_CLOSE_TIME = '23:00';
+const RES_START_STEP_MINUTES = 30;
+
+function buildResStartTimes(minDuration){
+  const starts = [];
+  let t = timeToMinutes(RES_OPEN_TIME);
+  const close = timeToMinutes(RES_CLOSE_TIME);
+  while (t + minDuration <= close){
+    starts.push(minutesToTime(t));
+    t += RES_START_STEP_MINUTES;
+  }
+  return starts;
+}
+async function getResBusyIntervals(pistaId, dateStr, excludeId){
+  const { data } = await supabase.from('reservas_padel').select('id, start_time, end_time')
+    .eq('pista_id', pistaId).eq('reservation_date', dateStr).neq('status', 'cancelada');
+  return (data || [])
+    .filter(r => r.id !== excludeId)
+    .map(r => [timeToMinutes(r.start_time.slice(0,5)), timeToMinutes(r.end_time.slice(0,5))]);
+}
+async function getResMaintenance(pistaId, dateStr){
+  const { data } = await supabase.from('mantenimientos_padel').select('*')
+    .eq('pista_id', pistaId).lte('start_date', dateStr).gte('end_date', dateStr);
+  return (data && data[0]) || null;
+}
+function resOverlapsBusy(intervals, startMin, endMin){
+  return intervals.some(([bStart, bEnd]) => startMin < bEnd && endMin > bStart);
+}
+function resAvailableDurationsFor(startStr, intervals){
+  const startMin = timeToMinutes(startStr);
+  const close = timeToMinutes(RES_CLOSE_TIME);
+  return (window._DURATIONS_CACHE || []).filter(d => {
+    const endMin = startMin + d.duration_minutes;
+    return endMin <= close && !resOverlapsBusy(intervals, startMin, endMin);
+  });
+}
+
+async function renderResSlotGrid(opts){
+  const grid = document.getElementById(opts.gridId);
+  const startInput = document.getElementById(opts.startInputId);
+  const durSelect = document.getElementById(opts.durationSelectId);
+  startInput.value = opts.selectedStart || '';
+
+  if (!opts.pistaId || !opts.dateStr){
+    grid.innerHTML = '<p class="empty-msg">Elige pista y fecha para ver los horarios libres.</p>';
+    durSelect.innerHTML = '<option value="">Elige duración…</option>';
+    return;
+  }
+  await loadDurationsCache();
+  const maintenance = await getResMaintenance(opts.pistaId, opts.dateStr);
+  if (maintenance){
+    grid.innerHTML = `<p class="empty-msg">🔧 Esta pista está en mantenimiento del ${fmtDate(maintenance.start_date)} al ${fmtDate(maintenance.end_date)}.</p>`;
+    durSelect.innerHTML = '<option value="">Elige duración…</option>';
+    return;
+  }
+  grid.innerHTML = '<p class="empty-msg">Cargando…</p>';
+  const intervals = await getResBusyIntervals(opts.pistaId, opts.dateStr, opts.excludeId);
+  const durations = window._DURATIONS_CACHE || [];
+  const minDuration = durations.length ? Math.min(...durations.map(d => d.duration_minutes)) : 60;
+  const starts = buildResStartTimes(minDuration);
+
+  grid.innerHTML = starts.map(s => {
+    const taken = !resAvailableDurationsFor(s, intervals).length && s !== opts.selectedStart;
+    const isSelected = s === opts.selectedStart;
+    return `<button type="button" class="res-slot-btn ${taken ? 'taken' : ''} ${isSelected ? 'selected' : ''}" ${taken ? 'disabled' : ''} data-start="${s}">${s}</button>`;
+  }).join('');
+
+  function refreshDurationOptions(startStr){
+    const validDurations = resAvailableDurationsFor(startStr, intervals);
+    durSelect.innerHTML = `<option value="">Elige duración…</option>` + durations.map(d => {
+      const isValid = validDurations.some(v => v.duration_minutes === d.duration_minutes) || d.duration_minutes === opts.selectedDuration;
+      return `<option value="${d.duration_minutes}" ${isValid ? '' : 'disabled'}>${durationLabel(d.duration_minutes)} — ${formatPrice(d.price)}</option>`;
+    }).join('');
+  }
+
+  if (opts.selectedStart){
+    refreshDurationOptions(opts.selectedStart);
+    if (opts.selectedDuration) durSelect.value = String(opts.selectedDuration);
+  } else {
+    durSelect.innerHTML = '<option value="">Elige duración…</option>';
+  }
+
+  grid.querySelectorAll('.res-slot-btn:not(.taken)').forEach(btn => {
+    btn.addEventListener('click', () => {
+      grid.querySelectorAll('.res-slot-btn').forEach(b => b.classList.remove('selected'));
+      btn.classList.add('selected');
+      startInput.value = btn.dataset.start;
+      refreshDurationOptions(btn.dataset.start);
+    });
+  });
+}
 function padelImageUrl(path){
   return supabase.storage.from('galeria-padel').getPublicUrl(path).data.publicUrl;
 }
@@ -799,14 +909,29 @@ function populateReservationCourtSelect(){
   select.innerHTML = (window._COURTS_CACHE || []).map(c => `<option value="${c.id}">${c.name}</option>`).join('');
 }
 
+async function refreshResSlotGrid(){
+  await renderResSlotGrid({
+    gridId: 'resSlotsGrid',
+    startInputId: 'res_start',
+    durationSelectId: 'res_duration',
+    pistaId: document.getElementById('res_pista').value,
+    dateStr: document.getElementById('res_date').value,
+    excludeId: null,
+    selectedStart: null,
+    selectedDuration: null,
+  });
+}
+document.getElementById('res_pista').addEventListener('change', refreshResSlotGrid);
+document.getElementById('res_date').addEventListener('change', refreshResSlotGrid);
+
 document.getElementById('newReservationBtn').addEventListener('click', async () => {
   if (!window._COURTS_CACHE) await loadCourts();
   await loadDurationsCache();
   document.getElementById('reservationForm').reset();
   populateReservationCourtSelect();
-  populateDurationSelect(document.getElementById('res_duration'));
   document.getElementById('res_status').value = 'confirmada';
   document.getElementById('reservationFormMsg').textContent = '';
+  await refreshResSlotGrid();
   document.getElementById('reservationFormCard').hidden = false;
 });
 document.getElementById('cancelReservationBtn').addEventListener('click', () => {
@@ -1237,8 +1362,16 @@ async function openEditReservationModal(r){
   document.getElementById('edit_res_pista').innerHTML = (window._COURTS_CACHE || []).map(c => `<option value="${c.id}">${c.name}</option>`).join('');
   document.getElementById('edit_res_pista').value = r.pista_id;
   document.getElementById('edit_res_date').value = r.reservation_date;
-  document.getElementById('edit_res_start').value = r.start_time.slice(0,5);
-  populateDurationSelect(document.getElementById('edit_res_duration'), r.duration_minutes);
+  await renderResSlotGrid({
+    gridId: 'editResSlotsGrid',
+    startInputId: 'edit_res_start',
+    durationSelectId: 'edit_res_duration',
+    pistaId: r.pista_id,
+    dateStr: r.reservation_date,
+    excludeId: r.id,
+    selectedStart: r.start_time.slice(0,5),
+    selectedDuration: r.duration_minutes,
+  });
   document.getElementById('edit_res_name').value = r.full_name;
   document.getElementById('edit_res_phone').value = r.phone || '';
   document.getElementById('edit_res_players').value = r.players_count || '';
@@ -1255,6 +1388,20 @@ document.getElementById('editResModalClose').addEventListener('click', closeEdit
 document.getElementById('editReservationModal').addEventListener('click', (e) => {
   if (e.target.id === 'editReservationModal') closeEditReservationModal();
 });
+async function refreshEditResSlotGrid(){
+  await renderResSlotGrid({
+    gridId: 'editResSlotsGrid',
+    startInputId: 'edit_res_start',
+    durationSelectId: 'edit_res_duration',
+    pistaId: document.getElementById('edit_res_pista').value,
+    dateStr: document.getElementById('edit_res_date').value,
+    excludeId: document.getElementById('edit_res_id').value,
+    selectedStart: null,
+    selectedDuration: null,
+  });
+}
+document.getElementById('edit_res_pista').addEventListener('change', refreshEditResSlotGrid);
+document.getElementById('edit_res_date').addEventListener('change', refreshEditResSlotGrid);
 
 document.getElementById('editReservationForm').addEventListener('submit', async (e) => {
   e.preventDefault();

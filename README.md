@@ -232,6 +232,13 @@ La hora de fin, la duración y el precio se calculan y guardan solos a
 partir de la duración elegida, así ninguna reserva se queda sin esos datos
 (lo que antes aparecía como "Sin registrar" en Estadísticas).
 
+Al elegir pista y fecha aparece una **rejilla de horarios**, igual que en
+la web pública: las horas ya ocupadas (o que no dejan sitio para ninguna
+duración) salen tachadas y no se pueden elegir. Al modificar una reserva
+ya existente, su propio hueco se descuenta de la comprobación (para poder
+dejarla tal cual o solo cambiarle la duración sin que se marque como
+ocupada a sí misma).
+
 ## Torneos y ligas
 
 Desde `admin.html` → pestaña «Torneos» puedes crear un torneo (eliminatoria
