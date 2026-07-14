@@ -4,7 +4,13 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="robots" content="noindex, nofollow">
+<link rel="icon" href="assets/favicon-32.png" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
 <link rel="manifest" href="./admin-manifest.webmanifest">
+<meta name="theme-color" content="#0B1210">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Padel Admin">
 <title>Panel de administración — Pistas Municipales de Pádel, Chozas de Canales</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -159,6 +165,7 @@
 
 <div id="loginScreen">
   <div class="login-card">
+    <button class="btn btn-ghost btn-sm install-btn" hidden style="margin-bottom:14px;">📲 Instalar app</button>
     <h1>Pistas Municipales</h1>
     <p>Chozas de Canales — accede con tu cuenta de administrador.</p>
     <form id="loginForm">
@@ -175,6 +182,7 @@
   <header class="appbar">
     <div class="logo"><span class="dot"></span> Pistas Municipales · Chozas de Canales</div>
     <div style="display:flex; gap:8px; align-items:center;">
+      <button class="btn btn-ghost btn-sm install-btn" hidden>📲 Instalar app</button>
       <button class="btn btn-ghost btn-sm" id="notifBtn" hidden>🔔 Activar notificaciones</button>
       <button class="btn btn-ghost btn-sm" id="logoutBtn">Cerrar sesión</button>
     </div>
@@ -515,6 +523,27 @@ document.getElementById('logoutBtn').addEventListener('click', async () => {
   window.location.reload();
 });
 
+/* ---------- Instalar como app ---------- */
+let swRegistrationPromise = null;
+if ('serviceWorker' in navigator) {
+  swRegistrationPromise = navigator.serviceWorker.register('./sw-padel.js').catch(() => null);
+}
+let deferredInstallPrompt = null;
+const installBtns = document.querySelectorAll('.install-btn');
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  deferredInstallPrompt = e;
+  installBtns.forEach(btn => { btn.hidden = false; });
+});
+installBtns.forEach(btn => btn.addEventListener('click', async () => {
+  if (!deferredInstallPrompt) return;
+  installBtns.forEach(b => { b.hidden = true; });
+  deferredInstallPrompt.prompt();
+  await deferredInstallPrompt.userChoice;
+  deferredInstallPrompt = null;
+}));
+window.addEventListener('appinstalled', () => { installBtns.forEach(btn => { btn.hidden = true; }); });
+
 /* ---------- Notificaciones push (reserva nueva) ---------- */
 const VAPID_PUBLIC_KEY = 'BEdx5e2At2Fz3X9ROFHto57PbEkQVO-el9uj_lEtfcCy15u221x-TBqI_KDKECChZk6Jd_iTg8zwkMZ-iq1rnWU';
 const notifBtn = document.getElementById('notifBtn');
@@ -532,7 +561,8 @@ function urlBase64ToUint8Array(base64String){
 async function checkNotifButton(){
   if (!('serviceWorker' in navigator) || !('PushManager' in window)) { notifBtn.hidden = true; return; }
   try {
-    swRegistration = await navigator.serviceWorker.register('./sw-padel.js');
+    swRegistration = await (swRegistrationPromise || navigator.serviceWorker.register('./sw-padel.js'));
+    if (!swRegistration) throw new Error('no registration');
   } catch (e) { notifBtn.hidden = true; return; }
   if (Notification.permission === 'denied'){ notifBtn.hidden = true; return; }
   const existing = await swRegistration.pushManager.getSubscription();

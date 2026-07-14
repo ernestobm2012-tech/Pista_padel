@@ -3,7 +3,15 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><circle cx=%2250%22 cy=%2250%22 r=%2245%22 fill=%22%23C6FF3D%22/></svg>">
+<link rel="icon" href="assets/favicon-32.png" sizes="32x32" type="image/png">
+<link rel="icon" href="assets/favicon-16.png" sizes="16x16" type="image/png">
+<link rel="icon" href="assets/favicon-48.png" sizes="48x48" type="image/png">
+<link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+<link rel="manifest" href="./manifest.webmanifest">
+<meta name="theme-color" content="#0B1210">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Pádel Chozas">
 <title>Pistas Municipales de Pádel — Chozas de Canales</title>
 <meta name="description" content="Reserva online las pistas municipales de pádel de Chozas de Canales: consulta horarios disponibles, precios y confirma tu partido en segundos.">
 
@@ -233,7 +241,10 @@
       <li><a href="#torneos">Torneos</a></li>
       <li><a href="#contacto">Contacto</a></li>
     </ul>
-    <div class="nav-cta"><a href="#reserva" class="btn btn-primary">Reservar pista</a></div>
+    <div class="nav-cta">
+      <button class="btn btn-ghost" id="installBtn" hidden>📲 Instalar app</button>
+      <a href="#reserva" class="btn btn-primary">Reservar pista</a>
+    </div>
     <button class="burger" id="burgerBtn" aria-label="Menú">☰</button>
   </div>
 </header>
@@ -435,6 +446,26 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 document.getElementById('year').textContent = new Date().getFullYear();
+
+/* ---------- Instalar como app ---------- */
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('./sw-public.js').catch(() => {});
+}
+let deferredInstallPrompt = null;
+const installBtn = document.getElementById('installBtn');
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  deferredInstallPrompt = e;
+  installBtn.hidden = false;
+});
+installBtn.addEventListener('click', async () => {
+  if (!deferredInstallPrompt) return;
+  installBtn.hidden = true;
+  deferredInstallPrompt.prompt();
+  await deferredInstallPrompt.userChoice;
+  deferredInstallPrompt = null;
+});
+window.addEventListener('appinstalled', () => { installBtn.hidden = true; });
 
 const OPEN_TIME = '08:00';
 const CLOSE_TIME = '23:00';

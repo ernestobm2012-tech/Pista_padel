@@ -16,6 +16,28 @@ Netlify, Vercel...).
   mantenimiento, y emitir facturas simples.
 - Todo el contenido de pistas/precios se lee de la base de datos, así que puedes
   cambiarlo sin tocar código.
+- Se puede **instalar como app** (tanto la web de reservas como el panel de
+  administración), con su propio icono, pantalla completa sin barra del
+  navegador y funcionamiento básico sin conexión.
+
+## Instalar como app
+
+Tanto `index.html` (la web de reservas) como `admin.html` (el panel) son
+instalables como una app normal, en el móvil o el ordenador:
+
+- **Android/Chrome/Edge**: al entrar aparece un botón **"📲 Instalar app"**
+  (arriba a la derecha en la web, y en la pantalla de login o la cabecera del
+  panel); al pulsarlo, el propio navegador pregunta si quieres instalarla y
+  queda como un icono más en el móvil/escritorio.
+- **iPhone/iPad (Safari)**: Safari no muestra ese botón (Apple no lo permite),
+  pero se instala igual desde Compartir → "Añadir a pantalla de inicio".
+
+Una vez instalada se abre en pantalla completa, con su propio icono (la
+raqueta y pelota de pádel) y sin la barra de direcciones del navegador, como
+cualquier otra app. La web de reservas (`index.html`) además guarda su
+"cascarón" (sw-public.js) para poder abrirse aunque no haya buena conexión, y
+el panel (`admin.html`) reutiliza el service worker de las notificaciones
+(`sw-padel.js`).
 
 ## Fotos de pistas y torneos
 
