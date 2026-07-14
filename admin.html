@@ -117,9 +117,19 @@
     display:flex; align-items:center; justify-content:center; padding:0 3px; line-height:1;
   }
   .res-card{ background:var(--bg-soft); border:1px solid var(--line); border-radius:10px; padding:14px 16px; margin-bottom:10px; }
-  .res-card .res-head{ display:flex; justify-content:space-between; align-items:center; gap:10px; }
+  .res-card .res-head{ display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; }
   .res-card .res-meta{ font-size:13px; color:var(--ink-soft); margin-top:8px; display:grid; gap:3px; }
-  .res-card .res-actions{ margin-top:10px; }
+  .res-card .res-actions{ margin-top:10px; display:flex; gap:6px; flex-wrap:wrap; }
+
+  /* ---------- Reservas (lista de tarjetas) ---------- */
+  .reservation-card{ background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); padding:16px 18px; margin-bottom:12px; }
+  .reservation-card .res-top{ display:flex; justify-content:space-between; align-items:flex-start; gap:10px; flex-wrap:wrap; }
+  .reservation-card .res-when{ font-family:'Outfit'; font-weight:700; font-size:15.5px; }
+  .reservation-card .res-when .res-pista{ color:var(--ink-soft); font-weight:500; font-size:13px; display:block; margin-top:2px; }
+  .reservation-card .res-client{ font-size:14px; margin-top:10px; }
+  .reservation-card .res-client .municipal-tag{ font-size:11px; background:rgba(255,255,255,.12); padding:2px 8px; border-radius:999px; margin-left:6px; }
+  .reservation-card .res-sub{ font-size:12.5px; color:var(--ink-soft); margin-top:4px; display:flex; gap:12px; flex-wrap:wrap; }
+  .reservation-card .res-actions{ margin-top:12px; display:flex; gap:6px; flex-wrap:wrap; }
 
   /* ---------- Clientes ---------- */
   .client-card{ background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); padding:16px 20px; margin-bottom:12px; display:flex; justify-content:space-between; align-items:center; gap:16px; flex-wrap:wrap; }
@@ -167,8 +177,8 @@
   </header>
 
   <nav class="tabs">
-    <button data-tab="tabReservas" class="active">Reservas</button>
-    <button data-tab="tabCalendario">Calendario</button>
+    <button data-tab="tabCalendario" class="active">Calendario</button>
+    <button data-tab="tabReservas">Reservas</button>
     <button data-tab="tabClientes">Clientes</button>
     <button data-tab="tabTorneos">Torneos</button>
     <button data-tab="tabPistas">Pistas</button>
@@ -177,8 +187,19 @@
   </nav>
 
   <main>
+    <!-- ---------- Calendario ---------- -->
+    <section id="tabCalendario" class="tab-panel">
+      <div class="cal-nav">
+        <button type="button" class="btn btn-ghost btn-sm" id="calPrevBtn">← Mes anterior</button>
+        <h2 id="calLabel" style="font-size:18px; text-transform:capitalize;"></h2>
+        <button type="button" class="btn btn-ghost btn-sm" id="calNextBtn">Mes siguiente →</button>
+      </div>
+      <div class="cal-grid" id="calGrid"></div>
+      <div id="calDayList"></div>
+    </section>
+
     <!-- ---------- Reservas ---------- -->
-    <section id="tabReservas" class="tab-panel">
+    <section id="tabReservas" class="tab-panel" hidden>
       <div class="panel-head">
         <h2>Reservas</h2>
         <div class="filters">
@@ -235,25 +256,7 @@
           </div>
         </form>
       </div>
-      <div class="card table-wrap">
-        <table>
-          <thead>
-            <tr><th>Fecha</th><th>Hora</th><th>Pista</th><th>Cliente</th><th>Teléfono</th><th>Jugadores</th><th>Luz</th><th>Estado</th><th></th></tr>
-          </thead>
-          <tbody id="reservationsBody"></tbody>
-        </table>
-      </div>
-    </section>
-
-    <!-- ---------- Calendario ---------- -->
-    <section id="tabCalendario" class="tab-panel" hidden>
-      <div class="cal-nav">
-        <button type="button" class="btn btn-ghost btn-sm" id="calPrevBtn">← Mes anterior</button>
-        <h2 id="calLabel" style="font-size:18px; text-transform:capitalize;"></h2>
-        <button type="button" class="btn btn-ghost btn-sm" id="calNextBtn">Mes siguiente →</button>
-      </div>
-      <div class="cal-grid" id="calGrid"></div>
-      <div id="calDayList"></div>
+      <div id="reservationsList" class="reservations-list"></div>
     </section>
 
     <!-- ---------- Clientes ---------- -->
@@ -551,35 +554,43 @@ async function loadReservations(){
   if (status) query = query.eq('status', status);
   if (date) query = query.eq('reservation_date', date);
   const { data, error } = await query;
-  const body = document.getElementById('reservationsBody');
-  if (error){ body.innerHTML = `<tr><td colspan="9">Error cargando reservas.</td></tr>`; return; }
-  if (!data.length){ body.innerHTML = `<tr><td colspan="9">No hay reservas.</td></tr>`; return; }
+  const list = document.getElementById('reservationsList');
+  if (error){ list.innerHTML = `<p class="empty-msg">Error cargando reservas.</p>`; return; }
+  if (!data.length){ list.innerHTML = `<p class="empty-msg">No hay reservas.</p>`; return; }
 
   window._RESERVATIONS_CACHE = data;
-  body.innerHTML = data.map(r => `
-    <tr data-id="${r.id}">
-      <td>${fmtDate(r.reservation_date)}</td>
-      <td>${r.start_time.slice(0,5)}–${r.end_time.slice(0,5)}</td>
-      <td>${COURTS_BY_ID[r.pista_id] || '—'}</td>
-      <td>${r.full_name}${r.is_municipal ? ' <span class="pill" style="background:rgba(255,255,255,.12); color:var(--ink);">🏛️ Municipal</span>' : ''}</td>
-      <td>${r.phone || '—'}</td>
-      <td>${r.players_count || '—'}</td>
-      <td>${r.wants_light ? `💡 +${formatPrice(r.light_price || 0)}` : '—'}</td>
-      <td><span class="pill pill-${r.status}">${r.status}</span></td>
-      <td class="row-actions">
+  list.innerHTML = data.map(r => `
+    <div class="reservation-card" data-id="${r.id}">
+      <div class="res-top">
+        <div class="res-when">
+          ${fmtDate(r.reservation_date)} · ${r.start_time.slice(0,5)}–${r.end_time.slice(0,5)}
+          <span class="res-pista">🎾 ${COURTS_BY_ID[r.pista_id] || '—'}</span>
+        </div>
+        <span class="pill pill-${r.status}">${r.status}</span>
+      </div>
+      <div class="res-client">
+        ${r.full_name}${r.is_municipal ? '<span class="municipal-tag">🏛️ Municipal</span>' : ''}
+      </div>
+      <div class="res-sub">
+        <span>📞 ${r.phone || '—'}</span>
+        <span>👥 ${r.players_count || '—'}</span>
+        <span>${r.wants_light ? `💡 +${formatPrice(r.light_price || 0)}` : 'Sin luz'}</span>
+        ${r.price ? `<span>💶 ${formatPrice(r.price)}</span>` : ''}
+      </div>
+      <div class="res-actions">
         ${r.status !== 'confirmada' ? `<button class="btn btn-ghost btn-sm" data-action="confirm">Confirmar</button>` : ''}
         ${r.status !== 'cancelada' ? `<button class="btn btn-danger btn-sm" data-action="cancel">Cancelar</button>` : ''}
         <button class="btn btn-ghost btn-sm" data-action="edit">✏️ Modificar</button>
         <button class="btn btn-ghost btn-sm" data-action="delete">Borrar</button>
-      </td>
-    </tr>
+      </div>
+    </div>
   `).join('');
 }
 
-document.getElementById('reservationsBody').addEventListener('click', async (e) => {
+document.getElementById('reservationsList').addEventListener('click', async (e) => {
   const btn = e.target.closest('button[data-action]');
   if (!btn) return;
-  const id = btn.closest('tr').dataset.id;
+  const id = btn.closest('[data-id]').dataset.id;
   if (btn.dataset.action === 'confirm'){
     await supabase.from('reservas_padel').update({ status: 'confirmada' }).eq('id', id);
   } else if (btn.dataset.action === 'cancel'){
@@ -1877,7 +1888,7 @@ async function checkSession(){
     loginScreen.hidden = true;
     appScreen.hidden = false;
     await loadCourts();
-    await loadReservations();
+    await renderCalendarState();
   } else {
     loginScreen.hidden = false;
     appScreen.hidden = true;
@@ -1887,8 +1898,7 @@ supabase.auth.onAuthStateChange((_event, session) => {
   if (session){
     loginScreen.hidden = true;
     appScreen.hidden = false;
-    loadCourts();
-    loadReservations();
+    loadCourts().then(() => renderCalendarState());
   } else {
     loginScreen.hidden = false;
     appScreen.hidden = true;
