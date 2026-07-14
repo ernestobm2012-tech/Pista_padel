@@ -47,6 +47,56 @@ Para cambiar precios, pistas, extras o mantenimientos: hazlo desde `admin.html`
 (pestañas «Pistas» y «Precios»), o directamente en el dashboard de Supabase →
 Table Editor.
 
+## Bot de WhatsApp
+
+Hay un bot de WhatsApp que hace reservas solo, sin pasar por la web. Vive como
+una Edge Function de Supabase (`whatsapp-webhook-padel`, en el mismo proyecto
+`stnuvhlqicftjbtlybit`), no en este repositorio, así que se actualiza desde el
+dashboard de Supabase → Edge Functions.
+
+Funciona con la API de WhatsApp Cloud de Meta:
+1. El cliente escribe al número de WhatsApp del ayuntamiento/pistas.
+2. El bot le pregunta pista → fecha → hora libre → nombre → jugadores → si
+   quiere luz, y al confirmar crea la reserva directamente en `reservas_padel`
+   (estado `pendiente`, igual que si reservara por la web).
+3. Respeta los mantenimientos (`mantenimientos_padel`) y los horarios ya
+   ocupados, igual que el calendario de `index.html`.
+4. Si el cliente escribe algo que no encaja en el guion (una pregunta libre),
+   el bot puede responder con IA (Claude) si se configura `ANTHROPIC_API_KEY`;
+   si no, simplemente pide que llames por teléfono.
+
+El estado de cada conversación se guarda en `wa_conversations_padel`
+(pista/fecha/hora que se van eligiendo) y el historial de mensajes en
+`wa_messages_padel`. Ninguna de las dos es accesible desde el navegador (solo
+la Edge Function, con la service role key, puede leerlas).
+
+### Puesta en marcha (una vez, en Meta for Developers)
+
+1. Crea una cuenta en [developers.facebook.com](https://developers.facebook.com/)
+   y una App de tipo "Business" con el producto **WhatsApp** añadido.
+2. En WhatsApp → API Setup, verás un número de prueba gratuito de Meta (o
+   añade y verifica el número real del ayuntamiento). Copia el
+   **Phone number ID** y genera un **token de acceso** (para producción,
+   uno permanente vía System User, no el temporal de 24h).
+3. En Supabase → tu proyecto → Edge Functions → `whatsapp-webhook-padel` →
+   Secrets, añade:
+   - `WHATSAPP_TOKEN` — el token de acceso de Meta.
+   - `WHATSAPP_PHONE_NUMBER_ID` — el Phone number ID.
+   - `WHATSAPP_VERIFY_TOKEN` — te lo inventas tú (cualquier cadena secreta),
+     tiene que coincidir con el paso siguiente.
+   - `ANTHROPIC_API_KEY` — opcional, solo si quieres que responda preguntas
+     libres con IA.
+4. En Meta → WhatsApp → Configuration → Webhook, pon como URL:
+   `https://stnuvhlqicftjbtlybit.supabase.co/functions/v1/whatsapp-webhook-padel`
+   y como "Verify token" el mismo valor que pusiste en `WHATSAPP_VERIFY_TOKEN`.
+   Suscríbete al campo `messages`.
+5. Escribe al número de WhatsApp desde tu móvil — el bot debería responder con
+   el menú.
+
+Antes de escribir tráfico real, cambia también `OWNER_PHONE` dentro del código
+de la función por el teléfono real de contacto (ahora mismo tiene un número de
+ejemplo).
+
 ## Cómo lo pruebas en local
 
 Solo hace falta un servidor estático simple (los módulos ES no funcionan con `file://`):
