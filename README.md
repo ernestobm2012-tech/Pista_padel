@@ -166,22 +166,10 @@ que pide el navegador. La suscripción se guarda en la tabla
 `push_subscriptions_padel`; si el navegador la invalida (por ejemplo, se
 desinstala el sitio) se borra sola la próxima vez que falle un envío.
 
-### Puesta en marcha (una vez, en Supabase)
-
-Como con el bot de WhatsApp, hay que configurar unos secretos en el
-dashboard de Supabase, porque no se pueden crear automáticamente desde
-aquí. En **Supabase → Edge Functions → `notify-new-reservation-padel` →
-Secrets**, añade:
-
-- `VAPID_PUBLIC_KEY` = `BEdx5e2At2Fz3X9ROFHto57PbEkQVO-el9uj_lEtfcCy15u221x-TBqI_KDKECChZk6Jd_iTg8zwkMZ-iq1rnWU`
-- `VAPID_PRIVATE_KEY` = `mN5uBeDxH2fv05NbgzJBNVxABfJLRlv1We7gEul4380`
-- `RESERVATION_WEBHOOK_SECRET` = `2dd0e0fb6ecf1b5203e2a4b689b57e86008ea4017b2dd8b9`
-
-(`VAPID_SUBJECT` es opcional; por defecto usa tu email de administrador.)
-Estas claves ya están generadas específicamente para este proyecto — no
-hace falta cambiarlas, solo copiarlas tal cual a los secretos de la
-función. Sin este paso, la reserva se sigue creando con normalidad, pero
-la notificación fallará silenciosamente (no bloquea nada).
+No hace falta configurar nada más: las claves necesarias ya están
+incluidas en la propia Edge Function `notify-new-reservation-padel`, así
+que funciona de fábrica en cuanto activas las notificaciones desde un
+dispositivo.
 
 ## Torneos y ligas
 
@@ -229,9 +217,6 @@ La forma más rápida y gratuita es **GitHub Pages**:
 
 ## Pendiente de tu parte / a revisar
 
-- Configura los secretos de la Edge Function `notify-new-reservation-padel`
-  (ver sección «Notificaciones de reserva nueva» más arriba) para que
-  lleguen avisos de reservas nuevas a tu móvil/navegador.
 - Sustituye los datos de contacto de ejemplo (teléfono, email, dirección, redes
   sociales, mapa) por los reales en `index.html` (sección «Contacto»).
 - Ya se han creado 2 pistas y los 3 precios por duración de ejemplo (1h=3€,
