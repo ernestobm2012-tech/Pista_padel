@@ -4,8 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><circle cx=%2250%22 cy=%2250%22 r=%2245%22 fill=%22%23C6FF3D%22/></svg>">
-<title>Club de Pádel — Reserva tu pista online</title>
-<meta name="description" content="Reserva tu pista de pádel online: consulta horarios disponibles, precios y confirma tu partido en segundos.">
+<title>Pistas Municipales de Pádel — Chozas de Canales</title>
+<meta name="description" content="Reserva online las pistas municipales de pádel de Chozas de Canales: consulta horarios disponibles, precios y confirma tu partido en segundos.">
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -176,6 +176,12 @@
   .modal-head{ display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:18px; }
   .modal-close{ background:none; border:0; color:var(--ink-soft); font-size:22px; cursor:pointer; line-height:1; }
   .modal form{ display:grid; gap:14px; }
+  .light-check{ display:flex; align-items:center; gap:10px; font-size:14.5px; color:var(--ink); cursor:pointer; }
+  .light-check input{ width:18px; height:18px; accent-color:var(--lime); }
+  .maintenance-note{
+    background:rgba(255,200,87,.1); border:1px solid rgba(255,200,87,.3); color:var(--amber);
+    border-radius:10px; padding:14px; font-size:14px; text-align:center;
+  }
   .form-msg{ font-size:14px; min-height:20px; }
   .form-msg.ok{ color:var(--lime); }
   .form-msg.err{ color:var(--red); }
@@ -198,7 +204,7 @@
 
 <header>
   <div class="wrap nav">
-    <div class="logo"><span class="dot"></span> Club de Pádel</div>
+    <div class="logo"><span class="dot"></span> Pistas Municipales · Chozas de Canales</div>
     <ul class="nav-links">
       <li><a href="#pistas">Pistas</a></li>
       <li><a href="#precios">Precios</a></li>
@@ -286,7 +292,7 @@
       <span class="eyebrow">Contacto</span>
       <h2 style="margin-top:10px;">¿Hablamos?</h2>
       <p style="color:var(--ink-soft); margin-top:14px;">
-        📍 Dirección del club aquí<br>
+        📍 Chozas de Canales, Toledo<br>
         📞 <a href="tel:+34600000000">600 000 000</a><br>
         ✉️ <a href="mailto:info@clubpadel.es">info@clubpadel.es</a>
       </p>
@@ -297,13 +303,13 @@
       </div>
     </div>
     <div class="map-frame">
-      <iframe loading="lazy" src="https://www.google.com/maps?q=padel&output=embed"></iframe>
+      <iframe loading="lazy" src="https://www.google.com/maps?q=pistas+de+padel+Chozas+de+Canales&output=embed"></iframe>
     </div>
   </div>
 </section>
 
 <footer>
-  <div class="wrap">© <span id="year"></span> Club de Pádel. Todos los derechos reservados.</div>
+  <div class="wrap">© <span id="year"></span> Pistas Municipales de Pádel de Chozas de Canales.</div>
 </footer>
 
 <!-- ---------- Modal de reserva ---------- -->
@@ -336,6 +342,9 @@
           <option value="4" selected>4</option>
         </select>
       </div>
+      <label class="light-check" id="lightField" hidden>
+        <input type="checkbox" id="wants_light"> <span id="lightLabel">¿Quieres luz?</span>
+      </label>
       <div class="field">
         <label for="message">Comentario (opcional)</label>
         <textarea id="message" rows="2"></textarea>
@@ -393,6 +402,22 @@ let FESTIVOS = new Set();
 async function loadFestivos(){
   const { data } = await supabase.from('festivos_padel').select('event_date');
   FESTIVOS = new Set((data || []).map(r => r.event_date));
+}
+
+let LIGHT_EXTRA = null;
+async function loadExtras(){
+  const { data } = await supabase.from('extras_padel').select('*').eq('active', true);
+  LIGHT_EXTRA = (data || []).find(e => e.name.toLowerCase().includes('luz')) || null;
+}
+
+let MAINTENANCE = [];
+async function loadMaintenance(){
+  const today = new Date().toISOString().slice(0,10);
+  const { data } = await supabase.from('mantenimientos_padel').select('*').gte('end_date', today);
+  MAINTENANCE = data || [];
+}
+function maintenanceFor(pistaId, dateStr){
+  return MAINTENANCE.find(m => m.pista_id === pistaId && dateStr >= m.start_date && dateStr <= m.end_date) || null;
 }
 function dayGroupFor(dateStr){
   const d = new Date(dateStr + 'T00:00:00');
@@ -460,11 +485,17 @@ async function loadAvailability(pistaId, dateStr){
   BUSY_SLOTS = new Set((data || []).map(r => `${r.start_time.slice(0,5)}-${r.end_time.slice(0,5)}`));
 }
 
-function renderSlots(dateStr){
+function renderSlots(dateStr, maintenance){
   const grid = document.getElementById('slotsGrid');
   const isPast = dateStr < new Date().toISOString().slice(0,10);
   if (isPast){
     grid.innerHTML = '<p class="slots-empty">Elige una fecha a partir de hoy.</p>';
+    return;
+  }
+  if (maintenance){
+    const desde = new Date(maintenance.start_date + 'T00:00:00').toLocaleDateString('es-ES', { day:'numeric', month:'short' });
+    const hasta = new Date(maintenance.end_date + 'T00:00:00').toLocaleDateString('es-ES', { day:'numeric', month:'short' });
+    grid.innerHTML = `<div class="maintenance-note">🔧 Esta pista está en mantenimiento del ${desde} al ${hasta}${maintenance.reason ? ` (${maintenance.reason})` : ''}. Elige otra pista u otra fecha.</div>`;
     return;
   }
   grid.innerHTML = ALL_SLOTS.map(s => {
@@ -481,9 +512,14 @@ async function refreshSlots(){
     document.getElementById('slotsGrid').innerHTML = '<p class="slots-empty">Elige pista y fecha para ver horarios.</p>';
     return;
   }
+  const maintenance = maintenanceFor(pistaId, dateStr);
+  if (maintenance){
+    renderSlots(dateStr, maintenance);
+    return;
+  }
   document.getElementById('slotsGrid').innerHTML = '<p class="slots-empty">Cargando…</p>';
   await loadAvailability(pistaId, dateStr);
-  renderSlots(dateStr);
+  renderSlots(dateStr, null);
 }
 
 let selectedSlot = null;
@@ -500,6 +536,15 @@ function openBookingModal(startTime, endTime){
 
   document.getElementById('bookingForm').reset();
   document.getElementById('formMsg').textContent = '';
+
+  const lightField = document.getElementById('lightField');
+  if (LIGHT_EXTRA){
+    document.getElementById('lightLabel').textContent = `¿Quieres luz? (+${formatPrice(LIGHT_EXTRA.price)})`;
+    lightField.hidden = false;
+  } else {
+    lightField.hidden = true;
+  }
+
   document.getElementById('bookingModal').hidden = false;
 }
 function closeBookingModal(){
@@ -513,7 +558,7 @@ function setMsg(text, type){
 }
 
 async function init(){
-  await Promise.all([loadCourts(), loadPricing(), loadFestivos()]);
+  await Promise.all([loadCourts(), loadPricing(), loadFestivos(), loadExtras(), loadMaintenance()]);
 
   const today = new Date().toISOString().slice(0,10);
   const dateInput = document.getElementById('dateInput');
@@ -537,9 +582,19 @@ async function init(){
     e.preventDefault();
     setMsg('', '');
 
+    const pistaId = document.getElementById('pistaSelect').value;
+    const reservationDate = document.getElementById('dateInput').value;
+
+    if (maintenanceFor(pistaId, reservationDate)){
+      setMsg('Esta pista está en mantenimiento en esa fecha. Elige otra pista u otra fecha.', 'err');
+      return;
+    }
+
+    const wantsLight = document.getElementById('wants_light').checked;
+
     const payload = {
-      pista_id: document.getElementById('pistaSelect').value,
-      reservation_date: document.getElementById('dateInput').value,
+      pista_id: pistaId,
+      reservation_date: reservationDate,
       start_time: selectedSlot.start,
       end_time: selectedSlot.end,
       full_name: document.getElementById('full_name').value.trim(),
@@ -547,6 +602,8 @@ async function init(){
       email: document.getElementById('email').value.trim() || null,
       players_count: Number(document.getElementById('players_count').value),
       message: document.getElementById('message').value.trim() || null,
+      wants_light: wantsLight,
+      light_price: wantsLight && LIGHT_EXTRA ? LIGHT_EXTRA.price : null,
     };
 
     const submitBtn = e.target.querySelector('button[type="submit"]');
