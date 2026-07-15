@@ -267,6 +267,36 @@ Tablas: `competiciones_padel`, `competicion_pistas_padel`,
 fila en `reservas_padel` (columna `competicion_partido_id`) para que bloquee
 el hueco igual que cualquier otra reserva.
 
+### Apuntarse exige tener cuenta
+
+Para apuntar una pareja a un torneo o liga ahora hace falta haber iniciado
+sesión (antes se podía apuntar cualquiera sin cuenta). Si alguien pulsa
+"Apuntar mi pareja" sin haber iniciado sesión, se abre el modal de cuenta
+para iniciar sesión o registrarse y, al terminar, retoma automáticamente el
+formulario de inscripción. Cada inscripción queda ligada al `user_id` de
+quien la crea (`competicion_inscripciones_padel.user_id`), tanto para saber
+quién puede entrar al chat de esa competición como, en el futuro, para que
+cada jugador vea sus propias inscripciones.
+
+Las inscripciones que ya existían antes de este cambio no tienen `user_id`
+(se crearon sin cuenta), así que esas parejas no verán el botón de chat
+hasta que alguien las vuelva a apuntar con una cuenta o un admin les asigne
+el `user_id` a mano en la base de datos.
+
+### Chat interno del torneo/liga
+
+Cada competición tiene un chat privado en tiempo real, solo visible para
+quienes tengan una inscripción activa en ella. En `index.html`, las tarjetas
+de torneos/ligas muestran un botón **"💬 Chat"** únicamente a los
+participantes ya identificados; ahí pueden ver el historial de mensajes y
+escribir, y los mensajes nuevos de cualquier jugador aparecen al instante
+(Supabase Realtime) sin recargar la página.
+
+Tabla `competicion_chat_mensajes` (con RLS): solo se puede leer o escribir en
+el chat de una competición si existe una fila en
+`competicion_inscripciones_padel` con `status = 'activa'` para ese usuario y
+esa competición. No hay panel de moderación en `admin.html` por ahora.
+
 ## Cómo lo pruebas en local
 
 Solo hace falta un servidor estático simple (los módulos ES no funcionan con `file://`):

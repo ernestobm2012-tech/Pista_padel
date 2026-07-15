@@ -223,6 +223,11 @@
   }
   .modal-head{ display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:18px; }
   .modal-close{ background:none; border:0; color:var(--ink-soft); font-size:22px; cursor:pointer; line-height:1; }
+  .chat-messages{ max-height:360px; overflow-y:auto; display:flex; flex-direction:column; gap:10px; padding:6px 2px; }
+  .chat-msg{ background:var(--bg-soft); border-radius:12px; padding:8px 12px; max-width:85%; align-self:flex-start; }
+  .chat-msg.mine{ background:var(--lime); color:#0B1210; align-self:flex-end; }
+  .chat-msg .sender{ font-size:11px; font-weight:700; opacity:.7; margin-bottom:2px; }
+  .chat-msg .time{ font-size:10px; opacity:.6; margin-top:4px; text-align:right; }
   .my-res-card{ background:var(--bg-soft); border:1px solid var(--line); border-radius:12px; padding:14px 16px; margin-bottom:10px; display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap; }
   .my-res-card .info{ font-size:14px; }
   .my-res-card .info b{ display:block; margin-bottom:2px; }
@@ -475,6 +480,24 @@
   </div>
 </div>
 
+<!-- ---------- Modal de chat de torneo/liga ---------- -->
+<div class="modal-backdrop" id="chatModal" hidden>
+  <div class="modal">
+    <div class="modal-head">
+      <div>
+        <span class="eyebrow">Chat del torneo/liga</span>
+        <h3 id="chatCompName" style="margin-top:6px; font-size:20px;"></h3>
+      </div>
+      <button class="modal-close" id="chatModalClose" aria-label="Cerrar">✕</button>
+    </div>
+    <div class="chat-messages" id="chatMessages"></div>
+    <form id="chatForm" style="display:flex; gap:8px; margin-top:14px;">
+      <input type="text" id="chatInput" placeholder="Escribe un mensaje…" required style="flex:1;">
+      <button type="submit" class="btn btn-primary btn-sm">Enviar</button>
+    </form>
+  </div>
+</div>
+
 <!-- ---------- Modal de cuenta (login / registro / mis reservas) ---------- -->
 <div class="modal-backdrop" id="accountModal" hidden>
   <div class="modal">
@@ -636,6 +659,8 @@ function showResetPasswordView(){
   accountModalTitle.textContent = 'Nueva contraseña';
 }
 let awaitingLoginForBooking = false;
+let awaitingLoginForSignup = false;
+let pendingSignupCompId = null;
 
 function openAccountModal(){
   accountModal.hidden = false;
@@ -644,8 +669,15 @@ function openAccountModal(){
 function closeAccountModal(){
   accountModal.hidden = true;
   awaitingLoginForBooking = false;
+  awaitingLoginForSignup = false;
 }
 function resumePendingBooking(){
+  if (awaitingLoginForSignup && pendingSignupCompId){
+    awaitingLoginForSignup = false;
+    accountModal.hidden = true;
+    openSignupModal(pendingSignupCompId);
+    return;
+  }
   if (!awaitingLoginForBooking || !pendingStartTime) return;
   awaitingLoginForBooking = false;
   accountModal.hidden = true;
@@ -808,6 +840,7 @@ supabase.auth.onAuthStateChange((event, session) => {
     return;
   }
   if (!accountModal.hidden) renderAccountModal();
+  if (window._COMPETITIONS_PUBLIC) loadCompetitions();
 });
 
 const OPEN_TIME = '08:00';
@@ -1067,6 +1100,7 @@ async function loadCompetitions(){
   const { data: inscPublic } = await supabase.from('inscripciones_padel_publico').select('*').eq('status', 'activa');
   const grid = document.getElementById('competitionsGrid');
   window._COMPETITIONS_PUBLIC = comps || [];
+  window._INSCRIPCIONES_PUBLIC = inscPublic || [];
   if (!comps || !comps.length){
     grid.innerHTML = '<p style="text-align:center; color:var(--ink-soft);">No hay torneos ni ligas programados ahora mismo.</p>';
     return;
@@ -1075,6 +1109,7 @@ async function loadCompetitions(){
   grid.innerHTML = comps.map(c => {
     const count = (inscPublic || []).filter(i => i.competicion_id === c.id).length;
     const open = c.status === 'inscripciones_abiertas' && c.registration_deadline >= today && (!c.max_pairs || count < c.max_pairs);
+    const isParticipant = currentUser && (inscPublic || []).some(i => i.competicion_id === c.id && i.user_id === currentUser.id);
     return `
       <div class="competition-card">
         ${c.image_path ? `<img class="comp-photo" src="${padelImageUrl(c.image_path)}" alt="${c.name}">` : ''}
@@ -1085,27 +1120,97 @@ async function loadCompetitions(){
           <div>⏳ Inscripción hasta ${fmtCompDate(c.registration_deadline)}</div>
           <div>👥 ${count}${c.max_pairs ? '/' + c.max_pairs : ''} parejas apuntadas</div>
         </div>
-        ${open
-          ? `<button type="button" class="btn btn-primary" data-signup="${c.id}">Apuntar mi pareja</button>`
-          : `<button type="button" class="btn btn-ghost" disabled>${c.status === 'finalizado' ? 'Finalizado' : 'Inscripciones cerradas'}</button>`}
+        <div style="display:flex; gap:10px; flex-wrap:wrap;">
+          ${open
+            ? `<button type="button" class="btn btn-primary" data-signup="${c.id}">Apuntar mi pareja</button>`
+            : `<button type="button" class="btn btn-ghost" disabled>${c.status === 'finalizado' ? 'Finalizado' : 'Inscripciones cerradas'}</button>`}
+          ${isParticipant ? `<button type="button" class="btn btn-ghost" data-chat="${c.id}">💬 Chat</button>` : ''}
+        </div>
       </div>`;
   }).join('');
 
   grid.querySelectorAll('[data-signup]').forEach(btn => {
     btn.addEventListener('click', () => openSignupModal(btn.dataset.signup));
   });
+  grid.querySelectorAll('[data-chat]').forEach(btn => {
+    btn.addEventListener('click', () => openCompChatModal(btn.dataset.chat));
+  });
 }
 
 function openSignupModal(compId){
+  if (!currentUser){
+    pendingSignupCompId = compId;
+    awaitingLoginForSignup = true;
+    openAccountModal();
+    showLoginForm();
+    loginMsg.textContent = 'Inicia sesión o crea una cuenta para apuntarte a este torneo/liga.';
+    return;
+  }
   const comp = (window._COMPETITIONS_PUBLIC || []).find(c => c.id === compId);
   document.getElementById('signupCompName').textContent = comp ? comp.name : '';
   document.getElementById('signupForm').dataset.compId = compId;
   document.getElementById('signupForm').reset();
   document.getElementById('signupFormMsg').textContent = '';
+  document.getElementById('signup_p1_name').value = currentUser.user_metadata?.full_name || '';
+  document.getElementById('signup_p1_phone').value = currentUser.user_metadata?.phone || '';
   document.getElementById('signupModal').hidden = false;
 }
 function closeSignupModal(){
   document.getElementById('signupModal').hidden = true;
+}
+
+/* ---------- Chat interno de torneo/liga ---------- */
+let chatCompId = null;
+let chatChannel = null;
+
+function escapeHtml(str){
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
+function renderChatMessage(m){
+  const mine = currentUser && m.user_id === currentUser.id;
+  const time = new Date(m.created_at).toLocaleTimeString('es-ES', { hour:'2-digit', minute:'2-digit' });
+  return `<div class="chat-msg ${mine ? 'mine' : ''}">
+    <div class="sender">${escapeHtml(m.sender_name)}</div>
+    <div>${escapeHtml(m.mensaje)}</div>
+    <div class="time">${time}</div>
+  </div>`;
+}
+
+async function openCompChatModal(compId){
+  chatCompId = compId;
+  const comp = (window._COMPETITIONS_PUBLIC || []).find(c => c.id === compId);
+  document.getElementById('chatCompName').textContent = comp ? comp.name : '';
+  const messagesEl = document.getElementById('chatMessages');
+  messagesEl.innerHTML = '<p class="empty-msg">Cargando…</p>';
+  document.getElementById('chatModal').hidden = false;
+
+  const { data, error } = await supabase.from('competicion_chat_mensajes').select('*')
+    .eq('competicion_id', compId).order('created_at', { ascending: true });
+  if (error){
+    messagesEl.innerHTML = '<p class="empty-msg">No se pudo cargar el chat.</p>';
+  } else if (!data.length){
+    messagesEl.innerHTML = '<p class="empty-msg">Todavía no hay mensajes. ¡Escribe el primero!</p>';
+  } else {
+    messagesEl.innerHTML = data.map(renderChatMessage).join('');
+    messagesEl.scrollTop = messagesEl.scrollHeight;
+  }
+
+  if (chatChannel) supabase.removeChannel(chatChannel);
+  chatChannel = supabase.channel('chat-' + compId)
+    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'competicion_chat_mensajes', filter: `competicion_id=eq.${compId}` }, (payload) => {
+      const empty = messagesEl.querySelector('.empty-msg');
+      if (empty) empty.remove();
+      messagesEl.insertAdjacentHTML('beforeend', renderChatMessage(payload.new));
+      messagesEl.scrollTop = messagesEl.scrollHeight;
+    })
+    .subscribe();
+}
+function closeCompChatModal(){
+  document.getElementById('chatModal').hidden = true;
+  if (chatChannel){ supabase.removeChannel(chatChannel); chatChannel = null; }
+  chatCompId = null;
 }
 
 async function init(){
@@ -1142,17 +1247,44 @@ async function init(){
   document.getElementById('signupModal').addEventListener('click', (e) => {
     if (e.target.id === 'signupModal') closeSignupModal();
   });
+
+  document.getElementById('chatModalClose').addEventListener('click', closeCompChatModal);
+  document.getElementById('chatModal').addEventListener('click', (e) => {
+    if (e.target.id === 'chatModal') closeCompChatModal();
+  });
+  document.getElementById('chatForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const input = document.getElementById('chatInput');
+    const text = input.value.trim();
+    if (!text || !chatCompId || !currentUser) return;
+    input.disabled = true;
+    const { error } = await supabase.from('competicion_chat_mensajes').insert({
+      competicion_id: chatCompId,
+      user_id: currentUser.id,
+      sender_name: currentUser.user_metadata?.full_name || currentUser.email,
+      mensaje: text,
+    });
+    input.disabled = false;
+    if (!error) input.value = '';
+    input.focus();
+  });
   document.getElementById('signupForm').addEventListener('submit', async (e) => {
     e.preventDefault();
     const form = e.target;
     const msg = document.getElementById('signupFormMsg');
     msg.textContent = '';
+    if (!currentUser){
+      msg.textContent = 'Tienes que iniciar sesión para apuntarte.';
+      msg.className = 'form-msg err';
+      return;
+    }
     const payload = {
       competicion_id: form.dataset.compId,
       player1_name: document.getElementById('signup_p1_name').value.trim(),
       player1_phone: document.getElementById('signup_p1_phone').value.trim(),
       player2_name: document.getElementById('signup_p2_name').value.trim() || null,
       player2_phone: document.getElementById('signup_p2_phone').value.trim() || null,
+      user_id: currentUser.id,
     };
     const submitBtn = form.querySelector('button[type="submit"]');
     submitBtn.disabled = true;
