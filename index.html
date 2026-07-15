@@ -436,12 +436,6 @@
       </div>
       <button class="modal-close" id="modalClose" aria-label="Cerrar">✕</button>
     </div>
-    <div id="guestChoiceStep" hidden>
-      <p style="font-size:14px; color:var(--ink); margin:0 0 16px;">¿Cómo quieres reservar esta pista?</p>
-      <button type="button" class="btn btn-primary" id="chooseGuestBtn" style="width:100%; justify-content:center;">Reservar como invitado</button>
-      <p style="font-size:12.5px; color:var(--ink-soft); margin:8px 0 20px;">No podrás cancelarla online después; para eso hace falta tener una cuenta.</p>
-      <button type="button" class="btn btn-ghost" id="chooseAccountBtn" style="width:100%; justify-content:center;">Iniciar sesión o crear cuenta</button>
-    </div>
     <form id="bookingForm">
       <div class="field">
         <label>Duración</label>
@@ -1049,6 +1043,15 @@ let selectedSlot = null;
 let pendingStartTime = null;
 
 function openBookingModal(startTime){
+  if (!currentUser){
+    pendingStartTime = startTime;
+    awaitingLoginForBooking = true;
+    openAccountModal();
+    showLoginForm();
+    loginMsg.textContent = 'Inicia sesión o crea una cuenta para reservar una pista.';
+    return;
+  }
+
   pendingStartTime = startTime;
   selectedSlot = null;
   const pistaId = document.getElementById('pistaSelect').value;
@@ -1061,25 +1064,16 @@ function openBookingModal(startTime){
     `${d.toLocaleDateString('es-ES', { weekday:'long', day:'numeric', month:'long' })} · ${startTime}`;
 
   document.getElementById('bookingModal').hidden = false;
-
-  if (currentUser){
-    showBookingForm(startTime);
-  } else {
-    document.getElementById('guestChoiceStep').hidden = false;
-    document.getElementById('bookingForm').hidden = true;
-  }
+  showBookingForm(startTime);
 }
 
 function showBookingForm(startTime){
-  document.getElementById('guestChoiceStep').hidden = true;
   document.getElementById('bookingForm').hidden = false;
   document.getElementById('bookingForm').reset();
   document.getElementById('formMsg').textContent = '';
-  if (currentUser){
-    document.getElementById('full_name').value = currentUser.user_metadata?.full_name || '';
-    document.getElementById('phone').value = currentUser.user_metadata?.phone || '';
-    document.getElementById('email').value = currentUser.email || '';
-  }
+  document.getElementById('full_name').value = currentUser.user_metadata?.full_name || '';
+  document.getElementById('phone').value = currentUser.user_metadata?.phone || '';
+  document.getElementById('email').value = currentUser.email || '';
 
   const validDurations = availableDurationsFor(startTime);
   const durationsWrap = document.getElementById('durationOptions');
@@ -1276,15 +1270,6 @@ async function init(){
   document.getElementById('bookingModal').addEventListener('click', (e) => {
     if (e.target.id === 'bookingModal') closeBookingModal();
   });
-  document.getElementById('chooseGuestBtn').addEventListener('click', () => {
-    showBookingForm(pendingStartTime);
-  });
-  document.getElementById('chooseAccountBtn').addEventListener('click', () => {
-    closeBookingModal();
-    awaitingLoginForBooking = true;
-    openAccountModal();
-  });
-
   document.getElementById('signupModalClose').addEventListener('click', closeSignupModal);
   document.getElementById('signupModal').addEventListener('click', (e) => {
     if (e.target.id === 'signupModal') closeSignupModal();
@@ -1378,7 +1363,7 @@ async function init(){
       wants_light: wantsLight,
       light_price: wantsLight && LIGHT_EXTRA ? LIGHT_EXTRA.price : null,
       status: 'confirmada',
-      user_id: currentUser ? currentUser.id : null,
+      user_id: currentUser.id,
     };
 
     const submitBtn = e.target.querySelector('button[type="submit"]');

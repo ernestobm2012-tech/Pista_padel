@@ -102,15 +102,19 @@ pide elegir otro horario.
 
 ## Cuentas de cliente
 
-Reservar **no requiere cuenta** — se puede seguir reservando como invitado
-igual que siempre, solo con nombre y teléfono. Pero si el cliente quiere,
-puede crear una cuenta (botón **"Iniciar sesión"** arriba a la derecha en
-`index.html`) con email y contraseña para:
+Reservar una pista desde `index.html` **exige tener cuenta** (email y
+contraseña, botón **"Iniciar sesión"** arriba a la derecha). Ya no existe la
+opción de reservar como invitado: si alguien sin sesión pulsa un horario
+libre, se le abre directamente el formulario de inicio de sesión/registro y,
+al terminar, retoma automáticamente la reserva que estaba haciendo. Tener
+cuenta permite:
 
-- Que sus próximas reservas se guarden ligadas a su cuenta automáticamente
-  (el formulario de reserva se rellena solo con su nombre/teléfono/email).
+- Que sus reservas se guarden siempre ligadas a su cuenta (`user_id`), y que
+  el formulario se rellene solo con su nombre/teléfono/email.
 - Ver y **cancelar sus propias reservas futuras** desde "Mi cuenta", sin
   tener que llamar o escribir al ayuntamiento.
+- Tener control real de quién reserva qué, de cara a estadísticas y a evitar
+  reservas fantasma o duplicadas.
 
 Este proyecto Supabase se comparte con la app de pasear perros
 (`paseo-perros-app`), pero **ambas gestionan sus propios clientes de forma
@@ -120,15 +124,18 @@ disparador que rellena `clientes_padel` como el de la app de pasear perros
 (que crea sus propios perfiles) respetan esa marca — un alta en una app
 nunca crea datos de cliente en la otra.
 
-Técnicamente, `reservas_padel` tiene una columna `user_id` (rellena solo si
-el cliente estaba logueado al reservar) y usa el sistema de usuarios de
-Supabase Auth — el mismo que ya usa el administrador, pero cualquiera puede
-registrarse como cliente. Cada cliente solo puede ver/cancelar sus propias
-reservas (nunca las de otros) gracias a las políticas de seguridad a nivel
-de fila; cancelarlas pasa siempre por una función segura (`cancelar_reserva_cliente`)
-que comprueba que la reserva es suya y que todavía no ha pasado, así que no
-se puede manipular directamente. El administrador sigue viendo y gestionando
-todas las reservas (con o sin cuenta) desde `admin.html` como hasta ahora.
+Técnicamente, `reservas_padel` tiene una columna `user_id` y usa el sistema
+de usuarios de Supabase Auth — el mismo que ya usa el administrador, pero
+cualquiera puede registrarse como cliente. Una política de seguridad a nivel
+de fila exige que toda reserva insertada desde la web pública tenga sesión
+iniciada y `user_id = auth.uid()` (no se puede reservar en nombre de otro,
+ni sin cuenta); el administrador conserva acceso completo por su email, para
+sus reservas manuales. Cada cliente solo puede ver/cancelar sus propias
+reservas (nunca las de otros) gracias a esas mismas políticas; cancelarlas
+pasa siempre por una función segura (`cancelar_reserva_cliente`) que
+comprueba que la reserva es suya y que todavía no ha pasado, así que no se
+puede manipular directamente. El administrador sigue viendo y gestionando
+todas las reservas desde `admin.html` como hasta ahora.
 
 Al registrarse, Supabase manda un email de confirmación; hasta que el cliente
 no pulsa el enlace de ese correo no puede iniciar sesión (si lo intenta antes,
@@ -249,6 +256,27 @@ duración) salen tachadas y no se pueden elegir. Al modificar una reserva
 ya existente, su propio hueco se descuenta de la comprobación (para poder
 dejarla tal cual o solo cambiarle la duración sin que se marque como
 ocupada a sí misma).
+
+### Cliente registrado obligatorio (salvo uso municipal)
+
+Toda reserva manual nueva tiene que **vincularse a un cliente registrado**
+(campo "Cliente registrado", con buscador por nombre o teléfono sobre la
+tabla `clientes_padel`); si no se elige uno, el formulario no deja guardar.
+La única excepción es marcar **"Uso municipal"**, que sigue funcionando
+igual que antes (sin cliente, para reservas del propio ayuntamiento).
+
+Si quien llama por teléfono todavía no tiene cuenta, el botón **"+ Cliente
+nuevo (sin cuenta todavía)"** abre un mini-formulario (nombre, teléfono,
+email) que crea la cuenta al vuelo —sin que el admin pierda su propia
+sesión— llamando a la Edge Function `admin-create-client-padel` (con clave
+de servicio, solo utilizable por el email del administrador) y la deja ya
+seleccionada para esa reserva. La persona podrá luego usar "¿Has olvidado tu
+contraseña?" en la web con su email para ponerle una contraseña propia.
+
+Los bloqueos automáticos de pista para partidos de torneo/liga (generados
+al pulsar "Generar cruces") no llevan cliente vinculado — representan un
+partido entre parejas, no la reserva de un cliente concreto — y no se ven
+afectados por esta exigencia.
 
 ## Torneos y ligas
 

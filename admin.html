@@ -44,6 +44,8 @@
   .btn-sm{ padding:6px 12px; font-size:12.5px; }
   .btn:disabled{ opacity:.5; cursor:not-allowed; }
   .btn[hidden]{ display:none; }
+  .new-client-box[hidden]{ display:none; }
+  .new-client-box{ display:flex; }
 
   /* ---------- Login ---------- */
   #loginScreen{ min-height:100vh; display:flex; align-items:center; justify-content:center; padding:20px; }
@@ -267,6 +269,22 @@
           <div class="field">
             <label for="res_duration">Duración</label>
             <select id="res_duration" required></select>
+          </div>
+          <div class="field" style="grid-column:1/-1;" id="resClientField">
+            <label for="res_client_search">Cliente registrado (obligatorio, salvo uso municipal)</label>
+            <input type="text" id="res_client_search" list="resClientsDatalist" placeholder="Busca por nombre o teléfono…" autocomplete="off">
+            <datalist id="resClientsDatalist"></datalist>
+            <input type="hidden" id="res_client_id">
+            <div style="margin-top:8px;">
+              <button type="button" class="btn btn-ghost btn-sm" id="newClientToggleBtn">+ Cliente nuevo (sin cuenta todavía)</button>
+              <div id="newClientBox" class="new-client-box" hidden style="margin-top:10px; gap:8px; flex-wrap:wrap; align-items:flex-end;">
+                <div class="field" style="margin:0;"><label for="new_client_name">Nombre</label><input type="text" id="new_client_name"></div>
+                <div class="field" style="margin:0;"><label for="new_client_phone">Teléfono</label><input type="text" id="new_client_phone"></div>
+                <div class="field" style="margin:0;"><label for="new_client_email">Email</label><input type="email" id="new_client_email"></div>
+                <button type="button" class="btn btn-primary btn-sm" id="createClientBtn">Crear y usar</button>
+                <span class="form-msg" id="newClientMsg" style="margin:0;"></span>
+              </div>
+            </div>
           </div>
           <div class="field"><label for="res_name">Nombre</label><input type="text" id="res_name" required></div>
           <div class="field"><label for="res_phone">Teléfono (opcional)</label><input type="text" id="res_phone"></div>
@@ -924,13 +942,35 @@ async function refreshResSlotGrid(){
 document.getElementById('res_pista').addEventListener('change', refreshResSlotGrid);
 document.getElementById('res_date').addEventListener('change', refreshResSlotGrid);
 
+function clientLabel(c){
+  return `${c.full_name || '(sin nombre)'} — ${c.phone || 's/tel'} — #${c.numero_cliente ?? c.id.slice(0, 8)}`;
+}
+function populateClientsDatalist(clients){
+  document.getElementById('resClientsDatalist').innerHTML =
+    clients.map(c => `<option value="${clientLabel(c).replace(/"/g, '&quot;')}">`).join('');
+}
+async function loadRegisteredClientsForPicker(){
+  const { data } = await supabase.from('clientes_padel').select('*').order('full_name');
+  window._REGISTERED_CLIENTS_CACHE = data || [];
+  populateClientsDatalist(window._REGISTERED_CLIENTS_CACHE);
+}
+function setMunicipalClientRequirement(isMunicipal){
+  document.getElementById('res_client_search').disabled = isMunicipal;
+  document.getElementById('resClientField').style.opacity = isMunicipal ? .5 : 1;
+}
+
 document.getElementById('newReservationBtn').addEventListener('click', async () => {
   if (!window._COURTS_CACHE) await loadCourts();
   await loadDurationsCache();
+  await loadRegisteredClientsForPicker();
   document.getElementById('reservationForm').reset();
   populateReservationCourtSelect();
   document.getElementById('res_status').value = 'confirmada';
   document.getElementById('reservationFormMsg').textContent = '';
+  document.getElementById('res_client_id').value = '';
+  document.getElementById('newClientBox').hidden = true;
+  document.getElementById('newClientMsg').textContent = '';
+  setMunicipalClientRequirement(false);
   await refreshResSlotGrid();
   document.getElementById('reservationFormCard').hidden = false;
 });
@@ -940,6 +980,54 @@ document.getElementById('cancelReservationBtn').addEventListener('click', () => 
 document.getElementById('res_municipal').addEventListener('change', (e) => {
   const nameField = document.getElementById('res_name');
   if (e.target.checked && !nameField.value.trim()) nameField.value = 'Ayuntamiento (uso municipal)';
+  setMunicipalClientRequirement(e.target.checked);
+});
+
+document.getElementById('res_client_search').addEventListener('input', (e) => {
+  const match = (window._REGISTERED_CLIENTS_CACHE || []).find(c => clientLabel(c) === e.target.value);
+  document.getElementById('res_client_id').value = match ? match.id : '';
+  if (match){
+    document.getElementById('res_name').value = match.full_name || '';
+    document.getElementById('res_phone').value = match.phone || '';
+  }
+});
+
+document.getElementById('newClientToggleBtn').addEventListener('click', () => {
+  document.getElementById('newClientBox').hidden = !document.getElementById('newClientBox').hidden;
+});
+
+document.getElementById('createClientBtn').addEventListener('click', async () => {
+  const msg = document.getElementById('newClientMsg');
+  const full_name = document.getElementById('new_client_name').value.trim();
+  const phone = document.getElementById('new_client_phone').value.trim();
+  const email = document.getElementById('new_client_email').value.trim();
+  if (!full_name || !email){
+    msg.textContent = 'Nombre y email son obligatorios.';
+    msg.className = 'form-msg err';
+    return;
+  }
+  msg.textContent = 'Creando cuenta…';
+  msg.className = 'form-msg';
+  const { data, error } = await supabase.functions.invoke('admin-create-client-padel', {
+    body: { full_name, phone: phone || null, email },
+  });
+  if (error || !data?.user_id){
+    msg.textContent = data?.error || 'No se ha podido crear la cuenta.';
+    msg.className = 'form-msg err';
+    return;
+  }
+  const newClient = { id: data.user_id, full_name, phone: phone || null, email, numero_cliente: null };
+  window._REGISTERED_CLIENTS_CACHE = [...(window._REGISTERED_CLIENTS_CACHE || []), newClient];
+  populateClientsDatalist(window._REGISTERED_CLIENTS_CACHE);
+  document.getElementById('res_client_search').value = clientLabel(newClient);
+  document.getElementById('res_client_id').value = newClient.id;
+  document.getElementById('res_name').value = full_name;
+  document.getElementById('res_phone').value = phone;
+  msg.textContent = '¡Cuenta creada! Ya está seleccionada para esta reserva.';
+  msg.className = 'form-msg ok';
+  document.getElementById('new_client_name').value = '';
+  document.getElementById('new_client_phone').value = '';
+  document.getElementById('new_client_email').value = '';
 });
 
 document.getElementById('reservationForm').addEventListener('submit', async (e) => {
@@ -957,6 +1045,13 @@ document.getElementById('reservationForm').addEventListener('submit', async (e) 
   }
   if (!durationMinutes){
     msg.textContent = 'La duración es obligatoria.';
+    msg.className = 'form-msg err';
+    return;
+  }
+  const isMunicipal = document.getElementById('res_municipal').checked;
+  const clientId = document.getElementById('res_client_id').value || null;
+  if (!isMunicipal && !clientId){
+    msg.textContent = 'Tienes que vincular un cliente registrado (o marcar "Uso municipal").';
     msg.className = 'form-msg err';
     return;
   }
@@ -997,8 +1092,9 @@ document.getElementById('reservationForm').addEventListener('submit', async (e) 
     status: document.getElementById('res_status').value,
     wants_light: wantsLight,
     light_price: lightPrice,
-    is_municipal: document.getElementById('res_municipal').checked,
+    is_municipal: isMunicipal,
     source: 'admin',
+    user_id: clientId,
   };
 
   const { error } = await supabase.from('reservas_padel').insert(payload);
