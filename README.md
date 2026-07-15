@@ -60,6 +60,17 @@ bucket público de Supabase Storage `galeria-padel` y aparece automáticamente
 en la web pública (si no hay foto, se muestra un icono/emoji por defecto).
 Solo el administrador puede subir o borrar fotos; cualquiera puede verlas.
 
+## Banner de publicidad
+
+En `index.html` hay un banner flotante fijo (esquina inferior izquierda) que
+enlaza a un patrocinador externo (actualmente `1105sports.com`). La imagen
+vive en `assets/banner-1105sports.jpg` y el enlace de destino está en el
+propio HTML (`<div id="adBanner">`). Cualquiera puede cerrarlo con la "✕";
+el cierre se guarda en `localStorage` para que no vuelva a aparecer en ese
+navegador. Para cambiar la imagen o el enlace, sustituye el archivo o edita
+el `href` directamente — no hay panel de administración para esto, es un
+banner fijo, no gestionable desde `admin.html`.
+
 ## Base de datos (Supabase)
 
 Este proyecto reutiliza el proyecto Supabase **`paseo-perros-app`** (ref
