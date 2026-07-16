@@ -114,6 +114,16 @@
     </section>
 
     <section>
+      <div class="panel-head"><h2>Estadísticas de uso</h2></div>
+      <div class="card table-wrap" id="analyticsCard">
+        <table>
+          <thead><tr><th>Organización</th><th>Visitas (30 días)</th><th>Visitas (total)</th><th>Reservas este mes</th><th>Clics en el banner</th></tr></thead>
+          <tbody id="analyticsBody"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section>
       <div class="panel-head"><h2>Organizaciones</h2><button class="btn btn-primary btn-sm" id="newOrgBtn">+ Nueva organización</button></div>
       <div class="card" id="newOrgCard" hidden>
         <div class="form-grid">
@@ -188,6 +198,7 @@ async function handleSession(session){
   loginScreen.hidden = true;
   appScreen.hidden = false;
   await Promise.all([loadOrganizaciones(), loadLeads()]);
+  await loadAnalytics();
 }
 
 const LEAD_STATUS_LABELS = { nuevo: 'Nuevo', contactado: 'Contactado', convertido: 'Convertido', descartado: 'Descartado' };
@@ -228,6 +239,32 @@ async function loadLeads(){
       await loadLeads();
     });
   });
+}
+
+async function loadAnalytics(){
+  const body = document.getElementById('analyticsBody');
+  if (!ALL_ORGS.length){
+    body.innerHTML = '<tr><td colspan="5" style="color:var(--ink-soft);">No hay organizaciones todavía.</td></tr>';
+    return;
+  }
+  const since30 = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+  const startOfMonth = new Date();
+  startOfMonth.setDate(1);
+  const monthStr = startOfMonth.toISOString().slice(0, 10);
+
+  const [{ data: events }, { data: reservas }] = await Promise.all([
+    supabase.from('analytics_eventos_padel').select('organizacion_id, event_type, created_at'),
+    supabase.from('reservas_padel').select('organizacion_id, reservation_date, status').neq('status', 'cancelada'),
+  ]);
+
+  body.innerHTML = ALL_ORGS.map(org => {
+    const orgEvents = (events || []).filter(e => e.organizacion_id === org.id);
+    const visitasTotal = orgEvents.filter(e => e.event_type === 'page_view').length;
+    const visitas30 = orgEvents.filter(e => e.event_type === 'page_view' && e.created_at >= since30).length;
+    const clicsBanner = orgEvents.filter(e => e.event_type === 'banner_click').length;
+    const reservasMes = (reservas || []).filter(r => r.organizacion_id === org.id && r.reservation_date >= monthStr).length;
+    return `<tr><td>${org.nombre}</td><td>${visitas30}</td><td>${visitasTotal}</td><td>${reservasMes}</td><td>${clicsBanner}</td></tr>`;
+  }).join('');
 }
 
 supabase.auth.onAuthStateChange((_event, session) => { handleSession(session); });

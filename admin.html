@@ -238,6 +238,7 @@
     <button data-tab="tabPistas">Pistas</button>
     <button data-tab="tabPrecios">Precios</button>
     <button data-tab="tabFacturas">Facturas</button>
+    <button data-tab="tabNoticias">Noticias</button>
     <button data-tab="tabOrganizacion">Organización</button>
   </nav>
 
@@ -572,6 +573,24 @@
           <tbody id="invoicesBody"></tbody>
         </table>
       </div>
+    </section>
+
+    <!-- ---------- Noticias ---------- -->
+    <section id="tabNoticias" class="tab-panel" hidden>
+      <div class="panel-head"><h2>Noticias</h2><button class="btn btn-primary btn-sm" id="newNoticiaBtn">+ Nueva noticia</button></div>
+      <div class="card" id="noticiaFormCard" hidden>
+        <form id="noticiaForm" class="form-grid">
+          <div class="field" style="grid-column:1/-1;"><label for="noticia_titulo">Título</label><input type="text" id="noticia_titulo" required></div>
+          <div class="field" style="grid-column:1/-1;"><label for="noticia_contenido">Texto</label><textarea id="noticia_contenido" rows="4"></textarea></div>
+          <div class="field" style="grid-column:1/-1;"><label for="noticia_imagen">Imagen (opcional)</label><input type="file" accept="image/*" id="noticia_imagen"></div>
+          <div style="grid-column:1/-1; display:flex; gap:10px; align-items:center;">
+            <button type="submit" class="btn btn-primary btn-sm">Publicar noticia</button>
+            <button type="button" class="btn btn-ghost btn-sm" id="cancelNoticiaBtn">Cancelar</button>
+            <span class="form-msg" id="noticiaFormMsg"></span>
+          </div>
+        </form>
+      </div>
+      <div id="noticiasList" class="reservations-list"></div>
     </section>
 
     <!-- ---------- Organización ---------- -->
@@ -955,6 +974,7 @@ document.querySelectorAll('nav.tabs button').forEach(btn => {
     if (btn.dataset.tab === 'tabPistas'){ await loadCourts(); loadMaintenance(); }
     if (btn.dataset.tab === 'tabPrecios'){ await loadDurations(); loadExtras(); loadAjustes(); loadPreciosMode(); }
     if (btn.dataset.tab === 'tabFacturas') loadInvoices();
+    if (btn.dataset.tab === 'tabNoticias') loadNoticias();
     if (btn.dataset.tab === 'tabOrganizacion') loadOrgSettings();
   });
 });
@@ -3529,6 +3549,77 @@ function printInvoice(inv){
   `;
   window.print();
 }
+
+/* ---------- Noticias ---------- */
+async function loadNoticias(){
+  const { data, error } = await supabase.from('noticias_padel').select('*').eq('organizacion_id', ORG_ID).order('created_at', { ascending: false });
+  const list = document.getElementById('noticiasList');
+  if (error){ list.innerHTML = `<p class="empty-msg">Error cargando noticias.</p>`; return; }
+  if (!data.length){ list.innerHTML = `<p class="empty-msg">No hay noticias todavía.</p>`; return; }
+  window._NOTICIAS_CACHE = data;
+  list.innerHTML = data.map(n => `
+    <div class="reservation-card" data-id="${n.id}">
+      <div class="res-top">
+        <div class="res-when">${fmtDate(n.created_at.slice(0, 10))}</div>
+      </div>
+      <div class="res-client">${n.titulo}</div>
+      ${n.imagen_path ? `<img src="${padelImageUrl(n.imagen_path)}" style="width:100%; max-width:320px; max-height:200px; object-fit:cover; border-radius:8px; margin-top:8px;">` : ''}
+      ${n.contenido ? `<p style="margin-top:8px; color:var(--ink-soft); font-size:13.5px; white-space:pre-wrap;">${n.contenido}</p>` : ''}
+      <div class="res-actions">
+        <button class="btn btn-danger btn-sm" data-action="delete">Borrar</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+document.getElementById('newNoticiaBtn').addEventListener('click', () => {
+  document.getElementById('noticiaForm').reset();
+  document.getElementById('noticiaFormMsg').textContent = '';
+  document.getElementById('noticiaFormCard').hidden = false;
+});
+document.getElementById('cancelNoticiaBtn').addEventListener('click', () => {
+  document.getElementById('noticiaFormCard').hidden = true;
+});
+document.getElementById('noticiasList').addEventListener('click', async (e) => {
+  const btn = e.target.closest('button[data-action="delete"]');
+  if (!btn) return;
+  const id = btn.closest('[data-id]').dataset.id;
+  const n = (window._NOTICIAS_CACHE || []).find(x => x.id === id);
+  if (!confirm('¿Borrar esta noticia?')) return;
+  if (n && n.imagen_path) await supabase.storage.from('galeria-padel').remove([n.imagen_path]);
+  await supabase.from('noticias_padel').delete().eq('id', id);
+  loadNoticias();
+});
+document.getElementById('noticiaForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const msg = document.getElementById('noticiaFormMsg');
+  const titulo = document.getElementById('noticia_titulo').value.trim();
+  const contenido = document.getElementById('noticia_contenido').value.trim();
+  const file = document.getElementById('noticia_imagen').files[0];
+  if (!titulo){ msg.textContent = 'El título es obligatorio.'; msg.className = 'form-msg err'; return; }
+  msg.textContent = 'Guardando…';
+  msg.className = 'form-msg';
+  let imagen_path = null;
+  if (file){
+    const { path, error: uploadError } = await uploadPadelImage(file, 'noticias', ORG_ID);
+    if (uploadError){
+      msg.textContent = 'No se ha podido subir la imagen: ' + uploadError.message;
+      msg.className = 'form-msg err';
+      return;
+    }
+    imagen_path = path;
+  }
+  const { error } = await supabase.from('noticias_padel').insert({
+    organizacion_id: ORG_ID, titulo, contenido: contenido || null, imagen_path,
+  });
+  if (error){
+    msg.textContent = 'Error al publicar: ' + error.message;
+    msg.className = 'form-msg err';
+    return;
+  }
+  document.getElementById('noticiaFormCard').hidden = true;
+  loadNoticias();
+});
 
 /* ---------- Bootstrap ---------- */
 let handlingSession = false;

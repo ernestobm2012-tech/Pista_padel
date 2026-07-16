@@ -65,6 +65,17 @@ bucket público de Supabase Storage `galeria-padel` y aparece automáticamente
 en la web pública (si no hay foto, se muestra un icono/emoji por defecto).
 Solo el administrador puede subir o borrar fotos; cualquiera puede verlas.
 
+## Noticias
+
+Cada organización tiene su propia pestaña «Noticias» en `admin.html` para
+publicar novedades: título, texto y una imagen opcional (se sube al mismo
+bucket `galeria-padel` que las fotos de pistas/torneos). Se puede publicar y
+borrar, pero no editar — si te equivocas, borras y vuelves a publicar. En
+`index.html` aparecen en una sección propia («Noticias», entre «Reservar» y
+«Torneos»), ordenadas de más reciente a más antigua; si una organización no
+tiene ninguna, se muestra un aviso de que todavía no hay noticias en vez de
+ocultar la sección.
+
 ## Banner de publicidad
 
 En `index.html` hay un banner flotante fijo (esquina inferior izquierda) que
@@ -74,7 +85,9 @@ propio HTML (`<div id="adBanner">`). Cualquiera puede cerrarlo con la "✕";
 el cierre se guarda en `localStorage` para que no vuelva a aparecer en ese
 navegador. Para cambiar la imagen o el enlace, sustituye el archivo o edita
 el `href` directamente — no hay panel de administración para esto, es un
-banner fijo, no gestionable desde `admin.html`.
+banner fijo, no gestionable desde `admin.html`. Cada clic en el banner queda
+registrado (ver «Estadísticas de la plataforma» más abajo) para saber cuánto
+tráfico le está generando el sitio al patrocinador.
 
 ## Base de datos (Supabase)
 
@@ -700,6 +713,26 @@ organizaciones y solo al elegir una se abren debajo sus datos completos
 al panel de un club concreto sin tener que buscarlo en el selector de
 organizaciones de `admin.html` (que solo te lo pregunta si no vienes con ese
 parámetro en la URL, o si tu cuenta administra más de una).
+
+### Estadísticas de la plataforma
+
+Arriba del todo, antes de la lista de organizaciones, hay una tabla con un
+resumen de uso de cada organización:
+
+- **Visitas (30 días)** y **visitas (total)**: cada vez que alguien abre la
+  web pública de una organización (`index.html?org=...`) se registra un
+  evento `page_view`. No distingue visitantes únicos, es un contador simple
+  de cargas de página.
+- **Reservas este mes**: cuántas reservas (sin contar las canceladas) tiene
+  esa organización en el mes en curso.
+- **Clics en el banner**: cuántas veces se ha pulsado el banner de publicidad
+  de `index.html` estando en la web de esa organización.
+
+Estos datos viven en una tabla nueva, `analytics_eventos_padel` (evento +
+organización + fecha), donde cualquier visitante anónimo puede insertar un
+evento (para que la propia web pública lo registre sin necesitar login),
+pero solo tu cuenta puede leerlos — ni siquiera el administrador de cada
+organización ve estos números, es información exclusiva de la plataforma.
 
 Desde ahí, para dar de alta un cliente nuevo:
 

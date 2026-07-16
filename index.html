@@ -197,6 +197,14 @@
   .table-wrap th{ color:var(--ink-soft); text-transform:uppercase; font-size:12px; letter-spacing:.05em; }
   .table-wrap tr:last-child td{ border-bottom:0; }
 
+  /* ---------- Noticias ---------- */
+  .noticias-grid{ display:grid; grid-template-columns:repeat(auto-fit, minmax(280px,1fr)); gap:20px; }
+  .noticia-card{ background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); padding:24px; }
+  .noticia-card .noticia-photo{ width:100%; height:170px; object-fit:cover; border-radius:10px; margin-bottom:14px; }
+  .noticia-card h3{ font-size:18px; }
+  .noticia-card .noticia-date{ font-size:12.5px; color:var(--ink-soft); margin-top:2px; }
+  .noticia-card p{ margin-top:12px; color:var(--ink-soft); font-size:14.5px; white-space:pre-wrap; }
+
   /* ---------- Torneos ---------- */
   .competitions-grid{ display:grid; grid-template-columns:repeat(auto-fit, minmax(280px,1fr)); gap:20px; }
   .competition-card{ background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); padding:24px; }
@@ -327,6 +335,7 @@
         <li><a href="#pistas">Pistas</a></li>
         <li><a href="#precios">Precios</a></li>
         <li><a href="#reserva">Reservar</a></li>
+        <li><a href="#noticias">Noticias</a></li>
         <li id="navTorneos"><a href="#torneos">Torneos</a></li>
         <li id="navRanking"><a href="#ranking">Ranking</a></li>
         <li><a href="#contacto">Contacto</a></li>
@@ -407,6 +416,19 @@
       <div class="slots-grid" id="slotsGrid">
         <p class="slots-empty">Elige pista y fecha para ver horarios.</p>
       </div>
+    </div>
+  </div>
+</section>
+
+<section id="noticias">
+  <div class="wrap">
+    <div class="section-head">
+      <span class="eyebrow">Novedades</span>
+      <h2>Noticias</h2>
+      <p>Últimas novedades de las pistas.</p>
+    </div>
+    <div class="noticias-grid" id="noticiasGrid">
+      <p style="text-align:center; color:var(--ink-soft);">Cargando noticias…</p>
     </div>
   </div>
 </section>
@@ -809,7 +831,13 @@ async function resolveOrganizacion(){
   CURRENT_ORG = org;
   ORG_ID = org.id;
   applyOrgBranding(org);
+  trackAnalyticsEvent('page_view');
   return true;
+}
+
+function trackAnalyticsEvent(event_type){
+  if (!ORG_ID) return;
+  supabase.from('analytics_eventos_padel').insert({ organizacion_id: ORG_ID, event_type }).then(() => {});
 }
 
 document.getElementById('year').textContent = new Date().getFullYear();
@@ -1353,6 +1381,23 @@ function fmtCompDate(d){
   return new Date(d + 'T00:00:00').toLocaleDateString('es-ES', { day:'numeric', month:'short' });
 }
 
+async function loadNoticias(){
+  const { data } = await supabase.from('noticias_padel').select('*').eq('organizacion_id', ORG_ID).order('created_at', { ascending: false });
+  const grid = document.getElementById('noticiasGrid');
+  if (!data || !data.length){
+    grid.innerHTML = '<p style="text-align:center; color:var(--ink-soft);">No hay noticias publicadas todavía.</p>';
+    return;
+  }
+  grid.innerHTML = data.map(n => `
+    <div class="noticia-card">
+      ${n.imagen_path ? `<img class="noticia-photo" src="${padelImageUrl(n.imagen_path)}" alt="">` : ''}
+      <h3>${n.titulo}</h3>
+      <div class="noticia-date">${fmtResDate(n.created_at.slice(0, 10))}</div>
+      ${n.contenido ? `<p>${n.contenido}</p>` : ''}
+    </div>
+  `).join('');
+}
+
 async function loadCompetitions(){
   const today = new Date().toISOString().slice(0,10);
   const { data: comps } = await supabase.from('competiciones_padel').select('*').eq('organizacion_id', ORG_ID).order('start_date');
@@ -1731,10 +1776,12 @@ async function init(){
       localStorage.setItem('adBannerClosed_1105sports', '1');
     });
   }
+  const adBannerLink = adBanner.querySelector('a');
+  if (adBannerLink) adBannerLink.addEventListener('click', () => trackAnalyticsEvent('banner_click'));
 
   const f = (CURRENT_ORG && CURRENT_ORG.features) || {};
   await Promise.all([
-    loadCourts(), loadDurations(), loadExtras(), loadMaintenance(),
+    loadCourts(), loadDurations(), loadExtras(), loadMaintenance(), loadNoticias(),
     f.torneos !== false ? loadCompetitions() : Promise.resolve(),
     f.ranking !== false ? renderPublicRanking() : Promise.resolve(),
   ]);
