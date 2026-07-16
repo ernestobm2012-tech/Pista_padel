@@ -57,6 +57,11 @@
   main{ max-width:1000px; margin:0 auto; padding:24px; display:grid; gap:28px; }
   .panel-head{ display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; }
   .card{ background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); padding:20px; }
+  table{ width:100%; border-collapse:collapse; font-size:13.5px; }
+  th, td{ text-align:left; padding:10px 8px; border-bottom:1px solid var(--line); vertical-align:top; }
+  th{ color:var(--ink-soft); font-weight:600; font-size:11.5px; text-transform:uppercase; letter-spacing:.04em; }
+  tr:last-child td{ border-bottom:0; }
+  .table-wrap{ overflow-x:auto; }
   .form-grid{ display:grid; grid-template-columns:1fr 1fr; gap:14px; }
   @media (max-width:600px){ .form-grid{ grid-template-columns:1fr; } }
   .form-msg{ font-size:13.5px; min-height:18px; }
@@ -98,6 +103,16 @@
   </header>
 
   <main>
+    <section>
+      <div class="panel-head"><h2>Solicitudes de demo</h2></div>
+      <div class="card table-wrap" id="leadsCard">
+        <table>
+          <thead><tr><th>Fecha</th><th>Contacto</th><th>Club</th><th>Email / Teléfono</th><th>Plan</th><th>Mensaje</th><th>Estado</th><th></th></tr></thead>
+          <tbody id="leadsBody"></tbody>
+        </table>
+      </div>
+    </section>
+
     <section>
       <div class="panel-head"><h2>Organizaciones</h2><button class="btn btn-primary btn-sm" id="newOrgBtn">+ Nueva organización</button></div>
       <div class="card" id="newOrgCard" hidden>
@@ -163,7 +178,47 @@ async function handleSession(session){
   }
   loginScreen.hidden = true;
   appScreen.hidden = false;
-  await loadOrganizaciones();
+  await Promise.all([loadOrganizaciones(), loadLeads()]);
+}
+
+const LEAD_STATUS_LABELS = { nuevo: 'Nuevo', contactado: 'Contactado', convertido: 'Convertido', descartado: 'Descartado' };
+
+async function loadLeads(){
+  const { data: leads } = await supabase.from('leads_gestionmypadel').select('*').order('created_at', { ascending: false });
+  const body = document.getElementById('leadsBody');
+  if (!leads || !leads.length){
+    body.innerHTML = '<tr><td colspan="8" style="color:var(--ink-soft);">No hay solicitudes todavía.</td></tr>';
+    return;
+  }
+  body.innerHTML = leads.map(l => `
+    <tr data-lead-id="${l.id}">
+      <td>${new Date(l.created_at).toLocaleDateString('es-ES')}</td>
+      <td>${l.nombre_contacto}</td>
+      <td>${l.nombre_club}</td>
+      <td>${l.email}<br>${l.telefono || '—'}</td>
+      <td>${l.plan_interes || '—'}</td>
+      <td style="max-width:220px;">${l.mensaje || '—'}</td>
+      <td>
+        <select data-lead-status="${l.id}">
+          ${Object.entries(LEAD_STATUS_LABELS).map(([v, label]) => `<option value="${v}" ${l.status === v ? 'selected' : ''}>${label}</option>`).join('')}
+        </select>
+      </td>
+      <td><button type="button" class="btn btn-danger btn-sm" data-delete-lead="${l.id}">Borrar</button></td>
+    </tr>
+  `).join('');
+
+  body.querySelectorAll('[data-lead-status]').forEach(sel => {
+    sel.addEventListener('change', async (e) => {
+      await supabase.from('leads_gestionmypadel').update({ status: e.target.value }).eq('id', sel.dataset.leadStatus);
+    });
+  });
+  body.querySelectorAll('[data-delete-lead]').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      if (!confirm('¿Borrar esta solicitud?')) return;
+      await supabase.from('leads_gestionmypadel').delete().eq('id', btn.dataset.deleteLead);
+      await loadLeads();
+    });
+  });
 }
 
 supabase.auth.onAuthStateChange((_event, session) => { handleSession(session); });

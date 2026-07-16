@@ -673,6 +673,37 @@ Con esto, dar de alta un club nuevo no requiere tocar código ni el dashboard
 de Supabase: entras en `plataforma.html`, rellenas su ficha y le creas su
 administrador, y ese cliente ya tiene su propia web y su propio panel.
 
+## `landing.html`: la web de ventas de GestionMyPadel
+
+Además de la web de cada club (`index.html?org=...`) y de los paneles de
+gestión, hay una página de ventas propia del producto en sí —
+**GestionMyPadel**, pensada para el dominio `gestionmypadel.com` cuando lo
+compres. Es la página que le enseñas a un ayuntamiento o un club nuevo antes
+de darlos de alta: qué hace el producto, planes y precios, y un formulario
+para pedir una demo.
+
+Planes actuales (mensuales, sin permanencia, con **2 meses gratis** para
+probar antes de pagar):
+- **Reservas — 49,99€/mes**: reservas online, calendario, pistas, precios y
+  clientes.
+- **Torneos y Ligas — 59,99€/mes**: todo lo anterior + torneos, ligas y
+  ranking automático.
+- **Premium — 69,99€/mes**: todo lo anterior + pasarela de pago online y
+  apertura de pista con código domotizado.
+
+> ⚠️ **Importante**: los dos únicos extras del plan Premium (pasarela de pago
+> online y apertura domotizada) **todavía no están construidos** en el
+> producto — el resto de funciones que aparecen en la web sí existen y
+> funcionan de verdad. Antes de vender activamente el plan Premium, hay que
+> decidir si se construyen esas dos integraciones o si se ajusta lo que
+> promete esa página mientras tanto.
+
+Quien rellena el formulario de la landing queda guardado en la tabla
+`leads_gestionmypadel` (con RLS: cualquiera puede enviar una solicitud, pero
+solo tu cuenta puede leerlas). Se ven y gestionan desde `plataforma.html`,
+en la sección **«Solicitudes de demo»**, arriba del todo: puedes marcar cada
+una como nuevo/contactado/convertido/descartado, o borrarla.
+
 ## Cómo lo pruebas en local
 
 Solo hace falta un servidor estático simple (los módulos ES no funcionan con `file://`):
