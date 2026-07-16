@@ -510,13 +510,14 @@
         <input type="tel" id="signup_p1_phone" required>
       </div>
       <div class="field">
-        <label for="signup_p2_name">Jugador/a 2 — nombre (opcional)</label>
-        <input type="text" id="signup_p2_name">
+        <label for="signup_p2_phone">Jugador/a 2 — teléfono (opcional)</label>
+        <input type="tel" id="signup_p2_phone" placeholder="Debe tener cuenta creada en la web">
       </div>
       <div class="field">
-        <label for="signup_p2_phone">Jugador/a 2 — teléfono (opcional)</label>
-        <input type="tel" id="signup_p2_phone">
+        <label for="signup_p2_name">Jugador/a 2 — nombre</label>
+        <input type="text" id="signup_p2_name" readonly placeholder="Se rellena solo al encontrar el teléfono">
       </div>
+      <div class="form-msg" id="signupP2Msg"></div>
       <div class="form-msg" id="signupFormMsg"></div>
       <button type="submit" class="btn btn-primary">Apuntar pareja</button>
     </form>
@@ -1314,6 +1315,42 @@ async function toggleCompetitionResults(compId, btn){
     : renderPublicLeagueResults(partidos || [], insc || []);
 }
 
+let pareja2ClientId = null;
+let pareja2LookupSeq = 0;
+let pareja2LookupTimer = null;
+
+async function lookupPareja2(phone){
+  const msgEl = document.getElementById('signupP2Msg');
+  const nameEl = document.getElementById('signup_p2_name');
+  pareja2ClientId = null;
+  nameEl.value = '';
+  if (!phone){
+    msgEl.textContent = '';
+    msgEl.className = 'form-msg';
+    return;
+  }
+  const mySeq = ++pareja2LookupSeq;
+  msgEl.textContent = 'Buscando…';
+  msgEl.className = 'form-msg';
+  const { data, error } = await supabase.rpc('buscar_cliente_padel_por_telefono', { p_phone: phone });
+  if (mySeq !== pareja2LookupSeq) return;
+  const match = Array.isArray(data) ? data[0] : data;
+  if (error || !match){
+    msgEl.textContent = 'No encontramos ningún cliente con ese teléfono. Tu compañero/a debe crearse una cuenta primero (con ese mismo teléfono) para poder apuntarse contigo.';
+    msgEl.className = 'form-msg err';
+    return;
+  }
+  if (currentUser && match.id === currentUser.id){
+    msgEl.textContent = 'Ese teléfono es el tuyo — el jugador/a 2 tiene que ser otra persona.';
+    msgEl.className = 'form-msg err';
+    return;
+  }
+  pareja2ClientId = match.id;
+  nameEl.value = match.full_name || '';
+  msgEl.textContent = `✓ Vinculado a ${match.full_name || 'un cliente registrado'}.`;
+  msgEl.className = 'form-msg ok';
+}
+
 function openSignupModal(compId){
   if (!currentUser){
     pendingSignupCompId = compId;
@@ -1328,6 +1365,8 @@ function openSignupModal(compId){
   document.getElementById('signupForm').dataset.compId = compId;
   document.getElementById('signupForm').reset();
   document.getElementById('signupFormMsg').textContent = '';
+  document.getElementById('signupP2Msg').textContent = '';
+  pareja2ClientId = null;
   document.getElementById('signup_p1_name').value = currentUser.user_metadata?.full_name || '';
   document.getElementById('signup_p1_phone').value = currentUser.user_metadata?.phone || '';
   document.getElementById('signupModal').hidden = false;
@@ -1425,6 +1464,11 @@ async function init(){
   document.getElementById('signupModal').addEventListener('click', (e) => {
     if (e.target.id === 'signupModal') closeSignupModal();
   });
+  document.getElementById('signup_p2_phone').addEventListener('input', (e) => {
+    const phone = e.target.value.trim();
+    clearTimeout(pareja2LookupTimer);
+    pareja2LookupTimer = setTimeout(() => lookupPareja2(phone), 400);
+  });
 
   document.getElementById('chatModalClose').addEventListener('click', closeCompChatModal);
   document.getElementById('chatModal').addEventListener('click', (e) => {
@@ -1456,12 +1500,19 @@ async function init(){
       msg.className = 'form-msg err';
       return;
     }
+    const p2Phone = document.getElementById('signup_p2_phone').value.trim();
+    if (p2Phone && !pareja2ClientId){
+      msg.textContent = 'Espera a que se vincule el teléfono del jugador/a 2, o bórralo si vas a apuntarte sin pareja todavía.';
+      msg.className = 'form-msg err';
+      return;
+    }
     const payload = {
       competicion_id: form.dataset.compId,
       player1_name: document.getElementById('signup_p1_name').value.trim(),
       player1_phone: document.getElementById('signup_p1_phone').value.trim(),
-      player2_name: document.getElementById('signup_p2_name').value.trim() || null,
-      player2_phone: document.getElementById('signup_p2_phone').value.trim() || null,
+      player2_name: p2Phone ? document.getElementById('signup_p2_name').value.trim() : null,
+      player2_phone: p2Phone || null,
+      pareja2_client_id: p2Phone ? pareja2ClientId : null,
       user_id: currentUser.id,
     };
     const submitBtn = form.querySelector('button[type="submit"]');

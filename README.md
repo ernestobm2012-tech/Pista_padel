@@ -397,6 +397,36 @@ Las inscripciones que ya existían antes de este cambio no tienen `user_id`
 hasta que alguien las vuelva a apuntar con una cuenta o un admin les asigne
 el `user_id` a mano en la base de datos.
 
+### El jugador/a 2 también tiene que ser cliente registrado
+
+Apuntar una pareja exige que **ambos** jugadores sean clientes con cuenta
+creada, no solo quien rellena el formulario. El jugador/a 1 ya queda
+vinculado automáticamente (es quien ha iniciado sesión); para el jugador/a
+2 hace falta indicar su **teléfono**, y en cuanto se escribe, la web busca
+si hay un cliente registrado con ese número:
+
+- Si lo encuentra, rellena solo su nombre y muestra "✓ Vinculado a
+  [nombre]" — la inscripción se guarda ligada a su cuenta real
+  (`pareja2_client_id`).
+- Si no lo encuentra, avisa de que esa persona debe crearse una cuenta
+  primero (con ese mismo teléfono) y no deja enviar el formulario hasta
+  que se resuelva o se borre el teléfono (para apuntarse sin pareja
+  todavía).
+
+En `admin.html` → pestaña «Torneos» → dentro de cada competición, el
+formulario "+ Añadir pareja manualmente" funciona igual pero para los dos
+jugadores: en vez de escribir el nombre a mano, se busca y se elige un
+cliente ya registrado (mismo buscador que en reservas manuales), así que
+las parejas que añada el administrador también quedan siempre vinculadas
+a cuentas reales.
+
+Esto está reforzado en la base de datos: un trigger
+(`check_pareja2_cliente_valido`) bloquea cualquier inscripción en la que
+se indique un jugador/a 2 sin vincularlo a un cliente cuyo teléfono
+coincida, y evita que alguien se empareje consigo mismo. Es el primer paso
+para poder construir, más adelante, un ranking de clientes basado en los
+resultados de torneos y ligas.
+
 ### Chat interno del torneo/liga
 
 Cada competición tiene un chat privado en tiempo real, solo visible para
