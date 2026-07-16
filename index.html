@@ -86,6 +86,7 @@
   .nav{ display:flex; align-items:center; justify-content:space-between; padding:16px 0; }
   .logo{ font-family:'Outfit', sans-serif; font-weight:800; font-size:20px; display:flex; align-items:center; gap:8px; }
   .logo .dot{ width:12px; height:12px; border-radius:50%; background:var(--lime); }
+  .logo img{ height:28px; width:auto; border-radius:6px; }
   .nav-menu{ display:contents; }
   .nav-links{ display:flex; gap:28px; list-style:none; margin:0; padding:0; }
   .nav-links a{ text-decoration:none; font-size:14.5px; font-weight:500; color:var(--ink-soft); }
@@ -319,7 +320,7 @@
 
 <header>
   <div class="wrap nav">
-    <div class="logo"><span class="dot"></span> Pistas Municipales · Chozas de Canales</div>
+    <div class="logo"><img id="orgLogoHeader" alt="" hidden><span class="dot" id="orgDot"></span> <span id="orgNameHeader">Pistas Municipales · Chozas de Canales</span></div>
     <div class="nav-menu">
       <ul class="nav-links">
         <li><a href="#pistas">Pistas</a></li>
@@ -469,7 +470,7 @@
 
 <footer>
   <div class="wrap footer-grid">
-    <div>© <span id="year"></span> Pistas Municipales de Pádel de Chozas de Canales.</div>
+    <div>© <span id="year"></span> <span id="orgNameFooter">Pistas Municipales de Pádel de Chozas de Canales</span>.</div>
     <nav class="footer-legal-links">
       <a href="#" id="openLegalLink">Aviso legal</a>
       <a href="#" id="openPrivacyLink">Política de privacidad</a>
@@ -747,6 +748,49 @@ const SUPABASE_URL = 'https://stnuvhlqicftjbtlybit.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN0bnV2aGxxaWNmdGpidGx5Yml0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMyNDY4NzgsImV4cCI6MjA5ODgyMjg3OH0.1a8uenfaddy_yiXPgerteMoktCEeeFhkH021qp0okPY';
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
+/* ---------- Organización (multi-tenant): resolución por ?org=slug ---------- */
+// Esta misma web sirve a varias organizaciones (ayuntamientos, comunidades de
+// vecinos, clubs...); cada una tiene su propio enlace con "?org=su-slug" y sus
+// propios datos, completamente aislados en la base de datos (organizacion_id).
+let CURRENT_ORG = null; // { id, nombre, logo_path, tipo }
+let ORG_ID = null;
+
+function showOrgError(message){
+  document.body.innerHTML = `<div style="min-height:100vh; display:flex; align-items:center; justify-content:center; text-align:center; padding:40px; font-family:-apple-system,'Segoe UI',Roboto,sans-serif; color:#EFEFE9; background:#0B1210;">
+    <div><h1 style="font-size:22px; margin-bottom:10px;">No se puede cargar esta web</h1><p style="color:#9aa39a; max-width:420px; margin:0 auto;">${message}</p></div>
+  </div>`;
+}
+
+function applyOrgBranding(org){
+  document.title = org.nombre;
+  document.querySelectorAll('#orgNameHeader, #orgNameFooter').forEach(el => { el.textContent = org.nombre; });
+  if (org.logo_path){
+    const url = supabase.storage.from('galeria-padel').getPublicUrl(org.logo_path).data.publicUrl;
+    const img = document.getElementById('orgLogoHeader');
+    img.src = url;
+    img.hidden = false;
+    document.getElementById('orgDot').hidden = true;
+  }
+}
+
+async function resolveOrganizacion(){
+  const slug = new URLSearchParams(window.location.search).get('org');
+  if (!slug){
+    showOrgError('Falta indicar el club/ayuntamiento en el enlace. Pide a quien te lo haya compartido que añada "?org=..." al final de la URL.');
+    return false;
+  }
+  const { data, error } = await supabase.rpc('organizacion_por_slug', { p_slug: slug });
+  const org = Array.isArray(data) ? data[0] : data;
+  if (error || !org){
+    showOrgError('No encontramos ninguna organización activa con ese identificador. Comprueba el enlace.');
+    return false;
+  }
+  CURRENT_ORG = org;
+  ORG_ID = org.id;
+  applyOrgBranding(org);
+  return true;
+}
+
 document.getElementById('year').textContent = new Date().getFullYear();
 
 /* ---------- Instalar como app ---------- */
@@ -938,7 +982,7 @@ signupAccountForm.addEventListener('submit', async (e) => {
   const password = document.getElementById('signup_password').value;
   const { data, error } = await supabase.auth.signUp({
     email, password,
-    options: { data: { full_name, phone, is_padel_customer: true } },
+    options: { data: { full_name, phone, is_padel_customer: true, organizacion_id: ORG_ID } },
   });
   if (error){
     signupAccountMsg.textContent = /already registered|already exists/i.test(error.message)
@@ -968,6 +1012,7 @@ async function loadMyReservations(){
   list.innerHTML = '<p style="color:var(--ink-soft); font-size:14px;">Cargando…</p>';
   const { data, error } = await supabase.from('reservas_padel').select('*')
     .eq('user_id', currentUser.id)
+    .eq('organizacion_id', ORG_ID)
     .order('reservation_date', { ascending: false })
     .order('start_time', { ascending: false });
   if (error || !data){
@@ -1071,14 +1116,14 @@ function addDays(dateStr, n){
 
 let LIGHT_EXTRA = null;
 async function loadExtras(){
-  const { data } = await supabase.from('extras_padel').select('*').eq('active', true);
+  const { data } = await supabase.from('extras_padel').select('*').eq('active', true).eq('organizacion_id', ORG_ID);
   LIGHT_EXTRA = (data || []).find(e => e.name.toLowerCase().includes('luz')) || null;
 }
 
 let MAINTENANCE = [];
 async function loadMaintenance(){
   const today = new Date().toISOString().slice(0,10);
-  const { data } = await supabase.from('mantenimientos_padel').select('*').gte('end_date', today);
+  const { data } = await supabase.from('mantenimientos_padel').select('*').gte('end_date', today).eq('organizacion_id', ORG_ID);
   MAINTENANCE = data || [];
 }
 function maintenanceFor(pistaId, dateStr){
@@ -1087,7 +1132,7 @@ function maintenanceFor(pistaId, dateStr){
 
 let ALL_COURTS = [];
 async function loadCourts(){
-  const { data, error } = await supabase.from('pistas_padel').select('*').eq('active', true).order('sort_order');
+  const { data, error } = await supabase.from('pistas_padel').select('*').eq('active', true).eq('organizacion_id', ORG_ID).order('sort_order');
   ALL_COURTS = data || [];
   document.getElementById('statCourts').textContent = ALL_COURTS.length;
 
@@ -1109,10 +1154,10 @@ async function loadCourts(){
 }
 
 async function getEffectiveDurationsForPista(pistaId){
-  const { data: ajustes } = await supabase.from('ajustes_padel').select('precio_unico_todas_pistas').limit(1).single();
+  const { data: ajustes } = await supabase.from('ajustes_padel').select('precio_unico_todas_pistas').eq('organizacion_id', ORG_ID).single();
   const unico = ajustes ? ajustes.precio_unico_todas_pistas : true;
   if (unico || !pistaId) return DURATIONS;
-  const { data: overrides } = await supabase.from('duraciones_padel').select('*').eq('pista_id', pistaId).eq('active', true);
+  const { data: overrides } = await supabase.from('duraciones_padel').select('*').eq('pista_id', pistaId).eq('active', true).eq('organizacion_id', ORG_ID);
   return DURATIONS.map(d => {
     const ov = (overrides || []).find(o => o.duration_minutes === d.duration_minutes);
     return ov ? { ...d, price: ov.price } : d;
@@ -1120,7 +1165,7 @@ async function getEffectiveDurationsForPista(pistaId){
 }
 
 async function loadDurations(){
-  const { data, error } = await supabase.from('duraciones_padel').select('*').is('pista_id', null).eq('active', true).order('sort_order');
+  const { data, error } = await supabase.from('duraciones_padel').select('*').is('pista_id', null).eq('active', true).eq('organizacion_id', ORG_ID).order('sort_order');
   DURATIONS = data || [];
   if (DURATIONS.length){
     document.getElementById('statMinDuration').textContent = durationLabel(Math.min(...DURATIONS.map(d => d.duration_minutes)));
@@ -1145,8 +1190,7 @@ async function loadDurations(){
 let BUSY_INTERVALS = [];
 async function loadAvailability(pistaId, dateStr){
   const { data } = await supabase
-    .from('disponibilidad_padel')
-    .select('start_time, end_time')
+    .rpc('disponibilidad_padel_publica', { p_organizacion_id: ORG_ID })
     .eq('pista_id', pistaId)
     .eq('reservation_date', dateStr);
   BUSY_INTERVALS = (data || []).map(r => [toMinutes(r.start_time.slice(0,5)), toMinutes(r.end_time.slice(0,5))]);
@@ -1290,8 +1334,8 @@ function fmtCompDate(d){
 
 async function loadCompetitions(){
   const today = new Date().toISOString().slice(0,10);
-  const { data: comps } = await supabase.from('competiciones_padel').select('*').order('start_date');
-  const { data: inscPublic } = await supabase.from('inscripciones_padel_publico').select('*').eq('status', 'activa');
+  const { data: comps } = await supabase.from('competiciones_padel').select('*').eq('organizacion_id', ORG_ID).order('start_date');
+  const { data: inscPublic } = await supabase.rpc('inscripciones_padel_publicas', { p_organizacion_id: ORG_ID }).eq('status', 'activa');
   const grid = document.getElementById('competitionsGrid');
   window._COMPETITIONS_PUBLIC = comps || [];
   window._INSCRIPCIONES_PUBLIC = inscPublic || [];
@@ -1407,9 +1451,9 @@ function buildClientRanking(comps, insc, partidos){
 async function renderPublicRanking(){
   const wrap = document.getElementById('rankingList');
   const [{ data: comps }, { data: insc }, { data: partidos }] = await Promise.all([
-    supabase.from('competiciones_padel').select('*'),
-    supabase.from('inscripciones_padel_publico').select('*'),
-    supabase.from('competicion_partidos_padel').select('*'),
+    supabase.from('competiciones_padel').select('*').eq('organizacion_id', ORG_ID),
+    supabase.rpc('inscripciones_padel_publicas', { p_organizacion_id: ORG_ID }),
+    supabase.from('competicion_partidos_padel').select('*').eq('organizacion_id', ORG_ID),
   ]);
   const ranking = buildClientRanking(comps || [], insc || [], partidos || []);
   if (!ranking.length){
@@ -1533,9 +1577,9 @@ async function toggleCompetitionResults(compId, btn){
   box.innerHTML = '<p class="empty-msg">Cargando…</p>';
   const comp = (window._COMPETITIONS_PUBLIC || []).find(c => c.id === compId);
   const [{ data: partidos }, { data: insc }] = await Promise.all([
-    supabase.from('competicion_partidos_padel').select('*').eq('competicion_id', compId)
+    supabase.from('competicion_partidos_padel').select('*').eq('competicion_id', compId).eq('organizacion_id', ORG_ID)
       .order('round_number', { ascending: true }),
-    supabase.from('inscripciones_padel_publico').select('*').eq('competicion_id', compId),
+    supabase.rpc('inscripciones_padel_publicas', { p_organizacion_id: ORG_ID }).eq('competicion_id', compId),
   ]);
   box.innerHTML = comp && comp.type === 'torneo'
     ? renderPublicTournamentResults(partidos || [], insc || [])
@@ -1559,7 +1603,7 @@ async function lookupPareja2(phone){
   const mySeq = ++pareja2LookupSeq;
   msgEl.textContent = 'Buscando…';
   msgEl.className = 'form-msg';
-  const { data, error } = await supabase.rpc('buscar_cliente_padel_por_telefono', { p_phone: phone });
+  const { data, error } = await supabase.rpc('buscar_cliente_padel_por_telefono', { p_phone: phone, p_organizacion_id: ORG_ID });
   if (mySeq !== pareja2LookupSeq) return;
   const match = Array.isArray(data) ? data[0] : data;
   if (error || !match){
@@ -1732,6 +1776,7 @@ async function init(){
       user_id: currentUser.id,
       sender_name: currentUser.user_metadata?.full_name || currentUser.email,
       mensaje: text,
+      organizacion_id: ORG_ID,
     });
     input.disabled = false;
     if (!error) input.value = '';
@@ -1761,6 +1806,7 @@ async function init(){
       player2_phone: p2Phone || null,
       pareja2_client_id: p2Phone ? pareja2ClientId : null,
       user_id: currentUser.id,
+      organizacion_id: ORG_ID,
     };
     const submitBtn = form.querySelector('button[type="submit"]');
     submitBtn.disabled = true;
@@ -1813,6 +1859,7 @@ async function init(){
       light_price: wantsLight && LIGHT_EXTRA ? LIGHT_EXTRA.price : null,
       status: 'confirmada',
       user_id: currentUser.id,
+      organizacion_id: ORG_ID,
     };
 
     const submitBtn = e.target.querySelector('button[type="submit"]');
@@ -1843,7 +1890,7 @@ async function init(){
   refreshSlots();
 }
 
-init();
+resolveOrganizacion().then((ok) => { if (ok) init(); });
 
 document.getElementById('burgerBtn').addEventListener('click', () => {
   document.querySelector('header').classList.toggle('nav-open');

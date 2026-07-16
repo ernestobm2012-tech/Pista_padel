@@ -1,10 +1,15 @@
-# Pistas Municipales de Pádel — Chozas de Canales
+# Pistas de Pádel — plataforma multi-cliente (Chozas de Canales y otros)
 
-Sitio de una sola página (`index.html`) para reservar las pistas municipales de
-pádel de Chozas de Canales online, más un panel de administración
-(`admin.html`). Sin build step: HTML/CSS/JS puro + Supabase JS por CDN, así que
-se puede abrir tal cual o subir a cualquier hosting estático (GitHub Pages,
-Netlify, Vercel...).
+Sitio de una sola página (`index.html`) para reservar pistas de pádel online,
+más un panel de administración (`admin.html`). Sin build step: HTML/CSS/JS
+puro + Supabase JS por CDN, así que se puede abrir tal cual o subir a
+cualquier hosting estático (GitHub Pages, Netlify, Vercel...).
+
+Este mismo código sirve para **varios clientes a la vez** (ayuntamientos,
+comunidades de vecinos, clubes de pádel), cada uno con sus datos totalmente
+aislados — ver la sección "Multi-tenant" más abajo. La primera organización
+dada de alta, y la que se usa como referencia en el resto de este documento,
+es "Pistas Municipales de Pádel de Chozas de Canales".
 
 ## Qué incluye
 
@@ -529,6 +534,77 @@ responsable al **Ayuntamiento de Chozas de Canales** (con placeholders
 únicamente como encargado del desarrollo técnico, no como responsable del
 tratamiento de datos. La Política de cookies describe lo que la web usa hoy
 (explicado más abajo) y no una plantilla genérica.
+
+## Multi-tenant: una sola web para muchas organizaciones
+
+Este repositorio ya no es solo "la web de Chozas de Canales": es la base de
+código que se despliega, **sin copiarla**, para cualquier cliente nuevo
+(otro ayuntamiento, una comunidad de vecinos, un club de pádel privado...).
+Cada cliente es una **organización** con sus propios datos, completamente
+aislados de los demás en la misma base de datos.
+
+### Cómo funciona el aislamiento
+
+- Tabla `organizaciones` (el "padre"): una fila por cliente, con `nombre`,
+  `tipo` (`ayuntamiento` / `comunidad_vecinos` / `club_padel` / `otro`),
+  `slug` (identificador corto para la URL) y `logo_path`.
+- Tabla `organizacion_admins`: qué emails administran cada organización
+  (puede haber varios admins por organización).
+- Todas las tablas de datos (`pistas_padel`, `reservas_padel`,
+  `clientes_padel`, `competiciones_padel`, `invoices_padel`, etc.) tienen una
+  columna `organizacion_id` obligatoria, y las políticas de seguridad a nivel
+  de fila (RLS) filtran o bloquean el acceso según esa columna — no es una
+  convención en el código, es una barrera en la propia base de datos: aunque
+  hubiera un fallo en el frontend, Postgres impediría igualmente que un
+  admin de una organización lea o modifique datos de otra.
+- Dos funciones ayudantes reutilizadas en casi todas las políticas:
+  `is_padel_org_admin(organizacion_id)` (¿soy admin de esta organización
+  concreta?) e `is_padel_super_admin()` (tu cuenta, `ernestobm2012@gmail.com`,
+  con acceso a todas las organizaciones para soporte/mantenimiento).
+- Verificado con pruebas directas en la base de datos: un admin de una
+  organización obtiene 0 filas al intentar leer o modificar datos de otra
+  organización, y las suyas propias funcionan con normalidad.
+
+### Cómo se elige la organización
+
+Por ahora, sin dominio propio comprado todavía, cada organización se
+identifica por un parámetro en la URL: `index.html?org=slug-del-cliente`.
+La web pública busca ese `slug` (función `organizacion_por_slug`), carga el
+nombre/logo de esa organización y a partir de ahí todas las consultas van
+filtradas por su `organizacion_id`. Si el enlace no lleva `?org=...` o el
+slug no existe, se muestra un aviso claro en vez de mezclar datos por error.
+
+Más adelante, cuando haya un dominio propio, esto se puede sustituir por
+subdominios (`chozas.tudominio.com`) o dominios propios por cliente sin tocar
+la lógica de aislamiento — solo cambiaría cómo se resuelve el `slug` al
+entrar.
+
+### Panel de administración con varias organizaciones
+
+`admin.html` funciona igual para todos los clientes con el mismo código:
+al iniciar sesión, si tu email administra una sola organización entra
+directo; si administras varias (por ejemplo, tú como super-admin, o un
+gestor que lleva varios clubes), aparece un selector para elegir con cuál
+trabajar antes de entrar al panel.
+
+Desde `admin.html` → pestaña **«Organización»**, cada cliente puede:
+- Cambiar el **nombre** de su organización.
+- Subir, cambiar o quitar su propio **logo** (se guarda en el bucket
+  `galeria-padel`, como las fotos de pistas/torneos).
+
+Ambos cambios se reflejan al momento en la cabecera de su propia web pública
+y de su propio panel — sin tocar código ni pedirte que lo hagas tú.
+
+### Dar de alta un cliente nuevo
+
+Hoy por hoy, dar de alta una organización nueva (ayuntamiento, comunidad o
+club) se hace insertando su fila en `organizaciones` y su primer admin en
+`organizacion_admins` desde el dashboard de Supabase (no hay todavía un
+formulario público de auto-registro, algo deliberado: son clientes que
+contratas tú, no un SaaS de alta libre). A partir de ahí, ese cliente ya
+tiene su propia web (`index.html?org=su-slug`) y su propio panel, sin
+desplegar nada nuevo ni tocar una sola línea de código — y puede personalizar
+su nombre y logo él mismo desde `admin.html`.
 
 ## Cómo lo pruebas en local
 
