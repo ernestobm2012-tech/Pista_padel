@@ -93,6 +93,9 @@
   .pill-pendiente{ background:rgba(255,200,87,.15); color:var(--amber); }
   .pill-confirmada{ background:rgba(198,255,61,.15); color:var(--lime); }
   .pill-cancelada{ background:rgba(255,107,107,.15); color:var(--red); }
+  .pill-pagado{ background:rgba(198,255,61,.15); color:var(--lime); }
+  .pill-pendiente-pago{ background:rgba(255,107,107,.15); color:var(--red); }
+  .pill-proximo-pago{ background:rgba(255,255,255,.08); color:var(--ink-soft); }
 
   .row-actions{ display:flex; gap:6px; flex-wrap:wrap; }
   .filters{ display:flex; gap:10px; flex-wrap:wrap; align-items:flex-end; }
@@ -134,7 +137,7 @@
   .cal-day.has-pendiente{ background:rgba(255,200,87,.12); border-color:rgba(255,200,87,.35); }
   .cal-day.has-confirmada{ background:rgba(198,255,61,.10); border-color:rgba(198,255,61,.3); }
   .cal-day.has-maintenance{ border-color:rgba(255,90,90,.5); box-shadow:inset 0 0 0 1px rgba(255,90,90,.35); }
-  .cal-day-maint-icon{ position:absolute; top:4px; left:5px; font-size:11px; }
+  .cal-day-maint-icon{ position:absolute; bottom:4px; left:5px; font-size:11px; }
   .cal-day-badge{
     position:absolute; top:4px; right:4px; background:var(--lime); color:#0B1210;
     font-weight:700; font-size:10.5px; min-width:16px; height:16px; border-radius:50%;
@@ -696,6 +699,30 @@
   </div>
 </div>
 
+<!-- ---------- Modal: marcar como pagado ---------- -->
+<div class="modal-backdrop" id="markPaidModal" hidden>
+  <div class="modal" style="max-width:420px;">
+    <div class="modal-head">
+      <h3>Marcar como pagado</h3>
+      <button class="modal-close" id="markPaidModalClose" aria-label="Cerrar">✕</button>
+    </div>
+    <p id="markPaidSummary" style="color:var(--ink-soft); font-size:14px; margin:-8px 0 16px;"></p>
+    <div class="field">
+      <label for="paid_method">Forma de pago</label>
+      <select id="paid_method">
+        <option value="efectivo">Efectivo</option>
+        <option value="bizum">Bizum</option>
+        <option value="tarjeta">Tarjeta</option>
+      </select>
+    </div>
+    <p id="markPaidInvoiceNote" style="color:var(--ink-soft); font-size:12.5px; margin-top:10px;"></p>
+    <div style="display:flex; gap:10px; align-items:center; margin-top:16px;">
+      <button type="button" class="btn btn-primary btn-sm" id="confirmMarkPaidBtn">Confirmar cobro</button>
+      <span class="form-msg" id="markPaidMsg"></span>
+    </div>
+  </div>
+</div>
+
 <div id="invoicePrintArea">
   <div id="invoicePrintContent"></div>
 </div>
@@ -724,11 +751,11 @@ let CURRENT_ORG = null;
 async function resolveAdminOrganizaciones(email){
   if (email === ADMIN_EMAIL){
     // El super-admin también debe poder ver (y reactivar) organizaciones desactivadas.
-    const { data } = await supabase.from('organizaciones').select('id, nombre, logo_path, tipo, activo, features, tipo_documento_cobro').order('nombre');
+    const { data } = await supabase.from('organizaciones').select('id, nombre, logo_path, tipo, activo, features, tipo_documento_cobro, slug').order('nombre');
     return data || [];
   }
   const { data } = await supabase.from('organizacion_admins')
-    .select('organizacion_id, organizaciones(id, nombre, logo_path, tipo, activo, features, tipo_documento_cobro)')
+    .select('organizacion_id, organizaciones(id, nombre, logo_path, tipo, activo, features, tipo_documento_cobro, slug)')
     .eq('email', email);
   return (data || []).map(r => r.organizaciones).filter(Boolean);
 }
@@ -1210,15 +1237,26 @@ async function loadReservations(){
         <span>👥 ${r.players_count || '—'}</span>
         <span>${r.wants_light ? `💡 +${formatPrice(r.light_price || 0)}` : 'Sin luz'}</span>
         ${r.price ? `<span>💶 ${formatPrice(r.price)}</span>` : ''}
+        ${paymentBadge(r)}
       </div>
       <div class="res-actions">
         ${r.status !== 'confirmada' ? `<button class="btn btn-ghost btn-sm" data-action="confirm">Confirmar</button>` : ''}
         ${r.status !== 'cancelada' ? `<button class="btn btn-danger btn-sm" data-action="cancel">Cancelar</button>` : ''}
+        ${(!r.pagado && !r.is_municipal && r.status !== 'cancelada') ? `<button class="btn btn-primary btn-sm" data-action="mark-paid">💰 Cobrar</button>` : ''}
         <button class="btn btn-ghost btn-sm" data-action="edit">✏️ Modificar</button>
         <button class="btn btn-ghost btn-sm" data-action="delete">Borrar</button>
       </div>
     </div>
   `).join('');
+}
+
+function paymentBadge(r){
+  if (r.is_municipal || r.status === 'cancelada') return '';
+  if (r.pagado) return '<span class="pill pill-pagado">✓ Pagado</span>';
+  const today = new Date().toISOString().slice(0, 10);
+  return r.reservation_date < today
+    ? '<span class="pill pill-pendiente-pago">⚠ Pendiente de pago</span>'
+    : '<span class="pill pill-proximo-pago">🕓 Próximo pago</span>';
 }
 
 document.getElementById('reservationsList').addEventListener('click', async (e) => {
@@ -1236,8 +1274,81 @@ document.getElementById('reservationsList').addEventListener('click', async (e) 
     const res = (window._RESERVATIONS_CACHE || []).find(x => x.id === id);
     if (res) openEditReservationModal(res);
     return;
+  } else if (btn.dataset.action === 'mark-paid'){
+    const res = (window._RESERVATIONS_CACHE || []).find(x => x.id === id);
+    if (res) openMarkPaidModal(res);
+    return;
   }
   loadReservations();
+});
+
+/* ---------- Marcar como pagado (genera factura/tasa automáticamente) ---------- */
+let MARK_PAID_RESERVA = null;
+
+function openMarkPaidModal(r){
+  MARK_PAID_RESERVA = r;
+  const total = Number(r.price || 0) + (r.wants_light ? Number(r.light_price || 0) : 0);
+  document.getElementById('markPaidSummary').textContent =
+    `${r.full_name} · ${fmtDate(r.reservation_date)} ${r.start_time.slice(0,5)}–${r.end_time.slice(0,5)} · ${formatPrice(total)}`;
+  document.getElementById('paid_method').value = 'efectivo';
+  document.getElementById('markPaidInvoiceNote').textContent =
+    `Se generará automáticamente ${isTasaMunicipal() ? 'la tasa municipal' : 'la factura'} correspondiente.`;
+  document.getElementById('markPaidMsg').textContent = '';
+  document.getElementById('markPaidModal').hidden = false;
+}
+document.getElementById('markPaidModalClose').addEventListener('click', () => {
+  document.getElementById('markPaidModal').hidden = true;
+});
+
+document.getElementById('confirmMarkPaidBtn').addEventListener('click', async () => {
+  const r = MARK_PAID_RESERVA;
+  if (!r) return;
+  const msg = document.getElementById('markPaidMsg');
+  const btn = document.getElementById('confirmMarkPaidBtn');
+  btn.disabled = true;
+  msg.textContent = 'Guardando…';
+  msg.className = 'form-msg';
+
+  const { error: updateError } = await supabase.from('reservas_padel')
+    .update({ pagado: true, paid_at: new Date().toISOString() }).eq('id', r.id);
+  if (updateError){
+    msg.textContent = 'Error al marcar como pagado.';
+    msg.className = 'form-msg err';
+    btn.disabled = false;
+    return;
+  }
+
+  const { data: existingInvoice } = await supabase.from('invoices_padel')
+    .select('id').eq('reservation_id', r.id).eq('organizacion_id', ORG_ID).maybeSingle();
+
+  if (!existingInvoice){
+    const total = Number(r.price || 0) + (r.wants_light ? Number(r.light_price || 0) : 0);
+    const payload = {
+      invoice_number: await nextInvoiceNumber(),
+      issue_date: new Date().toISOString().slice(0, 10),
+      reservation_id: r.id,
+      client_name: r.full_name,
+      client_phone: r.phone || null,
+      concept: conceptoAlquiler(r),
+      total_amount: total,
+      iva_rate: isTasaMunicipal() ? 0 : 21,
+      payment_method: document.getElementById('paid_method').value,
+      organizacion_id: ORG_ID,
+    };
+    const { error: invoiceError } = await supabase.from('invoices_padel').insert(payload);
+    if (invoiceError){
+      msg.textContent = `Se ha marcado como pagado, pero no se ha podido generar ${isTasaMunicipal() ? 'la tasa' : 'la factura'} automáticamente: ` + invoiceError.message;
+      msg.className = 'form-msg err';
+      btn.disabled = false;
+      setTimeout(() => { document.getElementById('markPaidModal').hidden = true; loadReservations(); }, 2200);
+      return;
+    }
+  }
+
+  btn.disabled = false;
+  document.getElementById('markPaidModal').hidden = true;
+  loadReservations();
+  if (!document.getElementById('tabFacturas').hidden) loadInvoices();
 });
 
 document.getElementById('statusFilter').addEventListener('change', loadReservations);
@@ -1687,17 +1798,28 @@ async function renderStats(){
   const confirmed = rows.filter(r => r.status === 'confirmada');
   const uniqueClients = new Set(confirmed.map(clientKey)).size;
   const revenueRows = confirmed.filter(r => !r.is_municipal);
-  const totalRevenue = revenueRows.reduce((sum, r) => sum + Number(r.price || 0) + Number(r.light_price || 0), 0);
-  const avgTicket = revenueRows.length ? totalRevenue / revenueRows.length : 0;
+  const amountOf = (r) => Number(r.price || 0) + Number(r.light_price || 0);
+
+  const paidRows = revenueRows.filter(r => r.pagado);
+  const totalRevenue = paidRows.reduce((sum, r) => sum + amountOf(r), 0);
+  const avgTicket = paidRows.length ? totalRevenue / paidRows.length : 0;
+
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const pendingRows = revenueRows.filter(r => !r.pagado && r.reservation_date < todayStr);
+  const upcomingRows = revenueRows.filter(r => !r.pagado && r.reservation_date >= todayStr);
+  const pendingAmount = pendingRows.reduce((sum, r) => sum + amountOf(r), 0);
+  const upcomingAmount = upcomingRows.reduce((sum, r) => sum + amountOf(r), 0);
 
   kpisEl.innerHTML = `
     <div class="stat-kpi"><div class="num">${confirmed.length}</div><div class="lbl">Reservas confirmadas</div></div>
     <div class="stat-kpi"><div class="num">${uniqueClients}</div><div class="lbl">Clientes distintos</div></div>
-    <div class="stat-kpi"><div class="num">${formatPrice(totalRevenue)}</div><div class="lbl">Dinero ganado</div></div>
+    <div class="stat-kpi"><div class="num">${formatPrice(totalRevenue)}</div><div class="lbl">Pagos cobrados (${paidRows.length})</div></div>
     <div class="stat-kpi"><div class="num">${formatPrice(avgTicket)}</div><div class="lbl">Ticket medio</div></div>
+    <div class="stat-kpi"><div class="num">${formatPrice(pendingAmount)}</div><div class="lbl">Pendiente de pago (${pendingRows.length})</div></div>
+    <div class="stat-kpi"><div class="num">${formatPrice(upcomingAmount)}</div><div class="lbl">Próximos pagos (${upcomingRows.length})</div></div>
   `;
 
-  renderRevenueChart(revenueRows);
+  renderRevenueChart(paidRows);
   renderDurationChart(confirmed);
   renderHoursChart(confirmed);
   renderTopClients(confirmed);
@@ -3292,11 +3414,16 @@ async function populateInvoiceReservations(){
   window._RES_CACHE = data || [];
 }
 
+function conceptoAlquiler(r){
+  return `ALQUILER PISTA DE PÁDEL — ${fmtDate(r.reservation_date)} ${r.start_time.slice(0,5)}-${r.end_time.slice(0,5)}.`;
+}
+
 document.getElementById('inv_reservation').addEventListener('change', (e) => {
   const r = (window._RES_CACHE || []).find(x => x.id === e.target.value);
   if (r){
     document.getElementById('inv_client_name').value = r.full_name;
     document.getElementById('inv_client_phone').value = r.phone;
+    document.getElementById('inv_concept').value = conceptoAlquiler(r);
   }
 });
 
@@ -3424,7 +3551,11 @@ async function handleSession(session){
       loginMsg.textContent = 'Esta cuenta no administra ninguna organización en este panel.';
       return;
     }
-    if (orgs.length === 1){
+    const wantedSlug = new URLSearchParams(location.search).get('org');
+    const wantedOrg = wantedSlug ? orgs.find(o => o.slug === wantedSlug) : null;
+    if (wantedOrg){
+      await enterOrg(wantedOrg);
+    } else if (orgs.length === 1){
       await enterOrg(orgs[0]);
     } else {
       loginScreen.hidden = true;

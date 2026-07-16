@@ -618,6 +618,43 @@ alta el ayuntamiento (solo aparece ahí si el tipo de organización es
 "Ayuntamiento"). Comunidades de vecinos y clubes de pádel siempre emiten
 factura — la elección solo tiene sentido para administraciones públicas.
 
+### Cobro en mano y facturación automática
+
+Todavía no hay pasarela de pago online, así que el cobro real pasa por caja:
+el cliente paga en persona (efectivo, Bizum, tarjeta con datáfono aparte...) y
+tú lo registras. En cada tarjeta de reserva de la pestaña "Reservas" aparece
+un botón **"💰 Cobrar"** (salvo en usos municipales, que no se facturan a un
+cliente). Al pulsarlo y confirmar:
+
+- La reserva queda marcada como **pagada** (`pagado = true`, con la fecha y
+  hora exacta en `paid_at`).
+- Se genera automáticamente **la factura o la tasa municipal** correspondiente
+  (según lo que tenga configurado esa organización), con el concepto
+  detallado — pista, fecha y franja horaria concretas, no un texto genérico —
+  y el importe total de la reserva (precio + luz, si la tuvo). Si la reserva
+  ya tenía una factura vinculada, no se duplica.
+- Puedes elegir la forma de cobro (efectivo, Bizum o tarjeta) para que quede
+  reflejada en el documento.
+
+Cada reserva (no municipal, no cancelada) muestra además un aviso de su
+estado de cobro:
+
+- **✓ Pagado**: ya se ha cobrado.
+- **⚠ Pendiente de pago**: la fecha de la reserva ya ha pasado y sigue sin
+  cobrarse — hay que reclamarlo.
+- **🕓 Próximo pago**: la reserva es futura y todavía no se ha cobrado (es
+  normal, se cobra el día del partido o después).
+
+Este estado no se guarda como tal en la base de datos: se calcula al vuelo
+comparando `pagado` con la fecha de la reserva, así que una reserva pasa sola
+de "próximo pago" a "pendiente de pago" en cuanto se cumple la fecha, sin que
+nadie tenga que tocar nada.
+
+La pestaña **Estadísticas** reflejan estos tres estados con sus propios
+indicadores: "Pagos cobrados" (dinero realmente ingresado — ya no cuenta como
+"ganado" lo que todavía no se ha cobrado), "Pendiente de pago" y "Próximos
+pagos", cada uno con su importe y número de reservas.
+
 ### Permisos: qué módulos tiene contratados cada cliente
 
 Reservas, Calendario, Clientes, Pistas y Precios están siempre incluidos para
@@ -653,6 +690,16 @@ cada uno, activarlos o desactivarlos— vive en un archivo **aparte** de
 `admin.html`: `plataforma.html`. No es una pestaña más del panel de cada
 club, es una página independiente, con su propio login (restringido también
 a tu email), separada de la operativa diaria de cualquier organización.
+
+Con varias organizaciones dadas de alta, la lista no muestra todas las
+fichas abiertas a la vez: hay un **desplegable** con el nombre de todas las
+organizaciones y solo al elegir una se abren debajo sus datos completos
+(igual de editables que antes). Cada ficha incluye también un enlace
+**"Abrir panel de administración →"** que lleva directamente a
+`admin.html?org=<slug-de-esa-organización>` en una pestaña nueva — así entras
+al panel de un club concreto sin tener que buscarlo en el selector de
+organizaciones de `admin.html` (que solo te lo pregunta si no vienes con ese
+parámetro en la URL, o si tu cuenta administra más de una).
 
 Desde ahí, para dar de alta un cliente nuevo:
 

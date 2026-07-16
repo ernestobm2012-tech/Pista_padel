@@ -137,6 +137,15 @@
       </div>
     </section>
 
+    <section>
+      <div class="card">
+        <div class="field" style="margin:0;">
+          <label for="orgSelector">Ver / editar organización</label>
+          <select id="orgSelector"><option value="">— Selecciona una organización —</option></select>
+        </div>
+      </div>
+    </section>
+
     <section id="orgsList"></section>
   </main>
 </div>
@@ -239,7 +248,10 @@ function orgCardHtml(org, admins){
     <div class="card org-card" data-org-id="${org.id}">
       <div class="org-card-head">
         <h3>${org.nombre} <span class="pill">${TIPO_LABELS[org.tipo] || org.tipo || '—'}</span> ${org.activo === false ? '<span class="pill pill-inactiva">Inactiva</span>' : ''}</h3>
-        <span style="color:var(--ink-soft); font-size:13px;">/?org=${org.slug}</span>
+        <div style="display:flex; align-items:center; gap:12px;">
+          <span style="color:var(--ink-soft); font-size:13px;">/?org=${org.slug}</span>
+          <a class="btn btn-ghost btn-sm" href="admin.html?org=${org.slug}" target="_blank" rel="noopener">Abrir panel de administración →</a>
+        </div>
       </div>
 
       <div class="form-grid">
@@ -316,19 +328,47 @@ function orgCardHtml(org, admins){
   `;
 }
 
+let ALL_ORGS = [];
+let ALL_ORG_ADMINS = [];
+let SELECTED_ORG_ID = null;
+
 async function loadOrganizaciones(){
   const [{ data: orgs }, { data: admins }] = await Promise.all([
     supabase.from('organizaciones').select('*').order('nombre'),
     supabase.from('organizacion_admins').select('*'),
   ]);
-  const wrap = document.getElementById('orgsList');
-  if (!orgs || !orgs.length){
-    wrap.innerHTML = '<p style="color:var(--ink-soft);">No hay organizaciones todavía.</p>';
+  ALL_ORGS = orgs || [];
+  ALL_ORG_ADMINS = admins || [];
+  if (SELECTED_ORG_ID && !ALL_ORGS.some(o => o.id === SELECTED_ORG_ID)) SELECTED_ORG_ID = null;
+  renderOrgSelector();
+  renderSelectedOrgCard();
+}
+
+function renderOrgSelector(){
+  const sel = document.getElementById('orgSelector');
+  if (!ALL_ORGS.length){
+    sel.innerHTML = '<option value="">No hay organizaciones todavía</option>';
     return;
   }
-  wrap.innerHTML = orgs.map(o => orgCardHtml(o, admins || [])).join('');
+  sel.innerHTML = '<option value="">— Selecciona una organización —</option>' +
+    ALL_ORGS.map(o => `<option value="${o.id}" ${o.id === SELECTED_ORG_ID ? 'selected' : ''}>${o.nombre}${o.activo === false ? ' (inactiva)' : ''}</option>`).join('');
+}
+
+function renderSelectedOrgCard(){
+  const wrap = document.getElementById('orgsList');
+  const org = ALL_ORGS.find(o => o.id === SELECTED_ORG_ID);
+  if (!org){
+    wrap.innerHTML = '';
+    return;
+  }
+  wrap.innerHTML = orgCardHtml(org, ALL_ORG_ADMINS);
   wireOrgCardEvents();
 }
+
+document.getElementById('orgSelector').addEventListener('change', (e) => {
+  SELECTED_ORG_ID = e.target.value || null;
+  renderSelectedOrgCard();
+});
 
 function slugify(raw){
   return raw.trim().toLowerCase()
@@ -352,7 +392,7 @@ document.getElementById('saveNewOrgBtn').addEventListener('click', async () => {
     msg.className = 'form-msg err';
     return;
   }
-  const { error } = await supabase.from('organizaciones').insert({ nombre, tipo, slug });
+  const { data, error } = await supabase.from('organizaciones').insert({ nombre, tipo, slug }).select().single();
   if (error){
     msg.textContent = /duplicate|unique/i.test(error.message) ? 'Ya existe una organización con ese identificador.' : 'Error al crear: ' + error.message;
     msg.className = 'form-msg err';
@@ -362,6 +402,7 @@ document.getElementById('saveNewOrgBtn').addEventListener('click', async () => {
   msg.className = 'form-msg ok';
   document.getElementById('neworg_nombre').value = '';
   document.getElementById('neworg_slug').value = '';
+  SELECTED_ORG_ID = data ? data.id : null;
   await loadOrganizaciones();
 });
 
