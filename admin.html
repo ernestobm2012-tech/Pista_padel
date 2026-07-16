@@ -615,6 +615,29 @@
           <span class="form-msg" id="orgContactoMsg"></span>
         </div>
       </div>
+
+      <div id="orgFacturacionSection" hidden>
+        <div class="panel-head"><h2>Facturación</h2></div>
+        <div class="card" style="max-width:420px;">
+          <div class="field">
+            <label for="org_tipo_documento">Documento que emites al cobrar</label>
+            <select id="org_tipo_documento">
+              <option value="factura">Factura</option>
+              <option value="tasa_municipal">Tasa municipal (sin IVA)</option>
+            </select>
+          </div>
+          <p style="color:var(--ink-soft); font-size:12.5px; margin:8px 0 0;">
+            Como ayuntamiento, puedes emitir una factura normal o un recibo de
+            tasa municipal (sin IVA, al ser un cobro directo de la
+            administración). Esto cambia las etiquetas y el documento que se
+            imprime en la pestaña correspondiente.
+          </p>
+          <div style="display:flex; gap:10px; align-items:center; margin-top:10px;">
+            <button type="button" class="btn btn-primary btn-sm" id="saveOrgTipoDocumentoBtn">Guardar</button>
+            <span class="form-msg" id="orgTipoDocumentoMsg"></span>
+          </div>
+        </div>
+      </div>
     </section>
   </main>
 </div>
@@ -701,11 +724,11 @@ let CURRENT_ORG = null;
 async function resolveAdminOrganizaciones(email){
   if (email === ADMIN_EMAIL){
     // El super-admin también debe poder ver (y reactivar) organizaciones desactivadas.
-    const { data } = await supabase.from('organizaciones').select('id, nombre, logo_path, tipo, activo, features').order('nombre');
+    const { data } = await supabase.from('organizaciones').select('id, nombre, logo_path, tipo, activo, features, tipo_documento_cobro').order('nombre');
     return data || [];
   }
   const { data } = await supabase.from('organizacion_admins')
-    .select('organizacion_id, organizaciones(id, nombre, logo_path, tipo, activo, features)')
+    .select('organizacion_id, organizaciones(id, nombre, logo_path, tipo, activo, features, tipo_documento_cobro)')
     .eq('email', email);
   return (data || []).map(r => r.organizaciones).filter(Boolean);
 }
@@ -734,6 +757,29 @@ function applyFeatureGating(features){
   gate('tabFacturas', f.facturas !== false);
 }
 
+function isTasaMunicipal(){
+  return CURRENT_ORG && CURRENT_ORG.tipo === 'ayuntamiento' && CURRENT_ORG.tipo_documento_cobro === 'tasa_municipal';
+}
+
+function applyFacturasLabels(){
+  const tasa = isTasaMunicipal();
+  const tabBtn = document.querySelector('nav.tabs button[data-tab="tabFacturas"]');
+  if (tabBtn) tabBtn.textContent = tasa ? 'Tasa municipal' : 'Facturas';
+  const panelH2 = document.querySelector('#tabFacturas .panel-head h2');
+  if (panelH2) panelH2.textContent = tasa ? 'Tasas municipales' : 'Facturas';
+  const newBtn = document.getElementById('newInvoiceBtn');
+  if (newBtn) newBtn.textContent = tasa ? '+ Nueva tasa municipal' : '+ Nueva factura';
+  const numberLabel = document.querySelector('label[for="inv_number"]');
+  if (numberLabel) numberLabel.textContent = tasa ? 'Nº de recibo' : 'Nº de factura';
+  const submitBtn = document.querySelector('#invoiceForm button[type="submit"]');
+  if (submitBtn) submitBtn.textContent = tasa ? 'Guardar tasa municipal' : 'Guardar factura';
+  const ivaField = document.getElementById('inv_iva').closest('.field');
+  if (ivaField) ivaField.hidden = tasa;
+  if (tasa) document.getElementById('inv_iva').value = 0;
+  const totalLabel = document.querySelector('label[for="inv_total"]');
+  if (totalLabel) totalLabel.textContent = tasa ? 'Importe total (€)' : 'Importe total (€, IVA incluido)';
+}
+
 async function enterOrg(org){
   CURRENT_ORG = org;
   ORG_ID = org.id;
@@ -742,6 +788,7 @@ async function enterOrg(org){
   appScreen.hidden = false;
   document.querySelectorAll('#orgNameHeader').forEach(el => { el.textContent = org.nombre; });
   applyFeatureGating(org.features);
+  applyFacturasLabels();
   await loadCourts();
   await renderCalendarState();
   checkNotifButton();
@@ -1054,6 +1101,9 @@ async function loadOrgSettings(){
   document.getElementById('org_facebook').value = data.facebook_url || '';
   document.getElementById('org_whatsapp').value = data.whatsapp_url || '';
   document.getElementById('org_mapa').value = data.mapa_query || '';
+  document.getElementById('orgFacturacionSection').hidden = data.tipo !== 'ayuntamiento';
+  document.getElementById('org_tipo_documento').value = data.tipo_documento_cobro || 'factura';
+  applyFacturasLabels();
 }
 
 document.getElementById('saveOrgNombreBtn').addEventListener('click', async () => {
@@ -1114,6 +1164,18 @@ document.getElementById('saveOrgContactoBtn').addEventListener('click', async ()
   msg.textContent = error ? 'Error al guardar.' : '¡Guardado!';
   msg.className = 'form-msg ' + (error ? 'err' : 'ok');
   if (!error) CURRENT_ORG = { ...CURRENT_ORG, ...payload };
+});
+
+document.getElementById('saveOrgTipoDocumentoBtn').addEventListener('click', async () => {
+  const msg = document.getElementById('orgTipoDocumentoMsg');
+  const tipo_documento_cobro = document.getElementById('org_tipo_documento').value;
+  const { error } = await supabase.from('organizaciones').update({ tipo_documento_cobro }).eq('id', ORG_ID);
+  msg.textContent = error ? 'Error al guardar.' : '¡Guardado!';
+  msg.className = 'form-msg ' + (error ? 'err' : 'ok');
+  if (!error){
+    CURRENT_ORG = { ...CURRENT_ORG, tipo_documento_cobro };
+    applyFacturasLabels();
+  }
 });
 
 /* ---------- Reservas ---------- */
@@ -3243,7 +3305,7 @@ document.getElementById('newInvoiceBtn').addEventListener('click', async () => {
   document.getElementById('inv_date').value = new Date().toISOString().slice(0,10);
   document.getElementById('inv_number').value = await nextInvoiceNumber();
   document.getElementById('inv_concept').value = 'ALQUILER PISTA DE PÁDEL.';
-  document.getElementById('inv_iva').value = 21;
+  document.getElementById('inv_iva').value = isTasaMunicipal() ? 0 : 21;
   document.getElementById('invoiceFormMsg').textContent = '';
   await populateInvoiceReservations();
   document.getElementById('invoiceFormCard').hidden = false;
@@ -3270,7 +3332,7 @@ document.getElementById('invoiceForm').addEventListener('submit', async (e) => {
   };
   const { error } = await supabase.from('invoices_padel').insert(payload);
   const msg = document.getElementById('invoiceFormMsg');
-  if (error){ msg.textContent = 'Error al guardar (¿número de factura repetido?).'; msg.className = 'form-msg err'; return; }
+  if (error){ msg.textContent = `Error al guardar (¿número de ${isTasaMunicipal() ? 'recibo' : 'factura'} repetido?).`; msg.className = 'form-msg err'; return; }
   document.getElementById('invoiceFormCard').hidden = true;
   loadInvoices();
 });
@@ -3278,8 +3340,9 @@ document.getElementById('invoiceForm').addEventListener('submit', async (e) => {
 async function loadInvoices(){
   const { data, error } = await supabase.from('invoices_padel').select('*').eq('organizacion_id', ORG_ID).order('invoice_number', { ascending: false });
   const body = document.getElementById('invoicesBody');
-  if (error || !data){ body.innerHTML = `<tr><td colspan="5">Error cargando facturas.</td></tr>`; return; }
-  if (!data.length){ body.innerHTML = `<tr><td colspan="5">No hay facturas todavía.</td></tr>`; return; }
+  const tipoDocPlural = isTasaMunicipal() ? 'tasas municipales' : 'facturas';
+  if (error || !data){ body.innerHTML = `<tr><td colspan="5">Error cargando ${tipoDocPlural}.</td></tr>`; return; }
+  if (!data.length){ body.innerHTML = `<tr><td colspan="5">No hay ${tipoDocPlural} todavía.</td></tr>`; return; }
   window._INVOICES_CACHE = data;
   const lastId = data[0].id;
   body.innerHTML = data.map(inv => `
@@ -3303,7 +3366,8 @@ document.getElementById('invoicesBody').addEventListener('click', async (e) => {
   const inv = (window._INVOICES_CACHE || []).find(x => x.id === id);
   if (!inv) return;
   if (btn.dataset.action === 'delete'){
-    if (!confirm(`¿Borrar la factura ${inv.invoice_number}? La numeración debe ser correlativa: solo borra la última si te has equivocado al crearla.`)) return;
+    const tipoDoc = isTasaMunicipal() ? 'la tasa municipal' : 'la factura';
+    if (!confirm(`¿Borrar ${tipoDoc} ${inv.invoice_number}? La numeración debe ser correlativa: solo borra la última si te has equivocado al crearla.`)) return;
     await supabase.from('invoices_padel').delete().eq('id', id);
     loadInvoices();
   } else if (btn.dataset.action === 'print'){
@@ -3314,11 +3378,14 @@ document.getElementById('invoicesBody').addEventListener('click', async (e) => {
 function printInvoice(inv){
   const base = inv.total_amount / (1 + inv.iva_rate / 100);
   const iva = inv.total_amount - base;
-  document.title = `Factura ${inv.invoice_number}`;
+  const tasa = isTasaMunicipal();
+  const titulo = tasa ? 'RECIBO DE TASA MUNICIPAL' : 'FACTURA';
+  const numeroLabel = tasa ? 'Nº RECIBO' : 'Nº FACTURA';
+  document.title = `${tasa ? 'Recibo' : 'Factura'} ${inv.invoice_number}`;
   document.getElementById('invoicePrintContent').innerHTML = `
-    <h1 style="font-family:sans-serif;">FACTURA</h1>
+    <h1 style="font-family:sans-serif;">${titulo}</h1>
     <table style="width:100%; font-family:sans-serif; font-size:14px; margin-bottom:24px;">
-      <tr><td>Nº FACTURA:</td><td>${inv.invoice_number}</td></tr>
+      <tr><td>${numeroLabel}:</td><td>${inv.invoice_number}</td></tr>
       <tr><td>FECHA:</td><td>${fmtDate(inv.issue_date)}</td></tr>
       <tr><td>CLIENTE:</td><td>${inv.client_name}</td></tr>
       ${inv.client_dni ? `<tr><td>DNI/NIF:</td><td>${inv.client_dni}</td></tr>` : ''}
@@ -3328,7 +3395,7 @@ function printInvoice(inv){
     <table style="width:100%; font-family:sans-serif; font-size:14px; border-collapse:collapse;">
       <tr style="border-bottom:1px solid #000;"><td><b>CONCEPTO</b></td><td style="text-align:right;"><b>IMPORTE</b></td></tr>
       <tr><td>${inv.concept}</td><td style="text-align:right;">${formatPrice(base)}</td></tr>
-      <tr><td>IVA (${inv.iva_rate}%)</td><td style="text-align:right;">${formatPrice(iva)}</td></tr>
+      ${iva > 0 ? `<tr><td>IVA (${inv.iva_rate}%)</td><td style="text-align:right;">${formatPrice(iva)}</td></tr>` : ''}
       <tr style="border-top:1px solid #000;"><td><b>TOTAL</b></td><td style="text-align:right;"><b>${formatPrice(inv.total_amount)}</b></td></tr>
     </table>
     ${inv.payment_method ? `<p style="font-family:sans-serif; font-size:13px; margin-top:20px;">Forma de pago: ${inv.payment_method}</p>` : ''}

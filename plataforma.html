@@ -258,6 +258,14 @@ function orgCardHtml(org, admins){
         <div class="field"><label>Facebook (URL)</label><input data-field="facebook_url" value="${org.facebook_url || ''}"></div>
         <div class="field"><label>WhatsApp (enlace wa.me)</label><input data-field="whatsapp_url" value="${org.whatsapp_url || ''}"></div>
         <div class="field"><label>Búsqueda para el mapa</label><input data-field="mapa_query" value="${org.mapa_query || ''}" placeholder="pistas de padel Mi Ciudad"></div>
+        ${org.tipo === 'ayuntamiento' ? `
+        <div class="field">
+          <label>Documento que emite al cobrar</label>
+          <select data-field="tipo_documento_cobro">
+            <option value="factura" ${org.tipo_documento_cobro !== 'tasa_municipal' ? 'selected' : ''}>Factura</option>
+            <option value="tasa_municipal" ${org.tipo_documento_cobro === 'tasa_municipal' ? 'selected' : ''}>Tasa municipal (sin IVA)</option>
+          </select>
+        </div>` : ''}
       </div>
 
       <div>
@@ -382,6 +390,7 @@ function wireOrgCardEvents(){
         facebook_url: get('facebook_url').value.trim() || null,
         whatsapp_url: get('whatsapp_url').value.trim() || null,
         mapa_query: get('mapa_query').value.trim() || null,
+        tipo_documento_cobro: get('tipo_documento_cobro') ? get('tipo_documento_cobro').value : 'factura',
         activo: get('activo').checked,
         features: {
           torneos: get('feature_torneos').checked,

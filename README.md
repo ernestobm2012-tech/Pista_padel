@@ -601,6 +601,23 @@ Todos estos cambios se reflejan al momento en su propia web pública
 `plataforma.html`, puedes cambiar sus **permisos** y activarla/desactivarla
 — ver más abajo.)
 
+### Ayuntamientos: factura o tasa municipal
+
+Si la organización es de tipo **ayuntamiento**, en la pestaña «Organización»
+aparece una tarjeta extra («Facturación») donde elige qué documento emite al
+cobrar:
+
+- **Factura** (por defecto): igual que hasta ahora, con IVA.
+- **Tasa municipal**: pensado para el cobro directo de una administración
+  pública, sin IVA. Al elegirlo, la pestaña "Facturas" pasa a llamarse
+  "Tasa municipal" en todo el panel (título, botones, campo del número,
+  documento impreso...) y el campo de IVA del formulario se oculta.
+
+Ese mismo ajuste también se puede fijar desde `plataforma.html` al dar de
+alta el ayuntamiento (solo aparece ahí si el tipo de organización es
+"Ayuntamiento"). Comunidades de vecinos y clubes de pádel siempre emiten
+factura — la elección solo tiene sentido para administraciones públicas.
+
 ### Permisos: qué módulos tiene contratados cada cliente
 
 Reservas, Calendario, Clientes, Pistas y Precios están siempre incluidos para
