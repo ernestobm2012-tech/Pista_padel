@@ -509,6 +509,27 @@ el chat de una competición si existe una fila en
 `competicion_inscripciones_padel` con `status = 'activa'` para ese usuario y
 esa competición. No hay panel de moderación en `admin.html` por ahora.
 
+## Aviso legal, privacidad y cookies
+
+En el pie de página de `index.html` hay tres enlaces («Aviso legal», «Política
+de privacidad» y «Política de cookies») que abren un modal con el texto
+correspondiente, además del logo de **EBM Proyectos de Software** y el crédito
+"Desarrollado por Ernesto Bermejo Montalvo" (imagen en `assets/logo-ebm.png`).
+
+Al confirmar una reserva, ahora hay que marcar obligatoriamente la casilla
+**"He leído y acepto la política de privacidad"** — el propio navegador
+bloquea el envío del formulario si no está marcada (atributo `required`), y el
+enlace de la casilla abre el mismo modal de privacidad sin perder los datos ya
+rellenados en el formulario de reserva.
+
+Los textos de Aviso legal y Política de privacidad identifican como
+responsable al **Ayuntamiento de Chozas de Canales** (con placeholders
+`[pendiente de completar]` en el CIF, la dirección y el contacto — ver
+"Pendiente de tu parte" más abajo) y mencionan a EBM Proyectos de Software
+únicamente como encargado del desarrollo técnico, no como responsable del
+tratamiento de datos. La Política de cookies describe lo que la web usa hoy
+(explicado más abajo) y no una plantilla genérica.
+
 ## Cómo lo pruebas en local
 
 Solo hace falta un servidor estático simple (los módulos ES no funcionan con `file://`):
@@ -539,3 +560,11 @@ La forma más rápida y gratuita es **GitHub Pages**:
   en `index.html`); cámbialo si tu club tiene otro horario.
 - Este proyecto está pensado para poder migrar más adelante a un stack con build
   (ej. Next.js) si el negocio crece — Supabase seguiría siendo la base de datos.
+- El «Aviso legal» y la «Política de privacidad» (enlaces en el pie de página de
+  `index.html`) llevan datos de ejemplo con `[pendiente de completar]` en el CIF,
+  la dirección y el email de contacto del ayuntamiento — complétalos (o pide que
+  los revise alguien con conocimientos legales) antes de publicar, ya que son
+  textos de referencia, no un documento legal certificado. La «Política de
+  cookies» sí describe con exactitud lo que usa hoy la web (sesión, banner de
+  publicidad, caché de la PWA) — actualízala si en el futuro añades analítica o
+  publicidad con cookies de terceros.
