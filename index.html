@@ -189,6 +189,11 @@
   .price-row .amt{ font-family:'Outfit'; font-weight:700; color:var(--ink); }
   .price-row .label{ color:var(--ink-soft); }
   .price-row .range{ display:block; font-size:12.5px; color:var(--ink-soft); opacity:.8; }
+  .table-wrap{ background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); padding:8px 20px; overflow-x:auto; }
+  .table-wrap table{ width:100%; border-collapse:collapse; }
+  .table-wrap th, .table-wrap td{ text-align:left; padding:10px 8px; border-bottom:1px solid var(--line); font-size:14.5px; }
+  .table-wrap th{ color:var(--ink-soft); text-transform:uppercase; font-size:12px; letter-spacing:.05em; }
+  .table-wrap tr:last-child td{ border-bottom:0; }
 
   /* ---------- Torneos ---------- */
   .competitions-grid{ display:grid; grid-template-columns:repeat(auto-fit, minmax(280px,1fr)); gap:20px; }
@@ -312,6 +317,7 @@
         <li><a href="#precios">Precios</a></li>
         <li><a href="#reserva">Reservar</a></li>
         <li><a href="#torneos">Torneos</a></li>
+        <li><a href="#ranking">Ranking</a></li>
         <li><a href="#contacto">Contacto</a></li>
       </ul>
       <div class="nav-cta">
@@ -403,6 +409,19 @@
     </div>
     <div class="competitions-grid" id="competitionsGrid">
       <p style="text-align:center; color:var(--ink-soft);">Cargando torneos y ligas…</p>
+    </div>
+  </div>
+</section>
+
+<section id="ranking">
+  <div class="wrap">
+    <div class="section-head">
+      <span class="eyebrow">Clasificación</span>
+      <h2>Ranking de jugadores</h2>
+      <p>Puntos acumulados en los torneos y ligas ya finalizados, según la ronda o posición alcanzada.</p>
+    </div>
+    <div id="rankingList">
+      <p style="text-align:center; color:var(--ink-soft);">Cargando ranking…</p>
     </div>
   </div>
 </section>
@@ -1200,6 +1219,96 @@ async function loadCompetitions(){
   });
 }
 
+/* ---------- Ranking de clientes: puntos por ronda alcanzada (torneo) o posición final (liga) ---------- */
+// Solo cuentan las competiciones ya finalizadas. Índice del array = distancia a la final
+// (0 = jugó la final); el primer valor es para quien la gana, el segundo para quien la pierde.
+const TORNEO_PRINCIPAL_POINTS = [100, 60, 30, 15, 8, 4];
+const TORNEO_CONSOLACION_POINTS = [20, 12, 6, 3];
+const LIGA_POSICION_POINTS = [50, 35, 25, 15, 10, 5];
+
+function furthestResultForPareja(matches, parejaId){
+  const mine = matches.filter(m => (m.pareja1_id === parejaId || m.pareja2_id === parejaId) && m.status === 'jugado');
+  if (!mine.length) return null;
+  const totalRounds = Math.max(...matches.map(m => m.round_number));
+  const last = mine.reduce((a, b) => (b.round_number > a.round_number ? b : a));
+  return { distFromFinal: totalRounds - last.round_number, won: last.winner_pareja_id === parejaId };
+}
+function pointsForDistance(table, distFromFinal, won){
+  if (distFromFinal === 0) return won ? table[0] : table[1];
+  return table[Math.min(distFromFinal + 1, table.length - 1)];
+}
+function torneoPointsForPareja(partidos, parejaId){
+  const principal = partidos.filter(p => p.bracket !== 'consolacion');
+  const consolacion = partidos.filter(p => p.bracket === 'consolacion');
+  let points = 0;
+  const rP = furthestResultForPareja(principal, parejaId);
+  if (rP) points += pointsForDistance(TORNEO_PRINCIPAL_POINTS, rP.distFromFinal, rP.won);
+  const rC = furthestResultForPareja(consolacion, parejaId);
+  if (rC) points += pointsForDistance(TORNEO_CONSOLACION_POINTS, rC.distFromFinal, rC.won);
+  return points;
+}
+function ligaDivisionStandingOrder(partidos, insc){
+  const standings = {};
+  insc.filter(i => i.status === 'activa').forEach(i => { standings[i.id] = 0; });
+  partidos.forEach(m => {
+    if (m.status === 'jugado' && m.winner_pareja_id && standings[m.winner_pareja_id] !== undefined){
+      standings[m.winner_pareja_id]++;
+    }
+  });
+  return Object.entries(standings).sort((a, b) => b[1] - a[1]).map(([id]) => id);
+}
+function ligaPointsForPareja(partidos, insc, parejaId, division){
+  const divPartidos = partidos.filter(p => (p.division || 1) === (division || 1));
+  const divInsc = insc.filter(i => (i.division || 1) === (division || 1));
+  const order = ligaDivisionStandingOrder(divPartidos, divInsc);
+  const position = order.indexOf(parejaId);
+  if (position === -1) return 0;
+  return LIGA_POSICION_POINTS[Math.min(position, LIGA_POSICION_POINTS.length - 1)];
+}
+function buildClientRanking(comps, insc, partidos){
+  const totals = {};
+  const add = (clientId, name, points) => {
+    if (!clientId || !points) return;
+    if (!totals[clientId]) totals[clientId] = { name: name || 'Cliente', points: 0 };
+    totals[clientId].points += points;
+  };
+  comps.filter(c => c.status === 'finalizado').forEach(comp => {
+    const compInsc = insc.filter(i => i.competicion_id === comp.id && i.status === 'activa');
+    const compPartidos = partidos.filter(p => p.competicion_id === comp.id);
+    compInsc.forEach(i => {
+      const points = comp.type === 'torneo'
+        ? torneoPointsForPareja(compPartidos, i.id)
+        : ligaPointsForPareja(compPartidos, compInsc, i.id, i.division);
+      add(i.user_id, i.player1_name, points);
+      add(i.pareja2_client_id, i.player2_name, points);
+    });
+  });
+  return Object.values(totals).sort((a, b) => b.points - a.points);
+}
+
+async function renderPublicRanking(){
+  const wrap = document.getElementById('rankingList');
+  const [{ data: comps }, { data: insc }, { data: partidos }] = await Promise.all([
+    supabase.from('competiciones_padel').select('*'),
+    supabase.from('inscripciones_padel_publico').select('*'),
+    supabase.from('competicion_partidos_padel').select('*'),
+  ]);
+  const ranking = buildClientRanking(comps || [], insc || [], partidos || []);
+  if (!ranking.length){
+    wrap.innerHTML = '<p style="text-align:center; color:var(--ink-soft);">Todavía no hay ranking: se irá completando según se cierren torneos y ligas.</p>';
+    return;
+  }
+  wrap.innerHTML = `
+    <div class="table-wrap" style="max-width:520px; margin:0 auto;">
+      <table>
+        <thead><tr><th>#</th><th>Jugador/a</th><th>Puntos</th></tr></thead>
+        <tbody>
+          ${ranking.map((r, i) => `<tr><td>${i + 1}</td><td>${r.name}</td><td>${r.points}</td></tr>`).join('')}
+        </tbody>
+      </table>
+    </div>`;
+}
+
 /* ---------- Resultados públicos de torneos/ligas (solo lectura) ---------- */
 function parejaLabelPublic(parejaId, insc){
   if (!parejaId) return null;
@@ -1440,7 +1549,7 @@ async function init(){
     });
   }
 
-  await Promise.all([loadCourts(), loadDurations(), loadExtras(), loadMaintenance(), loadCompetitions()]);
+  await Promise.all([loadCourts(), loadDurations(), loadExtras(), loadMaintenance(), loadCompetitions(), renderPublicRanking()]);
   ALL_START_TIMES = buildStartTimes();
 
   const today = new Date().toISOString().slice(0,10);

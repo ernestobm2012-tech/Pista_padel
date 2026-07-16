@@ -423,9 +423,48 @@ a cuentas reales.
 Esto está reforzado en la base de datos: un trigger
 (`check_pareja2_cliente_valido`) bloquea cualquier inscripción en la que
 se indique un jugador/a 2 sin vincularlo a un cliente cuyo teléfono
-coincida, y evita que alguien se empareje consigo mismo. Es el primer paso
-para poder construir, más adelante, un ranking de clientes basado en los
-resultados de torneos y ligas.
+coincida, y evita que alguien se empareje consigo mismo.
+
+### Ranking de clientes
+
+Con las parejas ya vinculadas a cuentas reales, tanto `admin.html` (pestaña
+«Ranking») como la web pública (sección «Ranking») muestran una
+clasificación de jugadores con los puntos acumulados en todos los torneos
+y ligas que ya estén **finalizados**:
+
+- En `admin.html` → pestaña «Torneos», cada competición con cruces
+  generados tiene un botón **"🏁 Marcar como finalizado"**. Hasta que no se
+  pulsa, esa competición no puntúa en el ranking (aunque ya tenga
+  resultados cargados) — así el administrador decide cuándo cerrarla
+  oficialmente.
+- **Torneos**: los puntos dependen de la ronda alcanzada en el cuadro
+  principal (campeón 100, finalista 60, semifinalista 30, cuartos 15,
+  octavos 8, rondas anteriores 4) y, aparte, en el cuadro de consolación si
+  lo hay (campeón de consolación 20, finalista 12, semifinalista 6, resto 3).
+  Una pareja puede sumar puntos de los dos cuadros si jugó ambos (por
+  ejemplo, perder en cuartos del principal y luego ganar la consolación).
+- **Ligas**: los puntos dependen de la posición final en la clasificación
+  de su división (1º 50, 2º 35, 3º 25, 4º 15, 5º 10, resto 5).
+- Los puntos de cada pareja se suman a **los dos jugadores** que la
+  forman (al `user_id` del jugador/a 1 y al `pareja2_client_id` del
+  jugador/a 2), así que el ranking es de clientes individuales, no de
+  parejas fijas.
+- Solo cuentan los jugadores vinculados a una cuenta registrada. Una pareja
+  cuyo jugador/a 2 se guardó como texto libre antes de este cambio, o una
+  inscripción hecha a mano sin buscador de cliente, no suma puntos para
+  esa persona hasta que quede vinculada.
+
+Los valores de puntos están definidos en el código (`admin.html` e
+`index.html`, buscar `TORNEO_PRINCIPAL_POINTS` / `TORNEO_CONSOLACION_POINTS`
+/ `LIGA_POSICION_POINTS`) — son un punto de partida razonable, no una
+tabla configurable desde el panel todavía; si el ayuntamiento quiere
+ajustarlos más adelante, se puede convertir en una tabla editable en
+`ajustes_padel`.
+
+> Nota: el torneo y la liga de ejemplo que se crearon para probar el
+> funcionamiento de cuadros/ligas usan parejas ficticias sin cuenta real,
+> así que no aparecerán en el ranking hasta que jueguen partidas parejas
+> vinculadas a clientes de verdad.
 
 ### Chat interno del torneo/liga
 
