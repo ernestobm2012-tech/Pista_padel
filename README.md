@@ -116,6 +116,19 @@ cuenta permite:
 - Tener control real de quién reserva qué, de cara a estadísticas y a evitar
   reservas fantasma o duplicadas.
 
+### Límite de reservas activas por cliente
+
+Para evitar que un solo vecino acapare huecos, cada cliente solo puede
+tener un número máximo de reservas activas (confirmadas y todavía por
+jugar) al mismo tiempo — se aplica igual si reserva desde la web o si el
+admin le crea una reserva manual vinculada a su cuenta. Ese máximo es
+**configurable**: en `admin.html` → pestaña «Precios» → «Ajustes
+generales» puedes cambiarlo en cualquier momento (por defecto, 2). Se
+aplica con un trigger en la base de datos (`check_reservas_activas_limit`,
+tabla `ajustes_padel`), así que no hay forma de saltárselo desde la web
+pública; si alguien lo supera, ve un mensaje claro pidiendo que cancele
+una reserva antes de crear otra.
+
 Este proyecto Supabase se comparte con la app de pasear perros
 (`paseo-perros-app`), pero **ambas gestionan sus propios clientes de forma
 independiente**: al registrarse desde `index.html`, la cuenta se marca
@@ -305,6 +318,39 @@ Tablas: `competiciones_padel`, `competicion_pistas_padel`,
 `competicion_partidos_padel`. Cada partido con pista/fecha asignada crea una
 fila en `reservas_padel` (columna `competicion_partido_id`) para que bloquee
 el hueco igual que cualquier otra reserva.
+
+### Cuadro de consolación (repesca) en torneos
+
+Al generar los cruces de un torneo, además del cuadro principal se arma
+automáticamente un **cuadro de consolación**: quienes pierden en la primera
+ronda del cuadro principal pasan a una eliminatoria secundaria (con sus
+propios "byes" si hace falta) que se juega en paralelo, con su propio
+campeón de consolación. Se guarda en la misma tabla `competicion_partidos_padel`
+(columna `bracket`: `principal` o `consolacion`); las casillas todavía sin
+resolver muestran "Ganador de X" o "Perdedor de X" según corresponda, y al
+marcar un ganador en el panel se actualiza solo tanto el cuadro principal
+como quién pasa a consolación.
+
+### Resultados públicos en la web
+
+En `index.html`, cada torneo o liga con las inscripciones ya cerradas
+muestra un botón **"🏆 Ver resultados"** con el cuadro (principal +
+consolación) o, en una liga, la tabla de clasificación y las jornadas —
+en modo solo lectura, sin controles de admin. En las ligas, si hay
+partidos con la fecha ya pasada y sin resultado registrado, aparece un
+aviso destacado animando a jugarlos (el mismo aviso también lo ve el
+administrador en `admin.html`).
+
+### Ligas por divisiones/niveles
+
+Al crear una liga puedes indicar un **número de divisiones** (por ejemplo,
+2 o 3, según el nivel de las parejas). Antes de generar el calendario,
+en el detalle de la competición reparte cada pareja en su división, a
+mano (un desplegable por pareja) o de golpe con **"🎲 Repartir
+automáticamente"** (sorteo en grupos de tamaño parecido). "Generar
+cruces" arma un calendario de todos-contra-todos independiente por cada
+división, cada una con su propia tabla de clasificación y jornadas —
+tanto en `admin.html` como en la vista pública.
 
 ### Apuntarse exige tener cuenta
 

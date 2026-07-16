@@ -391,6 +391,10 @@
           <div class="field"><label for="comp_deadline">Fecha límite de inscripción</label><input type="date" id="comp_deadline" required></div>
           <div class="field"><label for="comp_duration">Duración de partido (min)</label><input type="number" id="comp_duration" value="90" step="15" required></div>
           <div class="field"><label for="comp_max">Máx. parejas (opcional)</label><input type="number" id="comp_max" min="2"></div>
+          <div class="field" id="comp_divisiones_field" hidden>
+            <label for="comp_divisiones">Nº de divisiones/niveles</label>
+            <input type="number" id="comp_divisiones" value="1" min="1" max="10">
+          </div>
           <div class="field" style="grid-column:1/-1;">
             <label>Pistas donde se juega</label>
             <div id="comp_pistas_check" style="display:flex; gap:16px; flex-wrap:wrap;"></div>
@@ -462,6 +466,18 @@
 
     <!-- ---------- Precios ---------- -->
     <section id="tabPrecios" class="tab-panel" hidden>
+      <div class="panel-head"><h2>Ajustes generales</h2></div>
+      <div class="card" style="max-width:420px;">
+        <div class="field">
+          <label for="ajuste_max_reservas">Máx. reservas activas por cliente</label>
+          <input type="number" id="ajuste_max_reservas" min="1" step="1">
+        </div>
+        <div style="display:flex; gap:10px; align-items:center; margin-top:10px;">
+          <button type="button" class="btn btn-primary btn-sm" id="saveAjustesBtn">Guardar</button>
+          <span class="form-msg" id="ajustesMsg"></span>
+        </div>
+      </div>
+
       <div class="panel-head"><h2>Precios por duración</h2></div>
       <p style="color:var(--ink-soft); font-size:13.5px; margin:-10px 0 0;">El precio de una reserva depende de cuánto tiempo elija jugar el cliente.</p>
       <div class="card table-wrap">
@@ -719,7 +735,7 @@ document.querySelectorAll('nav.tabs button').forEach(btn => {
     if (btn.dataset.tab === 'tabEstadisticas'){ if (!window._COURTS_CACHE) await loadCourts(); renderStats(); }
     if (btn.dataset.tab === 'tabTorneos'){ if (!window._COURTS_CACHE) await loadCourts(); renderCompetitions(); }
     if (btn.dataset.tab === 'tabPistas'){ await loadCourts(); loadMaintenance(); }
-    if (btn.dataset.tab === 'tabPrecios'){ loadDurations(); loadExtras(); }
+    if (btn.dataset.tab === 'tabPrecios'){ loadDurations(); loadExtras(); loadAjustes(); }
     if (btn.dataset.tab === 'tabFacturas') loadInvoices();
   });
 });
@@ -1099,7 +1115,9 @@ document.getElementById('reservationForm').addEventListener('submit', async (e) 
 
   const { error } = await supabase.from('reservas_padel').insert(payload);
   if (error){
-    msg.textContent = error.code === '23P01' ? 'Ya hay otra reserva en esa pista y franja horaria.' : 'Error al guardar.';
+    msg.textContent = error.code === '23P01' ? 'Ya hay otra reserva en esa pista y franja horaria.'
+      : /reservas activas/i.test(error.message || '') ? 'Límite alcanzado: ' + error.message
+      : 'Error al guardar.';
     msg.className = 'form-msg err';
     return;
   }
@@ -1561,7 +1579,9 @@ document.getElementById('editReservationForm').addEventListener('submit', async 
 
   const { error } = await supabase.from('reservas_padel').update(payload).eq('id', id);
   if (error){
-    msg.textContent = error.code === '23P01' ? 'Ya hay otra reserva en esa pista y franja horaria.' : 'Error al guardar los cambios.';
+    msg.textContent = error.code === '23P01' ? 'Ya hay otra reserva en esa pista y franja horaria.'
+      : /reservas activas/i.test(error.message || '') ? 'Límite alcanzado: ' + error.message
+      : 'Error al guardar los cambios.';
     msg.className = 'form-msg err';
     return;
   }
@@ -1616,12 +1636,30 @@ function parejaLabel(parejaId, insc){
   return p.player1_name + (p.player2_name ? ' / ' + p.player2_name : '');
 }
 
+/* ---- Reparto de parejas en divisiones/niveles (ligas) ---- */
+function renderDivisionAssignmentHtml(insc, numDivisiones){
+  const activas = insc.filter(i => i.status === 'activa');
+  let html = '<h4 style="font-size:14px; color:var(--ink-soft); text-transform:uppercase; letter-spacing:.04em; margin:18px 0 10px;">Divisiones</h4>';
+  html += '<p style="font-size:13px; color:var(--ink-soft); margin-bottom:10px;">Antes de generar el calendario, reparte cada pareja en su división.</p>';
+  html += '<button type="button" class="btn btn-ghost btn-sm" id="autoAssignDivisionsBtn" style="margin-bottom:10px;">🎲 Repartir automáticamente</button>';
+  html += `<div class="table-wrap"><table><thead><tr><th>Pareja</th><th>División</th></tr></thead><tbody>`;
+  html += activas.map(i => `
+    <tr>
+      <td>${parejaLabel(i.id, insc)}</td>
+      <td><select data-division-select="${i.id}">
+        ${Array.from({length: numDivisiones}, (_, d) => d + 1).map(d => `<option value="${d}" ${i.division === d ? 'selected' : ''}>División ${d}</option>`).join('')}
+      </select></td>
+    </tr>`).join('') || '<tr><td colspan="2">Sin parejas inscritas todavía.</td></tr>';
+  html += `</tbody></table></div>`;
+  return html;
+}
+
 /* ---- Bracket de eliminatoria directa (con byes repartidos, sin dos byes en el mismo cruce) ---- */
-function buildBracketPlan(pairs){
-  const n = pairs.length;
+function buildEliminationRounds(seedTokens){
+  const n = seedTokens.length;
   let nextPow2 = 1; while (nextPow2 < n) nextPow2 *= 2;
   const numByes = nextPow2 - n;
-  const shuffledPairs = shuffleArr(pairs);
+  const shuffled = shuffleArr(seedTokens);
   const totalMatches = nextPow2 / 2;
   const byeMatchIndices = new Set(shuffleArr([...Array(totalMatches).keys()]).slice(0, numByes));
 
@@ -1629,11 +1667,11 @@ function buildBracketPlan(pairs){
   let idx = 0;
   for (let m = 0; m < totalMatches; m++){
     if (byeMatchIndices.has(m)){
-      slots[2*m] = { pareja_id: shuffledPairs[idx++].id };
+      slots[2*m] = shuffled[idx++];
       slots[2*m+1] = null;
     } else {
-      slots[2*m] = { pareja_id: shuffledPairs[idx++].id };
-      slots[2*m+1] = { pareja_id: shuffledPairs[idx++].id };
+      slots[2*m] = shuffled[idx++];
+      slots[2*m+1] = shuffled[idx++];
     }
   }
 
@@ -1656,6 +1694,9 @@ function buildBracketPlan(pairs){
   }
   return rounds;
 }
+function buildBracketPlan(pairs){
+  return buildEliminationRounds(pairs.map(p => ({ pareja_id: p.id })));
+}
 
 /* ---- Calendario de liga (todos contra todos, método del círculo) ---- */
 function buildLeaguePlan(pairs){
@@ -1674,6 +1715,62 @@ function buildLeaguePlan(pairs){
     arr.splice(1, 0, arr.pop());
   }
   return rounds;
+}
+
+async function insertLeagueRounds(compId, comp, roundsPlan, division, pairsForLabel, floorDateStart, findNextSlot, busy){
+  let floorDate = floorDateStart;
+  for (const roundMatches of roundsPlan){
+    let maxDateThisRound = floorDate;
+    for (const m of roundMatches){
+      const slot = findNextSlot(floorDate);
+      if (!slot) continue;
+      busy.add(slot.key);
+      m.assigned = slot;
+      if (slot.date > maxDateThisRound) maxDateThisRound = slot.date;
+    }
+    floorDate = addDaysStr(maxDateThisRound, 1);
+  }
+
+  const multiDivision = (comp.num_divisiones || 1) > 1;
+  for (let r = 0; r < roundsPlan.length; r++){
+    const roundName = multiDivision ? `División ${division} · Jornada ${r + 1}` : `Jornada ${r + 1}`;
+    const roundMatches = roundsPlan[r];
+    const inserts = roundMatches.map(m => ({
+      competicion_id: compId,
+      round_number: r + 1,
+      round_name: roundName,
+      division,
+      pista_id: m.assigned ? m.assigned.pistaId : null,
+      match_date: m.assigned ? m.assigned.date : null,
+      start_time: m.assigned ? m.assigned.start : null,
+      end_time: m.assigned ? m.assigned.end : null,
+      pareja1_id: m.a.pareja_id || null,
+      pareja2_id: m.b.pareja_id || null,
+    }));
+    const { data: insertedRows, error } = await supabase.from('competicion_partidos_padel').insert(inserts).select();
+    if (error){ alert(`Error guardando los partidos de la división ${division}: ` + error.message); return floorDate; }
+
+    for (let i = 0; i < roundMatches.length; i++){
+      const row = insertedRows[i];
+      if (row.pista_id && row.match_date){
+        const bothKnown = row.pareja1_id && row.pareja2_id;
+        const label = bothKnown
+          ? `Liga${multiDivision ? ' (Div. ' + division + ')' : ''}: ${parejaLabel(row.pareja1_id, pairsForLabel)} vs ${parejaLabel(row.pareja2_id, pairsForLabel)}`
+          : `${comp.name} — ${roundName} (por determinar)`;
+        await supabase.from('reservas_padel').insert({
+          pista_id: row.pista_id,
+          reservation_date: row.match_date,
+          start_time: row.start_time,
+          end_time: row.end_time,
+          full_name: label,
+          status: 'confirmada',
+          source: 'liga',
+          competicion_partido_id: row.id,
+        });
+      }
+    }
+  }
+  return floorDate;
 }
 
 function roundNameFor(type, roundIndex, totalRounds){
@@ -1699,8 +1796,6 @@ async function generateCrosses(compId){
   } else if (!confirm(`¿Generar los cruces de "${comp.name}" con ${pairs.length} parejas? Se bloquearán las pistas correspondientes en el calendario.`)) {
     return;
   }
-
-  const roundsPlan = comp.type === 'torneo' ? buildBracketPlan(pairs) : buildLeaguePlan(pairs);
 
   const marginEnd = addDaysStr(comp.end_date, 14);
   const [{ data: existingReservas }, { data: mantenimientos }] = await Promise.all([
@@ -1734,6 +1829,24 @@ async function generateCrosses(compId){
     return null;
   }
 
+  if (comp.type === 'liga'){
+    let floorDate = comp.start_date;
+    const numDivisiones = comp.num_divisiones || 1;
+    if (numDivisiones > 1){
+      for (let div = 1; div <= numDivisiones; div++){
+        const divPairs = pairs.filter(p => (p.division || 1) === div);
+        if (divPairs.length < 2) continue;
+        floorDate = await insertLeagueRounds(compId, comp, buildLeaguePlan(divPairs), div, pairs, floorDate, findNextSlot, busy);
+      }
+    } else {
+      floorDate = await insertLeagueRounds(compId, comp, buildLeaguePlan(pairs), 1, pairs, floorDate, findNextSlot, busy);
+    }
+    await supabase.from('competiciones_padel').update({ status: 'inscripciones_cerradas' }).eq('id', compId);
+    await refreshCompetitionsCacheAndRerender(compId);
+    return;
+  }
+
+  const roundsPlan = buildBracketPlan(pairs);
   let floorDate = comp.start_date;
   let overflowWarning = false;
   for (const roundMatches of roundsPlan){
@@ -1750,6 +1863,7 @@ async function generateCrosses(compId){
 
   const totalRounds = roundsPlan.length;
   let previousRoundIds = [];
+  let mainRound1Ids = [];
   for (let r = 0; r < roundsPlan.length; r++){
     const roundName = roundNameFor(comp.type, r, totalRounds);
     const roundMatches = roundsPlan[r];
@@ -1771,8 +1885,8 @@ async function generateCrosses(compId){
       const m = roundMatches[i];
       const row = insertedRows[i];
       const patch = {};
-      if (m.a.pending_index !== undefined) patch.pareja1_origen_partido_id = previousRoundIds[m.a.pending_index];
-      if (m.b.pending_index !== undefined) patch.pareja2_origen_partido_id = previousRoundIds[m.b.pending_index];
+      if (m.a.pending_index !== undefined){ patch.pareja1_origen_partido_id = previousRoundIds[m.a.pending_index]; patch.pareja1_origen_tipo = 'winner'; }
+      if (m.b.pending_index !== undefined){ patch.pareja2_origen_partido_id = previousRoundIds[m.b.pending_index]; patch.pareja2_origen_tipo = 'winner'; }
       if (Object.keys(patch).length) await supabase.from('competicion_partidos_padel').update(patch).eq('id', row.id);
 
       if (row.pista_id && row.match_date){
@@ -1793,6 +1907,11 @@ async function generateCrosses(compId){
       }
     }
     previousRoundIds = insertedRows.map(x => x.id);
+    if (r === 0) mainRound1Ids = previousRoundIds;
+  }
+
+  if (comp.type === 'torneo' && mainRound1Ids.length >= 2){
+    floorDate = await generateConsolationBracket(compId, comp, mainRound1Ids, pairs, floorDate, findNextSlot, busy);
   }
 
   await supabase.from('competiciones_padel').update({ status: 'inscripciones_cerradas' }).eq('id', compId);
@@ -1802,20 +1921,91 @@ async function generateCrosses(compId){
   await refreshCompetitionsCacheAndRerender(compId);
 }
 
+/* ---- Cuadro de consolación: repesca de quienes pierden en la 1ª ronda del cuadro principal ---- */
+async function generateConsolationBracket(compId, comp, mainRound1Ids, pairs, floorDateStart, findNextSlot, busy){
+  const seedTokens = mainRound1Ids.map(id => ({ origen_partido_id: id, origen_tipo: 'loser' }));
+  const consRoundsPlan = buildEliminationRounds(seedTokens);
+  if (!consRoundsPlan.length) return floorDateStart;
+
+  let floorDate = floorDateStart;
+  for (const roundMatches of consRoundsPlan){
+    let maxDateThisRound = floorDate;
+    for (const m of roundMatches){
+      const slot = findNextSlot(floorDate);
+      if (!slot) continue;
+      busy.add(slot.key);
+      m.assigned = slot;
+      if (slot.date > maxDateThisRound) maxDateThisRound = slot.date;
+    }
+    floorDate = addDaysStr(maxDateThisRound, 1);
+  }
+
+  const totalRounds = consRoundsPlan.length;
+  let previousRoundIds = [];
+  for (let r = 0; r < consRoundsPlan.length; r++){
+    const roundName = r === totalRounds - 1 ? 'Final de consolación' : `Consolación · Ronda ${r + 1}`;
+    const roundMatches = consRoundsPlan[r];
+    const inserts = roundMatches.map(m => ({
+      competicion_id: compId,
+      round_number: r + 1,
+      round_name: roundName,
+      bracket: 'consolacion',
+      pista_id: m.assigned ? m.assigned.pistaId : null,
+      match_date: m.assigned ? m.assigned.date : null,
+      start_time: m.assigned ? m.assigned.start : null,
+      end_time: m.assigned ? m.assigned.end : null,
+      pareja1_id: m.a.pareja_id || null,
+      pareja2_id: m.b.pareja_id || null,
+    }));
+    const { data: insertedRows, error } = await supabase.from('competicion_partidos_padel').insert(inserts).select();
+    if (error){ alert('Error guardando el cuadro de consolación: ' + error.message); return floorDate; }
+
+    for (let i = 0; i < roundMatches.length; i++){
+      const m = roundMatches[i];
+      const row = insertedRows[i];
+      const patch = {};
+      if (m.a.pending_index !== undefined){ patch.pareja1_origen_partido_id = previousRoundIds[m.a.pending_index]; patch.pareja1_origen_tipo = 'winner'; }
+      else if (m.a.origen_partido_id){ patch.pareja1_origen_partido_id = m.a.origen_partido_id; patch.pareja1_origen_tipo = m.a.origen_tipo; }
+      if (m.b.pending_index !== undefined){ patch.pareja2_origen_partido_id = previousRoundIds[m.b.pending_index]; patch.pareja2_origen_tipo = 'winner'; }
+      else if (m.b.origen_partido_id){ patch.pareja2_origen_partido_id = m.b.origen_partido_id; patch.pareja2_origen_tipo = m.b.origen_tipo; }
+      if (Object.keys(patch).length) await supabase.from('competicion_partidos_padel').update(patch).eq('id', row.id);
+
+      if (row.pista_id && row.match_date){
+        const label = `${comp.name} — Consolación — ${roundName} (por determinar)`;
+        await supabase.from('reservas_padel').insert({
+          pista_id: row.pista_id,
+          reservation_date: row.match_date,
+          start_time: row.start_time,
+          end_time: row.end_time,
+          full_name: label,
+          status: 'confirmada',
+          source: 'torneo',
+          competicion_partido_id: row.id,
+        });
+      }
+    }
+    previousRoundIds = insertedRows.map(x => x.id);
+  }
+  return floorDate;
+}
+
 async function recordMatchWinner(matchId, winnerParejaId){
+  const { data: matchRow } = await supabase.from('competicion_partidos_padel').select('pareja1_id, pareja2_id').eq('id', matchId).single();
   await supabase.from('competicion_partidos_padel').update({ winner_pareja_id: winnerParejaId, status: 'jugado' }).eq('id', matchId);
+  const loserParejaId = matchRow ? (matchRow.pareja1_id === winnerParejaId ? matchRow.pareja2_id : matchRow.pareja1_id) : null;
+
   const { data: dependents } = await supabase.from('competicion_partidos_padel')
     .select('*')
     .or(`pareja1_origen_partido_id.eq.${matchId},pareja2_origen_partido_id.eq.${matchId}`);
   for (const dep of (dependents || [])){
     const patch = {};
-    if (dep.pareja1_origen_partido_id === matchId) patch.pareja1_id = winnerParejaId;
-    if (dep.pareja2_origen_partido_id === matchId) patch.pareja2_id = winnerParejaId;
+    if (dep.pareja1_origen_partido_id === matchId) patch.pareja1_id = dep.pareja1_origen_tipo === 'loser' ? loserParejaId : winnerParejaId;
+    if (dep.pareja2_origen_partido_id === matchId) patch.pareja2_id = dep.pareja2_origen_tipo === 'loser' ? loserParejaId : winnerParejaId;
     await supabase.from('competicion_partidos_padel').update(patch).eq('id', dep.id);
     const merged = { ...dep, ...patch };
     if (merged.pareja1_id && merged.pareja2_id){
       const insc = window._INSCRIPCIONES_CACHE || [];
-      const label = `Torneo: ${parejaLabel(merged.pareja1_id, insc)} vs ${parejaLabel(merged.pareja2_id, insc)}`;
+      const label = `Torneo${dep.bracket === 'consolacion' ? ' (consolación)' : ''}: ${parejaLabel(merged.pareja1_id, insc)} vs ${parejaLabel(merged.pareja2_id, insc)}`;
       await supabase.from('reservas_padel').update({ full_name: label }).eq('competicion_partido_id', dep.id);
     }
   }
@@ -1824,10 +2014,12 @@ async function recordMatchWinner(matchId, winnerParejaId){
 function matchSlotLabel(match, side, insc, allPartidos){
   const parejaId = side === 1 ? match.pareja1_id : match.pareja2_id;
   const origenId = side === 1 ? match.pareja1_origen_partido_id : match.pareja2_origen_partido_id;
+  const origenTipo = side === 1 ? match.pareja1_origen_tipo : match.pareja2_origen_tipo;
   if (parejaId) return parejaLabel(parejaId, insc);
   if (origenId){
     const origenMatch = allPartidos.find(p => p.id === origenId);
-    return `Ganador de ${origenMatch ? origenMatch.round_name : '?'}`;
+    const verbo = origenTipo === 'loser' ? 'Perdedor' : 'Ganador';
+    return `${verbo} de ${origenMatch ? origenMatch.round_name : '?'}`;
   }
   return 'Por determinar';
 }
@@ -1854,18 +2046,18 @@ function matchCardHtml(m, label1, label2, insc, canPick){
     </div>`;
 }
 
-function renderBracketHtml(partidos, insc){
+function renderBracketSectionHtml(matchesInSection, allPartidos, insc, title){
   const rounds = {};
-  partidos.forEach(p => { (rounds[p.round_number] = rounds[p.round_number] || []).push(p); });
+  matchesInSection.forEach(p => { (rounds[p.round_number] = rounds[p.round_number] || []).push(p); });
   const roundNumbers = Object.keys(rounds).map(Number).sort((a,b) => a-b);
 
-  let html = '<h4 style="font-size:14px; color:var(--ink-soft); text-transform:uppercase; letter-spacing:.04em; margin:18px 0 10px;">Cuadro</h4>';
+  let html = `<h4 style="font-size:14px; color:var(--ink-soft); text-transform:uppercase; letter-spacing:.04em; margin:18px 0 10px;">${title}</h4>`;
   roundNumbers.forEach(rn => {
     const matches = rounds[rn];
     html += `<div style="margin-bottom:14px;"><b style="font-size:13px;">${matches[0].round_name}</b>`;
     html += matches.map(m => {
-      const label1 = matchSlotLabel(m, 1, insc, partidos);
-      const label2 = matchSlotLabel(m, 2, insc, partidos);
+      const label1 = matchSlotLabel(m, 1, insc, allPartidos);
+      const label2 = matchSlotLabel(m, 2, insc, allPartidos);
       const canPick = m.status === 'pendiente' && m.pareja1_id && m.pareja2_id;
       return matchCardHtml(m, label1, label2, insc, canPick);
     }).join('');
@@ -1873,8 +2065,16 @@ function renderBracketHtml(partidos, insc){
   });
   return html;
 }
+function renderBracketHtml(partidos, insc){
+  const principal = partidos.filter(p => p.bracket !== 'consolacion');
+  const consolacion = partidos.filter(p => p.bracket === 'consolacion');
+  let html = renderBracketSectionHtml(principal, partidos, insc, 'Cuadro');
+  if (consolacion.length) html += renderBracketSectionHtml(consolacion, partidos, insc, '🥉 Cuadro de consolación');
+  return html;
+}
 
-function renderLeagueHtml(partidos, insc){
+function renderLeagueDivisionHtml(partidos, insc, title){
+  const today = new Date().toISOString().slice(0,10);
   const rounds = {};
   partidos.forEach(p => { (rounds[p.round_number] = rounds[p.round_number] || []).push(p); });
   const roundNumbers = Object.keys(rounds).map(Number).sort((a,b) => a-b);
@@ -1889,11 +2089,17 @@ function renderLeagueHtml(partidos, insc){
     }
   });
   const table = Object.values(standings).sort((a,b) => b.wins - a.wins);
+  const pending = partidos.filter(m => m.status !== 'jugado' && m.match_date && m.match_date < today);
 
-  let html = '<h4 style="font-size:14px; color:var(--ink-soft); text-transform:uppercase; letter-spacing:.04em; margin:18px 0 10px;">Clasificación</h4>';
+  let html = title ? `<h4 style="font-size:14px; color:var(--ink-soft); text-transform:uppercase; letter-spacing:.04em; margin:18px 0 10px;">${title}</h4>` : '';
+  html += '<h4 style="font-size:14px; color:var(--ink-soft); text-transform:uppercase; letter-spacing:.04em; margin:18px 0 10px;">Clasificación</h4>';
   html += `<div class="table-wrap"><table><thead><tr><th>Pareja</th><th>PJ</th><th>G</th><th>P</th></tr></thead><tbody>`;
   html += table.map(t => `<tr><td>${t.name}</td><td>${t.played}</td><td>${t.wins}</td><td>${t.losses}</td></tr>`).join('') || '<tr><td colspan="4">Sin datos.</td></tr>';
   html += `</tbody></table></div>`;
+
+  if (pending.length){
+    html += `<div style="background:rgba(230,160,30,.15); border:1px solid rgba(230,160,30,.4); color:#e6a01e; border-radius:10px; padding:10px 12px; font-size:12.5px; margin:10px 0;">⚠️ ${pending.length} partido${pending.length > 1 ? 's' : ''} con la fecha ya pasada y sin resultado registrado.</div>`;
+  }
 
   html += '<h4 style="font-size:14px; color:var(--ink-soft); text-transform:uppercase; letter-spacing:.04em; margin:18px 0 10px;">Jornadas</h4>';
   roundNumbers.forEach(rn => {
@@ -1908,6 +2114,15 @@ function renderLeagueHtml(partidos, insc){
   });
   return html;
 }
+function renderLeagueHtml(partidos, insc, numDivisiones){
+  if ((numDivisiones || 1) <= 1) return renderLeagueDivisionHtml(partidos, insc, null);
+  const divisiones = [...new Set(partidos.map(p => p.division || 1))].sort((a,b) => a-b);
+  return divisiones.map(div => {
+    const divPartidos = partidos.filter(p => (p.division || 1) === div);
+    const divInsc = insc.filter(i => (i.division || 1) === div);
+    return renderLeagueDivisionHtml(divPartidos, divInsc, `División ${div}`);
+  }).join('<hr style="border-color:var(--line); margin:18px 0;">');
+}
 
 async function loadCompetitionCourtsCheckboxes(){
   const wrap = document.getElementById('comp_pistas_check');
@@ -1921,10 +2136,14 @@ document.getElementById('newCompetitionBtn').addEventListener('click', () => {
   document.getElementById('competitionForm').reset();
   loadCompetitionCourtsCheckboxes();
   document.getElementById('competitionFormMsg').textContent = '';
+  document.getElementById('comp_divisiones_field').hidden = document.getElementById('comp_type').value !== 'liga';
   document.getElementById('competitionFormCard').hidden = false;
 });
 document.getElementById('cancelCompetitionBtn').addEventListener('click', () => {
   document.getElementById('competitionFormCard').hidden = true;
+});
+document.getElementById('comp_type').addEventListener('change', (e) => {
+  document.getElementById('comp_divisiones_field').hidden = e.target.value !== 'liga';
 });
 
 document.getElementById('competitionForm').addEventListener('submit', async (e) => {
@@ -1946,6 +2165,7 @@ document.getElementById('competitionForm').addEventListener('submit', async (e) 
     registration_deadline: deadline,
     match_duration_minutes: Number(document.getElementById('comp_duration').value || 90),
     max_pairs: document.getElementById('comp_max').value ? Number(document.getElementById('comp_max').value) : null,
+    num_divisiones: document.getElementById('comp_type').value === 'liga' ? Number(document.getElementById('comp_divisiones').value || 1) : 1,
     description: document.getElementById('comp_description').value.trim() || null,
   };
   const { data: comp, error } = await supabase.from('competiciones_padel').insert(payload).select().single();
@@ -2090,8 +2310,12 @@ function renderCompetitionDetail(compId){
     </div>
   `;
 
+  if (comp.type === 'liga' && comp.num_divisiones > 1 && !partidos.length){
+    html += renderDivisionAssignmentHtml(insc, comp.num_divisiones);
+  }
+
   if (partidos.length){
-    html += comp.type === 'torneo' ? renderBracketHtml(partidos, insc) : renderLeagueHtml(partidos, insc);
+    html += comp.type === 'torneo' ? renderBracketHtml(partidos, insc) : renderLeagueHtml(partidos, insc, comp.num_divisiones);
   }
 
   panel.innerHTML = html;
@@ -2125,6 +2349,22 @@ function renderCompetitionDetail(compId){
       await recordMatchWinner(matchId, winnerId);
       await refreshCompetitionsCacheAndRerender(compId);
     });
+  });
+
+  panel.querySelectorAll('[data-division-select]').forEach(sel => {
+    sel.addEventListener('change', async (e) => {
+      await supabase.from('competicion_inscripciones_padel').update({ division: Number(e.target.value) }).eq('id', sel.dataset.divisionSelect);
+      await refreshCompetitionsCacheAndRerender(compId);
+    });
+  });
+  panel.querySelector('#autoAssignDivisionsBtn')?.addEventListener('click', async () => {
+    const activas = insc.filter(i => i.status === 'activa');
+    const shuffled = shuffleArr(activas);
+    const numDiv = comp.num_divisiones;
+    await Promise.all(shuffled.map((i, idx) =>
+      supabase.from('competicion_inscripciones_padel').update({ division: (idx % numDiv) + 1 }).eq('id', i.id)
+    ));
+    await refreshCompetitionsCacheAndRerender(compId);
   });
 }
 
@@ -2308,6 +2548,23 @@ function durationLabel(mins){
   if (mins % 60 === 0) return `${mins / 60} horas`;
   return `${Math.floor(mins/60)}h ${mins%60}min`;
 }
+async function loadAjustes(){
+  const { data } = await supabase.from('ajustes_padel').select('*').limit(1).single();
+  document.getElementById('ajuste_max_reservas').value = data ? data.max_reservas_activas_por_cliente : 2;
+}
+document.getElementById('saveAjustesBtn').addEventListener('click', async () => {
+  const msg = document.getElementById('ajustesMsg');
+  const value = Number(document.getElementById('ajuste_max_reservas').value);
+  if (!value || value < 1){
+    msg.textContent = 'Introduce un número válido (mínimo 1).';
+    msg.className = 'form-msg err';
+    return;
+  }
+  const { error } = await supabase.from('ajustes_padel').update({ max_reservas_activas_por_cliente: value, updated_at: new Date().toISOString() }).eq('id', true);
+  msg.textContent = error ? 'Error al guardar.' : '¡Guardado!';
+  msg.className = 'form-msg ' + (error ? 'err' : 'ok');
+});
+
 async function loadDurations(){
   const { data, error } = await supabase.from('duraciones_padel').select('*').order('sort_order');
   const body = document.getElementById('durationsBody');

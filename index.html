@@ -198,6 +198,23 @@
   .competition-card .comp-type{ font-size:11.5px; text-transform:uppercase; letter-spacing:.06em; color:var(--lime); font-weight:600; margin-bottom:8px; }
   .competition-card .comp-meta{ color:var(--ink-soft); font-size:13.5px; margin:10px 0 16px; display:grid; gap:4px; }
   .competition-card .btn{ width:100%; }
+  .comp-results[hidden]{ display:none; }
+  .comp-results{ display:block; margin-top:16px; padding-top:16px; border-top:1px solid var(--line); }
+  .comp-results h5{ font-size:12px; text-transform:uppercase; letter-spacing:.05em; color:var(--ink-soft); margin:14px 0 8px; }
+  .comp-results h5:first-child{ margin-top:0; }
+  .pub-round{ margin-bottom:10px; }
+  .pub-round > b{ font-size:12.5px; display:block; margin-bottom:6px; }
+  .pub-match-card{ background:var(--bg-soft); border:1px solid var(--line); border-radius:10px; padding:10px 12px; margin-bottom:6px; font-size:13px; }
+  .pub-match-head{ display:flex; justify-content:space-between; align-items:center; gap:8px; flex-wrap:wrap; }
+  .pub-match-meta{ color:var(--ink-soft); font-size:12px; margin-top:4px; }
+  .pub-match-winner{ font-size:12px; margin-top:4px; }
+  .pub-table-wrap{ overflow-x:auto; }
+  .pub-table-wrap table{ width:100%; border-collapse:collapse; font-size:13px; }
+  .pub-table-wrap th, .pub-table-wrap td{ padding:6px 8px; border-bottom:1px solid var(--line); text-align:left; }
+  .pub-pending-alert{ background:rgba(230,160,30,.15); border:1px solid rgba(230,160,30,.4); color:#e6a01e; border-radius:10px; padding:10px 12px; font-size:12.5px; margin:10px 0; }
+  .pill{ font-size:11px; font-weight:600; padding:2px 9px; border-radius:999px; white-space:nowrap; }
+  .pill-confirmada{ background:rgba(163,230,53,.15); color:var(--lime); }
+  .pill-pendiente{ background:rgba(230,160,30,.15); color:#e6a01e; }
 
   /* ---------- Reserva ---------- */
   .booking-panel{
@@ -1136,6 +1153,7 @@ async function loadCompetitions(){
     const count = (inscPublic || []).filter(i => i.competicion_id === c.id).length;
     const open = c.status === 'inscripciones_abiertas' && c.registration_deadline >= today && (!c.max_pairs || count < c.max_pairs);
     const isParticipant = currentUser && (inscPublic || []).some(i => i.competicion_id === c.id && i.user_id === currentUser.id);
+    const hasResults = c.status !== 'inscripciones_abiertas';
     return `
       <div class="competition-card">
         ${c.image_path ? `<img class="comp-photo" src="${padelImageUrl(c.image_path)}" alt="${c.name}">` : ''}
@@ -1151,7 +1169,9 @@ async function loadCompetitions(){
             ? `<button type="button" class="btn btn-primary" data-signup="${c.id}">Apuntar mi pareja</button>`
             : `<button type="button" class="btn btn-ghost" disabled>${c.status === 'finalizado' ? 'Finalizado' : 'Inscripciones cerradas'}</button>`}
           ${isParticipant ? `<button type="button" class="btn btn-ghost" data-chat="${c.id}">💬 Chat</button>` : ''}
+          ${hasResults ? `<button type="button" class="btn btn-ghost" data-results="${c.id}">🏆 Ver resultados</button>` : ''}
         </div>
+        <div class="comp-results" id="compResults${c.id}" hidden></div>
       </div>`;
   }).join('');
 
@@ -1161,6 +1181,124 @@ async function loadCompetitions(){
   grid.querySelectorAll('[data-chat]').forEach(btn => {
     btn.addEventListener('click', () => openCompChatModal(btn.dataset.chat));
   });
+  grid.querySelectorAll('[data-results]').forEach(btn => {
+    btn.addEventListener('click', () => toggleCompetitionResults(btn.dataset.results, btn));
+  });
+}
+
+/* ---------- Resultados públicos de torneos/ligas (solo lectura) ---------- */
+function parejaLabelPublic(parejaId, insc){
+  if (!parejaId) return null;
+  const p = insc.find(i => i.id === parejaId);
+  if (!p) return '—';
+  return p.player1_name + (p.player2_name ? ' / ' + p.player2_name : '');
+}
+function matchSlotLabelPublic(match, side, insc, allPartidos){
+  const parejaId = side === 1 ? match.pareja1_id : match.pareja2_id;
+  const origenId = side === 1 ? match.pareja1_origen_partido_id : match.pareja2_origen_partido_id;
+  const origenTipo = side === 1 ? match.pareja1_origen_tipo : match.pareja2_origen_tipo;
+  if (parejaId) return parejaLabelPublic(parejaId, insc);
+  if (origenId){
+    const origenMatch = allPartidos.find(p => p.id === origenId);
+    const verbo = origenTipo === 'loser' ? 'Perdedor' : 'Ganador';
+    return `${verbo} de ${origenMatch ? origenMatch.round_name : '?'}`;
+  }
+  return 'Por determinar';
+}
+function publicMatchCardHtml(m, label1, label2){
+  const isPast = m.match_date && m.match_date < new Date().toISOString().slice(0,10) && m.status !== 'jugado';
+  return `
+    <div class="pub-match-card">
+      <div class="pub-match-head">
+        <span>${label1} <b>vs</b> ${label2}</span>
+        <span class="pill pill-${m.status === 'jugado' ? 'confirmada' : 'pendiente'}">${m.status}${isPast ? ' · atrasado' : ''}</span>
+      </div>
+      <div class="pub-match-meta">📅 ${m.match_date ? fmtCompDate(m.match_date) : '—'} · ⏰ ${m.start_time ? m.start_time.slice(0,5) : '--'}-${m.end_time ? m.end_time.slice(0,5) : '--'}</div>
+      ${m.winner_pareja_id ? `<div class="pub-match-winner">🏆 ${m.status === 'jugado' ? 'Ganador' : ''}</div>` : ''}
+    </div>`;
+}
+function renderPublicBracketSection(matchesInSection, allPartidos, insc, title){
+  const rounds = {};
+  matchesInSection.forEach(p => { (rounds[p.round_number] = rounds[p.round_number] || []).push(p); });
+  const roundNumbers = Object.keys(rounds).map(Number).sort((a,b) => a-b);
+  let html = `<h5>${title}</h5>`;
+  roundNumbers.forEach(rn => {
+    const matches = rounds[rn];
+    html += `<div class="pub-round"><b>${matches[0].round_name}</b>`;
+    html += matches.map(m => publicMatchCardHtml(m, matchSlotLabelPublic(m, 1, insc, allPartidos), matchSlotLabelPublic(m, 2, insc, allPartidos))).join('');
+    html += '</div>';
+  });
+  return html;
+}
+function renderPublicTournamentResults(partidos, insc){
+  if (!partidos.length) return '<p class="empty-msg">Todavía no se han generado los cruces.</p>';
+  const principal = partidos.filter(p => p.bracket !== 'consolacion');
+  const consolacion = partidos.filter(p => p.bracket === 'consolacion');
+  let html = renderPublicBracketSection(principal, partidos, insc, 'Cuadro');
+  if (consolacion.length) html += renderPublicBracketSection(consolacion, partidos, insc, '🥉 Cuadro de consolación');
+  return html;
+}
+function renderPublicLeagueDivision(partidos, insc, title){
+  const today = new Date().toISOString().slice(0,10);
+  const standings = {};
+  insc.forEach(i => { standings[i.id] = { name: parejaLabelPublic(i.id, insc), wins: 0, losses: 0, played: 0 }; });
+  partidos.forEach(m => {
+    if (m.status === 'jugado' && m.winner_pareja_id){
+      const loserId = m.winner_pareja_id === m.pareja1_id ? m.pareja2_id : m.pareja1_id;
+      if (standings[m.winner_pareja_id]){ standings[m.winner_pareja_id].wins++; standings[m.winner_pareja_id].played++; }
+      if (standings[loserId]){ standings[loserId].losses++; standings[loserId].played++; }
+    }
+  });
+  const table = Object.values(standings).sort((a,b) => b.wins - a.wins);
+  const pending = partidos.filter(m => m.status !== 'jugado' && m.match_date && m.match_date < today);
+
+  let html = title ? `<h5>${title}</h5>` : '';
+  html += '<h5>Clasificación</h5>';
+  html += `<div class="pub-table-wrap"><table><thead><tr><th>Pareja</th><th>PJ</th><th>G</th><th>P</th></tr></thead><tbody>`;
+  html += table.map(t => `<tr><td>${t.name}</td><td>${t.played}</td><td>${t.wins}</td><td>${t.losses}</td></tr>`).join('') || '<tr><td colspan="4">Sin datos.</td></tr>';
+  html += `</tbody></table></div>`;
+
+  if (pending.length){
+    html += `<div class="pub-pending-alert">⚠️ ${pending.length} partido${pending.length > 1 ? 's' : ''} pendiente${pending.length > 1 ? 's' : ''} de resultado (fecha ya pasada). ¡Jugadlos y avisad al ayuntamiento!</div>`;
+  }
+
+  const rounds = {};
+  partidos.forEach(p => { (rounds[p.round_number] = rounds[p.round_number] || []).push(p); });
+  const roundNumbers = Object.keys(rounds).map(Number).sort((a,b) => a-b);
+  html += '<h5>Jornadas</h5>';
+  roundNumbers.forEach(rn => {
+    const matches = rounds[rn];
+    html += `<div class="pub-round"><b>${matches[0].round_name}</b>`;
+    html += matches.map(m => publicMatchCardHtml(m, parejaLabelPublic(m.pareja1_id, insc), parejaLabelPublic(m.pareja2_id, insc))).join('');
+    html += '</div>';
+  });
+  return html;
+}
+function renderPublicLeagueResults(partidos, insc){
+  if (!partidos.length) return '<p class="empty-msg">Todavía no se ha generado el calendario.</p>';
+  const divisiones = [...new Set(partidos.map(p => p.division || 1))].sort((a,b) => a-b);
+  if (divisiones.length <= 1) return renderPublicLeagueDivision(partidos, insc, null);
+  return divisiones.map(div => {
+    const divPartidos = partidos.filter(p => (p.division || 1) === div);
+    const divInsc = insc.filter(i => (i.division || 1) === div);
+    return renderPublicLeagueDivision(divPartidos, divInsc, `🏅 División ${div}`);
+  }).join('<hr style="border-color:var(--line); margin:14px 0;">');
+}
+async function toggleCompetitionResults(compId, btn){
+  const box = document.getElementById('compResults' + compId);
+  box.hidden = !box.hidden;
+  if (btn) btn.textContent = box.hidden ? '🏆 Ver resultados' : '🔼 Ocultar resultados';
+  if (box.hidden) return;
+  box.innerHTML = '<p class="empty-msg">Cargando…</p>';
+  const comp = (window._COMPETITIONS_PUBLIC || []).find(c => c.id === compId);
+  const [{ data: partidos }, { data: insc }] = await Promise.all([
+    supabase.from('competicion_partidos_padel').select('*').eq('competicion_id', compId)
+      .order('round_number', { ascending: true }),
+    supabase.from('inscripciones_padel_publico').select('*').eq('competicion_id', compId),
+  ]);
+  box.innerHTML = comp && comp.type === 'torneo'
+    ? renderPublicTournamentResults(partidos || [], insc || [])
+    : renderPublicLeagueResults(partidos || [], insc || []);
 }
 
 function openSignupModal(compId){
@@ -1379,6 +1517,8 @@ async function init(){
       if (error.code === '23P01'){
         setMsg('Vaya, justo se acaba de reservar ese horario. Elige otro.', 'err');
         await refreshSlots();
+      } else if (/reservas activas/i.test(error.message || '')){
+        setMsg(error.message + ' Puedes cancelarla desde "Mi cuenta".', 'err');
       } else {
         setMsg('No se ha podido enviar la reserva. Inténtalo de nuevo.', 'err');
       }
