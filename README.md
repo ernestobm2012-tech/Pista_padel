@@ -320,6 +320,35 @@ al pulsar "Generar cruces") no llevan cliente vinculado — representan un
 partido entre parejas, no la reserva de un cliente concreto — y no se ven
 afectados por esta exigencia.
 
+## Mantenimiento de pistas: aviso visual y conflictos con reservas
+
+`admin.html` → pestaña «Calendario»: los días en los que alguna pista está
+cerrada por mantenimiento se marcan con un icono 🔧 y un borde rojo, sin
+mezclarse con los colores de reservas pendientes/confirmadas. Al pulsar
+ese día se ve, además de las reservas, un aviso con la pista, las fechas
+y el motivo del cierre.
+
+Al crear un cierre de mantenimiento (pestaña «Pistas» → «+ Nuevo cierre»),
+si esa pista ya tenía reservas hechas dentro de esas fechas, no se guarda
+directamente: aparece la lista de reservas afectadas y, para cada una, dos
+botones:
+
+- **🔁 Cambiar a otra pista libre**: busca automáticamente si otra pista
+  activa está libre exactamente a esa misma fecha y hora (y no está ella
+  también en mantenimiento) y, si la encuentra, mueve la reserva ahí sin
+  tocar la hora. Si no hay ninguna libre, avisa de que hay que cancelarla
+  u ofrecer otro horario a mano.
+- **✕ Cancelar reserva**: la marca como `cancelada`.
+
+En los dos casos se guarda una nota en `reservas_padel.message` explicando
+el motivo (cambio de pista o cancelación por mantenimiento), que el
+cliente ve automáticamente la próxima vez que abre "Mi cuenta" → "Mis
+reservas" en la web — no hay, de momento, un aviso proactivo por WhatsApp,
+push o email; el cliente se entera al consultar la app, y el
+administrador ve en pantalla el teléfono de cada reserva afectada por si
+prefiere avisar también por su cuenta. El cierre de mantenimiento no se
+guarda hasta que todas las reservas en conflicto quedan resueltas.
+
 ## Torneos y ligas
 
 Desde `admin.html` → pestaña «Torneos» puedes crear un torneo (eliminatoria

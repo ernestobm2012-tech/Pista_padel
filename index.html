@@ -872,6 +872,7 @@ async function loadMyReservations(){
           <b>${court ? court.name : 'Pista'} · ${fmtResDate(r.reservation_date)}</b>
           <span>${r.start_time.slice(0,5)}–${r.end_time.slice(0,5)}${r.wants_light ? ' · con luz' : ''}</span>
           <div class="status ${r.status}">${r.status}</div>
+          ${r.message ? `<div style="font-size:12.5px; color:var(--ink-soft); margin-top:4px;">ℹ️ ${r.message}</div>` : ''}
         </div>
         ${canCancel ? `<button type="button" class="btn btn-ghost btn-sm" data-cancel="${r.id}">Cancelar</button>` : ''}
       </div>`;

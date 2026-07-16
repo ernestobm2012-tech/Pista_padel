@@ -129,6 +129,8 @@
   .cal-day .daynum{ font-weight:600; }
   .cal-day.has-pendiente{ background:rgba(255,200,87,.12); border-color:rgba(255,200,87,.35); }
   .cal-day.has-confirmada{ background:rgba(198,255,61,.10); border-color:rgba(198,255,61,.3); }
+  .cal-day.has-maintenance{ border-color:rgba(255,90,90,.5); box-shadow:inset 0 0 0 1px rgba(255,90,90,.35); }
+  .cal-day-maint-icon{ position:absolute; top:4px; left:5px; font-size:11px; }
   .cal-day-badge{
     position:absolute; top:4px; right:4px; background:var(--lime); color:#0B1210;
     font-weight:700; font-size:10.5px; min-width:16px; height:16px; border-radius:50%;
@@ -467,6 +469,12 @@
             <span class="form-msg" id="maintenanceFormMsg"></span>
           </div>
         </form>
+        <div id="maintenanceConflicts" hidden style="margin-top:16px;">
+          <div style="background:rgba(255,90,90,.12); border:1px solid rgba(255,90,90,.35); border-radius:10px; padding:10px 12px; font-size:13.5px; margin-bottom:12px;">
+            ⚠️ Hay reservas ya hechas en esas fechas. Resuelve cada una (cambio de pista o cancelación) antes de guardar el cierre.
+          </div>
+          <div id="maintenanceConflictsList"></div>
+        </div>
       </div>
       <div class="card table-wrap">
         <table>
@@ -1168,10 +1176,15 @@ async function renderCalendarState(){
 
   const monthStart = `${calState.year}-${String(calState.month+1).padStart(2,'0')}-01`;
   const monthEnd = calState.month === 11 ? `${calState.year+1}-01-01` : `${calState.year}-${String(calState.month+2).padStart(2,'0')}-01`;
-  const { data } = await supabase.from('reservas_padel').select('*')
-    .gte('reservation_date', monthStart)
-    .lt('reservation_date', monthEnd)
-    .neq('status', 'cancelada');
+  const [{ data }, { data: maint }] = await Promise.all([
+    supabase.from('reservas_padel').select('*')
+      .gte('reservation_date', monthStart)
+      .lt('reservation_date', monthEnd)
+      .neq('status', 'cancelada'),
+    supabase.from('mantenimientos_padel').select('*')
+      .lte('start_date', monthEnd)
+      .gte('end_date', monthStart),
+  ]);
 
   const byDate = {};
   (data || []).forEach(r => {
@@ -1189,9 +1202,15 @@ async function renderCalendarState(){
   for (let day = 1; day <= daysInMonth; day++){
     const key = ymd(new Date(calState.year, calState.month, day));
     const dayRes = byDate[key] || [];
+    const dayMaint = (maint || []).filter(m => key >= m.start_date && key <= m.end_date);
     const hasPendiente = dayRes.some(r => r.status === 'pendiente');
-    const cls = 'cal-day' + (dayRes.length ? ' clickable' : '') + (hasPendiente ? ' has-pendiente' : dayRes.length ? ' has-confirmada' : '');
-    html += `<div class="${cls}" ${dayRes.length ? `data-date="${key}"` : ''}>
+    const clickable = dayRes.length > 0 || dayMaint.length > 0;
+    const cls = 'cal-day'
+      + (clickable ? ' clickable' : '')
+      + (hasPendiente ? ' has-pendiente' : dayRes.length ? ' has-confirmada' : '')
+      + (dayMaint.length ? ' has-maintenance' : '');
+    html += `<div class="${cls}" ${clickable ? `data-date="${key}"` : ''}>
+        ${dayMaint.length ? `<span class="cal-day-maint-icon" title="Pista en mantenimiento">🔧</span>` : ''}
         ${dayRes.length ? `<span class="cal-day-badge">${dayRes.length}</span>` : ''}
         <span class="daynum">${day}</span>
       </div>`;
@@ -1199,13 +1218,19 @@ async function renderCalendarState(){
   const grid = document.getElementById('calGrid');
   grid.innerHTML = html;
   grid.querySelectorAll('[data-date]').forEach(el => {
-    el.addEventListener('click', () => showCalDay(el.dataset.date, byDate[el.dataset.date]));
+    const key = el.dataset.date;
+    const dayMaint = (maint || []).filter(m => key >= m.start_date && key <= m.end_date);
+    el.addEventListener('click', () => showCalDay(key, byDate[key] || [], dayMaint));
   });
 }
 
-function showCalDay(dateStr, reservations){
+function showCalDay(dateStr, reservations, maintenances){
   const list = document.getElementById('calDayList');
-  list.innerHTML = `<h3 style="font-size:16px; margin:20px 0 14px; text-transform:capitalize;">${fmtDate(dateStr)}</h3>` +
+  const maintHtml = (maintenances || []).map(m => `
+    <div style="background:rgba(255,90,90,.12); border:1px solid rgba(255,90,90,.35); border-radius:10px; padding:10px 12px; font-size:13px; margin-bottom:10px;">
+      🔧 <b>${COURTS_BY_ID[m.pista_id] || '—'}</b> en mantenimiento (${fmtDate(m.start_date)} – ${fmtDate(m.end_date)})${m.reason ? ` — ${m.reason}` : ''}
+    </div>`).join('');
+  list.innerHTML = `<h3 style="font-size:16px; margin:20px 0 14px; text-transform:capitalize;">${fmtDate(dateStr)}</h3>` + maintHtml +
     reservations.map(r => `
       <div class="res-card">
         <div class="res-head">
@@ -2687,6 +2712,8 @@ document.getElementById('newMaintenanceBtn').addEventListener('click', () => {
   document.getElementById('maintenanceForm').reset();
   populateMaintenanceCourtSelect();
   document.getElementById('maintenanceFormMsg').textContent = '';
+  document.getElementById('maintenanceConflicts').hidden = true;
+  document.getElementById('maintenanceConflictsList').innerHTML = '';
   document.getElementById('maintenanceFormCard').hidden = false;
 });
 document.getElementById('cancelMaintenanceBtn').addEventListener('click', () => {
@@ -2700,6 +2727,81 @@ document.getElementById('maintenanceBody').addEventListener('click', async (e) =
   await supabase.from('mantenimientos_padel').delete().eq('id', id);
   loadMaintenance();
 });
+
+async function findConflictingReservas(pistaId, startDate, endDate){
+  const { data } = await supabase.from('reservas_padel').select('*')
+    .eq('pista_id', pistaId)
+    .gte('reservation_date', startDate)
+    .lte('reservation_date', endDate)
+    .in('status', ['pendiente', 'confirmada']);
+  return data || [];
+}
+
+async function findFreeAlternativeCourt(excludePistaId, dateStr, startTime, endTime){
+  const candidates = (window._COURTS_CACHE || []).filter(c => c.active && c.id !== excludePistaId);
+  for (const court of candidates){
+    const [{ data: overlaps }, { data: maint }] = await Promise.all([
+      supabase.from('reservas_padel').select('id, start_time, end_time')
+        .eq('pista_id', court.id).eq('reservation_date', dateStr).neq('status', 'cancelada'),
+      supabase.from('mantenimientos_padel').select('id').eq('pista_id', court.id)
+        .lte('start_date', dateStr).gte('end_date', dateStr),
+    ]);
+    if ((maint || []).length) continue;
+    const busy = (overlaps || []).some(r => startTime < r.end_time.slice(0,5) && endTime > r.start_time.slice(0,5));
+    if (!busy) return court;
+  }
+  return null;
+}
+
+function renderMaintenanceConflicts(conflicts, reason){
+  const wrap = document.getElementById('maintenanceConflictsList');
+  wrap.innerHTML = conflicts.map(r => `
+    <div class="res-card" data-conflict-id="${r.id}">
+      <div class="res-head">
+        <h3 style="font-size:14px;">${COURTS_BY_ID[r.pista_id] || '—'} — ${r.full_name}</h3>
+      </div>
+      <div class="res-meta">
+        <div>📅 ${fmtDate(r.reservation_date)} · ⏰ ${r.start_time.slice(0,5)}-${r.end_time.slice(0,5)}</div>
+        <div>📞 ${r.phone || '—'}</div>
+      </div>
+      <div class="res-actions">
+        <button class="btn btn-ghost btn-sm" data-action="reassign">🔁 Cambiar a otra pista libre</button>
+        <button class="btn btn-danger btn-sm" data-action="cancel">✕ Cancelar reserva</button>
+      </div>
+    </div>`).join('');
+
+  wrap.querySelectorAll('[data-conflict-id]').forEach(card => {
+    const id = card.dataset.conflictId;
+    const r = conflicts.find(x => x.id === id);
+    card.querySelector('[data-action="cancel"]').addEventListener('click', async () => {
+      const note = `Cancelada por mantenimiento de la pista${reason ? ': ' + reason : ''}.`;
+      await supabase.from('reservas_padel').update({
+        status: 'cancelada',
+        message: r.message ? `${r.message} | ${note}` : note,
+      }).eq('id', id);
+      card.remove();
+    });
+    card.querySelector('[data-action="reassign"]').addEventListener('click', async () => {
+      const btn = card.querySelector('[data-action="reassign"]');
+      btn.disabled = true;
+      btn.textContent = 'Buscando…';
+      const alt = await findFreeAlternativeCourt(r.pista_id, r.reservation_date, r.start_time.slice(0,5), r.end_time.slice(0,5));
+      if (!alt){
+        alert(`No hay ninguna otra pista libre a esa misma hora (${r.start_time.slice(0,5)}-${r.end_time.slice(0,5)} el ${fmtDate(r.reservation_date)}). Tendrás que cancelarla u ofrecer otro horario a mano.`);
+        btn.disabled = false;
+        btn.textContent = '🔁 Cambiar a otra pista libre';
+        return;
+      }
+      const note = `Cambiada de pista por mantenimiento${reason ? ' (' + reason + ')' : ''}: antes en ${COURTS_BY_ID[r.pista_id] || '—'}, ahora en ${alt.name}.`;
+      await supabase.from('reservas_padel').update({
+        pista_id: alt.id,
+        message: r.message ? `${r.message} | ${note}` : note,
+      }).eq('id', id);
+      card.remove();
+    });
+  });
+}
+
 document.getElementById('maintenanceForm').addEventListener('submit', async (e) => {
   e.preventDefault();
   const payload = {
@@ -2714,10 +2816,22 @@ document.getElementById('maintenanceForm').addEventListener('submit', async (e) 
     msg.className = 'form-msg err';
     return;
   }
+
+  const conflicts = await findConflictingReservas(payload.pista_id, payload.start_date, payload.end_date);
+  if (conflicts.length){
+    document.getElementById('maintenanceConflicts').hidden = false;
+    renderMaintenanceConflicts(conflicts, payload.reason);
+    msg.textContent = 'Resuelve las reservas de abajo (cambio de pista o cancelación) y vuelve a pulsar "Guardar".';
+    msg.className = 'form-msg err';
+    return;
+  }
+  document.getElementById('maintenanceConflicts').hidden = true;
+
   const { error } = await supabase.from('mantenimientos_padel').insert(payload);
   if (error){ msg.textContent = 'Error al guardar.'; msg.className = 'form-msg err'; return; }
   document.getElementById('maintenanceFormCard').hidden = true;
   loadMaintenance();
+  renderCalendarState();
 });
 
 /* ---------- Precios por duración ---------- */
