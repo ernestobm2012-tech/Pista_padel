@@ -1,0 +1,420 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<link rel="icon" href="assets/favicon-32.png" sizes="32x32" type="image/png">
+<title>Plataforma — Panel del administrador general</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0B1210; --bg-soft:#101C17; --surface:#142620; --surface-2:#1A322A;
+    --ink:#EEF6F0; --ink-soft:#A9C2B3; --lime:#C6FF3D; --lime-dark:#8FCB1F;
+    --line:rgba(255,255,255,.10); --radius:12px; --red:#FF6B6B; --amber:#FFC857;
+  }
+  *{box-sizing:border-box;}
+  body{ margin:0; background:var(--bg); color:var(--ink); font-family:'Inter', sans-serif; }
+  h1,h2,h3{ font-family:'Outfit', sans-serif; font-weight:700; margin:0; }
+  input, select, textarea, button{ font-family:inherit; }
+  input, select, textarea{
+    background:var(--bg-soft); border:1px solid var(--line); border-radius:8px;
+    padding:10px 12px; color:var(--ink); font-size:14px; width:100%;
+  }
+  input:focus, select:focus, textarea:focus{ outline:none; border-color:var(--lime); }
+  label{ font-size:12.5px; font-weight:600; color:var(--ink-soft); display:block; margin-bottom:5px; }
+  .btn{
+    display:inline-flex; align-items:center; gap:6px; padding:10px 18px; border-radius:999px; border:0;
+    cursor:pointer; font-family:'Outfit'; font-weight:600; font-size:14px;
+  }
+  .btn-primary{ background:var(--lime); color:#0B1210; }
+  .btn-primary:hover{ background:var(--lime-dark); }
+  .btn-ghost{ background:transparent; color:var(--ink); border:1px solid var(--line); }
+  .btn-ghost:hover{ border-color:var(--lime); color:var(--lime); }
+  .btn-danger{ background:transparent; color:var(--red); border:1px solid rgba(255,107,107,.4); }
+  .btn-danger:hover{ background:rgba(255,107,107,.1); }
+  .btn-sm{ padding:6px 12px; font-size:12.5px; }
+  .btn:disabled{ opacity:.5; cursor:not-allowed; }
+  .btn[hidden]{ display:none; }
+
+  #loginScreen{ min-height:100vh; display:flex; align-items:center; justify-content:center; padding:20px; }
+  #loginScreen[hidden]{ display:none; }
+  .login-card{ background:var(--surface); border:1px solid var(--line); border-radius:16px; padding:32px; width:100%; max-width:360px; }
+  .login-card h1{ font-size:22px; margin-bottom:6px; }
+  .login-card p{ color:var(--ink-soft); font-size:14px; margin:0 0 20px; }
+  .login-card form{ display:grid; gap:14px; }
+  #loginMsg{ color:var(--red); font-size:13.5px; min-height:18px; }
+
+  header.appbar{
+    display:flex; align-items:center; justify-content:space-between; padding:16px 24px;
+    border-bottom:1px solid var(--line); background:var(--bg-soft);
+  }
+  header.appbar .logo{ font-family:'Outfit'; font-weight:800; display:flex; align-items:center; gap:8px; }
+  header.appbar .logo .dot{ width:10px; height:10px; border-radius:50%; background:var(--lime); }
+
+  main{ max-width:1000px; margin:0 auto; padding:24px; display:grid; gap:28px; }
+  .panel-head{ display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; }
+  .card{ background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); padding:20px; }
+  .form-grid{ display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+  @media (max-width:600px){ .form-grid{ grid-template-columns:1fr; } }
+  .form-msg{ font-size:13.5px; min-height:18px; }
+  .form-msg.ok{ color:var(--lime); }
+  .form-msg.err{ color:var(--red); }
+  .pill{ display:inline-block; padding:3px 10px; border-radius:999px; font-size:11.5px; font-weight:600; background:var(--surface-2); color:var(--ink-soft); }
+  .pill-inactiva{ background:rgba(255,107,107,.15); color:var(--red); }
+  .org-card{ display:grid; gap:16px; }
+  .org-card-head{ display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px; }
+  .org-card-head h3{ font-size:18px; display:flex; align-items:center; gap:8px; }
+  .perm-checks{ display:flex; flex-wrap:wrap; gap:14px; }
+  .perm-checks label{ display:flex; align-items:center; gap:6px; font-weight:400; font-size:13.5px; color:var(--ink); margin:0; }
+  .perm-checks input{ width:auto; }
+  .admin-pill{ display:inline-flex; align-items:center; gap:4px; background:var(--bg-soft); border:1px solid var(--line); border-radius:999px; padding:3px 9px; margin:2px; font-size:12.5px; }
+  .admin-pill button{ border:none; background:none; color:inherit; cursor:pointer; font-size:14px; line-height:1; padding:0; }
+  .logo-preview{ height:56px; width:auto; border-radius:8px; display:block; }
+  hr.sep{ border:none; border-top:1px solid var(--line); margin:4px 0; }
+</style>
+</head>
+<body>
+
+<div id="loginScreen">
+  <div class="login-card">
+    <h1>Plataforma</h1>
+    <p>Panel del administrador general. Acceso restringido.</p>
+    <form id="loginForm">
+      <div class="field"><label for="loginEmail">Email</label><input type="email" id="loginEmail" required></div>
+      <div class="field"><label for="loginPassword">Contraseña</label><input type="password" id="loginPassword" required></div>
+      <div id="loginMsg"></div>
+      <button type="submit" class="btn btn-primary">Entrar</button>
+    </form>
+  </div>
+</div>
+
+<div id="appScreen" hidden>
+  <header class="appbar">
+    <div class="logo"><span class="dot"></span> Plataforma</div>
+    <button class="btn btn-ghost btn-sm" id="logoutBtn">Cerrar sesión</button>
+  </header>
+
+  <main>
+    <section>
+      <div class="panel-head"><h2>Organizaciones</h2><button class="btn btn-primary btn-sm" id="newOrgBtn">+ Nueva organización</button></div>
+      <div class="card" id="newOrgCard" hidden>
+        <div class="form-grid">
+          <div class="field"><label for="neworg_nombre">Nombre</label><input type="text" id="neworg_nombre" required></div>
+          <div class="field">
+            <label for="neworg_tipo">Tipo</label>
+            <select id="neworg_tipo">
+              <option value="ayuntamiento">Ayuntamiento</option>
+              <option value="comunidad_vecinos">Comunidad de vecinos</option>
+              <option value="club_padel">Club de pádel</option>
+              <option value="otro">Otro</option>
+            </select>
+          </div>
+          <div class="field"><label for="neworg_slug">Identificador en la URL (slug)</label><input type="text" id="neworg_slug" placeholder="mi-club-de-padel" required></div>
+          <div style="grid-column:1/-1; display:flex; gap:10px; align-items:center;">
+            <button type="button" class="btn btn-primary btn-sm" id="saveNewOrgBtn">Crear organización</button>
+            <button type="button" class="btn btn-ghost btn-sm" id="cancelNewOrgBtn">Cancelar</button>
+            <span class="form-msg" id="newOrgMsg"></span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="orgsList"></section>
+  </main>
+</div>
+
+<script type="module">
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+
+const SUPABASE_URL = 'https://stnuvhlqicftjbtlybit.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN0bnV2aGxxaWNmdGpidGx5Yml0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMyNDY4NzgsImV4cCI6MjA5ODgyMjg3OH0.1a8uenfaddy_yiXPgerteMoktCEeeFhkH021qp0okPY';
+const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const ADMIN_EMAIL = 'ernestobm2012@gmail.com';
+
+const loginScreen = document.getElementById('loginScreen');
+const appScreen = document.getElementById('appScreen');
+const loginMsg = document.getElementById('loginMsg');
+
+document.getElementById('loginForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  loginMsg.textContent = '';
+  const email = document.getElementById('loginEmail').value.trim();
+  const password = document.getElementById('loginPassword').value;
+  const { error } = await supabase.auth.signInWithPassword({ email, password });
+  if (error){
+    loginMsg.textContent = 'Email o contraseña incorrectos.';
+    return;
+  }
+});
+
+document.getElementById('logoutBtn').addEventListener('click', async () => {
+  await supabase.auth.signOut();
+});
+
+async function handleSession(session){
+  if (!session || session.user.email !== ADMIN_EMAIL){
+    if (session) await supabase.auth.signOut();
+    loginScreen.hidden = false;
+    appScreen.hidden = true;
+    return;
+  }
+  loginScreen.hidden = true;
+  appScreen.hidden = false;
+  await loadOrganizaciones();
+}
+
+supabase.auth.onAuthStateChange((_event, session) => { handleSession(session); });
+
+function padelImageUrl(path){
+  return supabase.storage.from('galeria-padel').getPublicUrl(path).data.publicUrl;
+}
+
+const TIPO_LABELS = { ayuntamiento: 'Ayuntamiento', comunidad_vecinos: 'Comunidad de vecinos', club_padel: 'Club de pádel', otro: 'Otro' };
+
+function orgCardHtml(org, admins){
+  const orgAdmins = admins.filter(a => a.organizacion_id === org.id);
+  const adminsHtml = orgAdmins.length
+    ? orgAdmins.map(a => `<span class="admin-pill">${a.email} <button data-remove-admin="${a.id}" title="Quitar acceso">×</button></span>`).join(' ')
+    : '<span style="color:var(--ink-soft); font-size:13px;">Sin administradores todavía</span>';
+  const f = org.features || {};
+  return `
+    <div class="card org-card" data-org-id="${org.id}">
+      <div class="org-card-head">
+        <h3>${org.nombre} <span class="pill">${TIPO_LABELS[org.tipo] || org.tipo || '—'}</span> ${org.activo === false ? '<span class="pill pill-inactiva">Inactiva</span>' : ''}</h3>
+        <span style="color:var(--ink-soft); font-size:13px;">/?org=${org.slug}</span>
+      </div>
+
+      <div class="form-grid">
+        <div class="field"><label>Nombre</label><input data-field="nombre" value="${org.nombre || ''}"></div>
+        <div class="field">
+          <label>Tipo</label>
+          <select data-field="tipo">
+            ${Object.entries(TIPO_LABELS).map(([v, l]) => `<option value="${v}" ${org.tipo === v ? 'selected' : ''}>${l}</option>`).join('')}
+          </select>
+        </div>
+        <div class="field"><label>Slug (URL)</label><input data-field="slug" value="${org.slug || ''}"></div>
+        <div class="field"><label>Dirección</label><input data-field="direccion" value="${org.direccion || ''}"></div>
+        <div class="field"><label>Teléfono</label><input data-field="telefono" value="${org.telefono || ''}"></div>
+        <div class="field"><label>Email de contacto</label><input data-field="email_contacto" value="${org.email_contacto || ''}"></div>
+        <div class="field"><label>Instagram (URL)</label><input data-field="instagram_url" value="${org.instagram_url || ''}"></div>
+        <div class="field"><label>Facebook (URL)</label><input data-field="facebook_url" value="${org.facebook_url || ''}"></div>
+        <div class="field"><label>WhatsApp (enlace wa.me)</label><input data-field="whatsapp_url" value="${org.whatsapp_url || ''}"></div>
+        <div class="field"><label>Búsqueda para el mapa</label><input data-field="mapa_query" value="${org.mapa_query || ''}" placeholder="pistas de padel Mi Ciudad"></div>
+      </div>
+
+      <div>
+        <label>Permisos</label>
+        <div class="perm-checks">
+          <label><input type="checkbox" checked disabled> Reservas (siempre incluido)</label>
+          <label><input type="checkbox" data-field="feature_torneos" ${f.torneos !== false ? 'checked' : ''}> Torneos y ligas</label>
+          <label><input type="checkbox" data-field="feature_ranking" ${f.ranking !== false ? 'checked' : ''}> Ranking</label>
+          <label><input type="checkbox" data-field="feature_estadisticas" ${f.estadisticas !== false ? 'checked' : ''}> Estadísticas</label>
+          <label><input type="checkbox" data-field="feature_facturas" ${f.facturas !== false ? 'checked' : ''}> Facturas</label>
+          <label><input type="checkbox" data-field="activo" ${org.activo !== false ? 'checked' : ''}> Organización activa</label>
+        </div>
+      </div>
+
+      <div style="display:flex; gap:10px; align-items:center;">
+        <button type="button" class="btn btn-primary btn-sm" data-save-org="${org.id}">Guardar cambios</button>
+        <span class="form-msg" data-org-msg="${org.id}"></span>
+      </div>
+
+      <hr class="sep">
+
+      <div>
+        <label>Logo</label>
+        <div style="margin-bottom:8px;">
+          ${org.logo_path ? `<img src="${padelImageUrl(org.logo_path)}" class="logo-preview">` : '<span style="color:var(--ink-soft); font-size:13px;">Sin logo todavía.</span>'}
+        </div>
+        <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+          <input type="file" accept="image/*" data-logo-file="${org.id}" style="max-width:220px;">
+          <button type="button" class="btn btn-ghost btn-sm" data-upload-logo="${org.id}">Subir</button>
+          ${org.logo_path ? `<button type="button" class="btn btn-danger btn-sm" data-remove-logo="${org.id}" data-path="${org.logo_path}">Quitar</button>` : ''}
+          <span class="form-msg" data-logo-msg="${org.id}"></span>
+        </div>
+      </div>
+
+      <hr class="sep">
+
+      <div>
+        <label>Administradores</label>
+        <div style="margin-bottom:10px;">${adminsHtml}</div>
+        <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:flex-end;">
+          <div class="field" style="flex:1; min-width:180px; margin:0;"><label>Email</label><input type="email" data-new-admin-email="${org.id}"></div>
+          <div class="field" style="flex:1; min-width:160px; margin:0;"><label>Contraseña inicial</label><input type="text" data-new-admin-password="${org.id}" placeholder="mínimo 6 caracteres"></div>
+          <button type="button" class="btn btn-primary btn-sm" data-create-admin="${org.id}">Crear administrador</button>
+        </div>
+        <span class="form-msg" data-admin-msg="${org.id}"></span>
+      </div>
+    </div>
+  `;
+}
+
+async function loadOrganizaciones(){
+  const [{ data: orgs }, { data: admins }] = await Promise.all([
+    supabase.from('organizaciones').select('*').order('nombre'),
+    supabase.from('organizacion_admins').select('*'),
+  ]);
+  const wrap = document.getElementById('orgsList');
+  if (!orgs || !orgs.length){
+    wrap.innerHTML = '<p style="color:var(--ink-soft);">No hay organizaciones todavía.</p>';
+    return;
+  }
+  wrap.innerHTML = orgs.map(o => orgCardHtml(o, admins || [])).join('');
+  wireOrgCardEvents();
+}
+
+function slugify(raw){
+  return raw.trim().toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+}
+
+document.getElementById('newOrgBtn').addEventListener('click', () => {
+  document.getElementById('newOrgCard').hidden = false;
+});
+document.getElementById('cancelNewOrgBtn').addEventListener('click', () => {
+  document.getElementById('newOrgCard').hidden = true;
+});
+document.getElementById('saveNewOrgBtn').addEventListener('click', async () => {
+  const msg = document.getElementById('newOrgMsg');
+  const nombre = document.getElementById('neworg_nombre').value.trim();
+  const tipo = document.getElementById('neworg_tipo').value;
+  const slug = slugify(document.getElementById('neworg_slug').value);
+  if (!nombre || !slug){
+    msg.textContent = 'Nombre e identificador (slug) son obligatorios.';
+    msg.className = 'form-msg err';
+    return;
+  }
+  const { error } = await supabase.from('organizaciones').insert({ nombre, tipo, slug });
+  if (error){
+    msg.textContent = /duplicate|unique/i.test(error.message) ? 'Ya existe una organización con ese identificador.' : 'Error al crear: ' + error.message;
+    msg.className = 'form-msg err';
+    return;
+  }
+  msg.textContent = '¡Organización creada! Ya puedes rellenar sus datos debajo.';
+  msg.className = 'form-msg ok';
+  document.getElementById('neworg_nombre').value = '';
+  document.getElementById('neworg_slug').value = '';
+  await loadOrganizaciones();
+});
+
+async function uploadPadelImage(file, folder, id){
+  const ext = (file.name.split('.').pop() || 'jpg').toLowerCase().replace(/[^a-z0-9]/g, '') || 'jpg';
+  const path = `${folder}/${id}-${Date.now()}.${ext}`;
+  const { error } = await supabase.storage.from('galeria-padel').upload(path, file);
+  return { path, error };
+}
+
+function wireOrgCardEvents(){
+  document.querySelectorAll('[data-save-org]').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const orgId = btn.dataset.saveOrg;
+      const card = document.querySelector(`.org-card[data-org-id="${orgId}"]`);
+      const msg = card.querySelector(`[data-org-msg="${orgId}"]`);
+      const get = (f) => card.querySelector(`[data-field="${f}"]`);
+      const payload = {
+        nombre: get('nombre').value.trim(),
+        tipo: get('tipo').value,
+        slug: slugify(get('slug').value),
+        direccion: get('direccion').value.trim() || null,
+        telefono: get('telefono').value.trim() || null,
+        email_contacto: get('email_contacto').value.trim() || null,
+        instagram_url: get('instagram_url').value.trim() || null,
+        facebook_url: get('facebook_url').value.trim() || null,
+        whatsapp_url: get('whatsapp_url').value.trim() || null,
+        mapa_query: get('mapa_query').value.trim() || null,
+        activo: get('activo').checked,
+        features: {
+          torneos: get('feature_torneos').checked,
+          ranking: get('feature_ranking').checked,
+          estadisticas: get('feature_estadisticas').checked,
+          facturas: get('feature_facturas').checked,
+        },
+      };
+      if (!payload.nombre || !payload.slug){
+        msg.textContent = 'Nombre y slug son obligatorios.';
+        msg.className = 'form-msg err';
+        return;
+      }
+      const { error } = await supabase.from('organizaciones').update(payload).eq('id', orgId);
+      msg.textContent = error ? 'Error al guardar: ' + error.message : '¡Guardado!';
+      msg.className = 'form-msg ' + (error ? 'err' : 'ok');
+      if (!error) setTimeout(loadOrganizaciones, 900);
+    });
+  });
+
+  document.querySelectorAll('[data-upload-logo]').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const orgId = btn.dataset.uploadLogo;
+      const card = document.querySelector(`.org-card[data-org-id="${orgId}"]`);
+      const fileInput = card.querySelector(`[data-logo-file="${orgId}"]`);
+      const msg = card.querySelector(`[data-logo-msg="${orgId}"]`);
+      const file = fileInput.files[0];
+      if (!file){ msg.textContent = 'Elige antes una imagen.'; msg.className = 'form-msg err'; return; }
+      btn.disabled = true;
+      const { path, error: uploadError } = await uploadPadelImage(file, 'organizaciones', orgId);
+      if (uploadError){ msg.textContent = 'No se ha podido subir: ' + uploadError.message; msg.className = 'form-msg err'; btn.disabled = false; return; }
+      await supabase.from('organizaciones').update({ logo_path: path }).eq('id', orgId);
+      await loadOrganizaciones();
+    });
+  });
+
+  document.querySelectorAll('[data-remove-logo]').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      if (!confirm('¿Quitar el logo de esta organización?')) return;
+      await supabase.storage.from('galeria-padel').remove([btn.dataset.path]);
+      await supabase.from('organizaciones').update({ logo_path: null }).eq('id', btn.dataset.removeLogo);
+      await loadOrganizaciones();
+    });
+  });
+
+  document.querySelectorAll('[data-remove-admin]').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      if (!confirm('¿Quitar el acceso de este administrador a esta organización?')) return;
+      await supabase.from('organizacion_admins').delete().eq('id', btn.dataset.removeAdmin);
+      await loadOrganizaciones();
+    });
+  });
+
+  document.querySelectorAll('[data-create-admin]').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const orgId = btn.dataset.createAdmin;
+      const card = document.querySelector(`.org-card[data-org-id="${orgId}"]`);
+      const msg = card.querySelector(`[data-admin-msg="${orgId}"]`);
+      const email = card.querySelector(`[data-new-admin-email="${orgId}"]`).value.trim();
+      const password = card.querySelector(`[data-new-admin-password="${orgId}"]`).value;
+      if (!email || !password){
+        msg.textContent = 'Rellena email y contraseña.';
+        msg.className = 'form-msg err';
+        return;
+      }
+      if (password.length < 6){
+        msg.textContent = 'La contraseña debe tener al menos 6 caracteres.';
+        msg.className = 'form-msg err';
+        return;
+      }
+      msg.textContent = 'Creando…';
+      msg.className = 'form-msg';
+      const { data, error } = await supabase.functions.invoke('admin-create-org-admin-padel', {
+        body: { organizacion_id: orgId, email, password },
+      });
+      if (error || data?.error){
+        msg.textContent = data?.error || 'No se ha podido crear el administrador.';
+        msg.className = 'form-msg err';
+        return;
+      }
+      msg.textContent = data.created
+        ? '¡Administrador creado!'
+        : 'Ya existía una cuenta con ese email: se le ha dado acceso (su contraseña no ha cambiado).';
+      msg.className = 'form-msg ok';
+      setTimeout(loadOrganizaciones, 900);
+    });
+  });
+}
+</script>
+</body>
+</html>

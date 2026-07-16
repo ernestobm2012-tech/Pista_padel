@@ -442,20 +442,10 @@
     <div>
       <span class="eyebrow">Contacto</span>
       <h2 style="margin-top:10px;">¿Hablamos?</h2>
-      <p style="color:var(--ink-soft); margin-top:14px;">
-        📍 Chozas de Canales, Toledo<br>
-        📞 <a href="tel:+34600000000">600 000 000</a><br>
-        ✉️ <a href="mailto:info@clubpadel.es">info@clubpadel.es</a>
-      </p>
-      <div class="social-links">
-        <a href="https://instagram.com" target="_blank" rel="noopener" data-social="instagram" aria-label="Instagram">IG</a>
-        <a href="https://facebook.com" target="_blank" rel="noopener" data-social="facebook" aria-label="Facebook">FB</a>
-        <a href="https://wa.me/34600000000" target="_blank" rel="noopener" data-social="whatsapp" aria-label="WhatsApp">WA</a>
-      </div>
+      <p style="color:var(--ink-soft); margin-top:14px;" id="contactoInfo"></p>
+      <div class="social-links" id="socialLinks"></div>
     </div>
-    <div class="map-frame">
-      <iframe loading="lazy" src="https://www.google.com/maps?q=pistas+de+padel+Chozas+de+Canales&output=embed"></iframe>
-    </div>
+    <div class="map-frame" id="mapFrame"></div>
   </div>
 </section>
 
@@ -781,6 +771,27 @@ function applyOrgBranding(org){
   };
   gate('navTorneos', 'torneos', f.torneos !== false);
   gate('navRanking', 'ranking', f.ranking !== false);
+
+  const infoLines = [];
+  if (org.direccion) infoLines.push(`📍 ${org.direccion}`);
+  if (org.telefono) infoLines.push(`📞 <a href="tel:${org.telefono.replace(/\s+/g, '')}">${org.telefono}</a>`);
+  if (org.email_contacto) infoLines.push(`✉️ <a href="mailto:${org.email_contacto}">${org.email_contacto}</a>`);
+  const contactoEl = document.getElementById('contactoInfo');
+  contactoEl.innerHTML = infoLines.length ? infoLines.join('<br>') : 'Datos de contacto próximamente.';
+
+  const socials = [
+    org.instagram_url ? { href: org.instagram_url, key: 'instagram', label: 'IG', aria: 'Instagram' } : null,
+    org.facebook_url ? { href: org.facebook_url, key: 'facebook', label: 'FB', aria: 'Facebook' } : null,
+    org.whatsapp_url ? { href: org.whatsapp_url, key: 'whatsapp', label: 'WA', aria: 'WhatsApp' } : null,
+  ].filter(Boolean);
+  document.getElementById('socialLinks').innerHTML = socials.map(s =>
+    `<a href="${s.href}" target="_blank" rel="noopener" data-social="${s.key}" aria-label="${s.aria}">${s.label}</a>`
+  ).join('');
+
+  const mapFrame = document.getElementById('mapFrame');
+  mapFrame.innerHTML = org.mapa_query
+    ? `<iframe loading="lazy" src="https://www.google.com/maps?q=${encodeURIComponent(org.mapa_query)}&output=embed"></iframe>`
+    : '<div style="height:100%; display:flex; align-items:center; justify-content:center; color:var(--ink-soft); font-size:13.5px;">Mapa próximamente.</div>';
 }
 
 async function resolveOrganizacion(){

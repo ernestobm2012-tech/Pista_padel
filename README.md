@@ -587,13 +587,19 @@ directo; si administras varias (por ejemplo, tú como super-admin, o un
 gestor que lleva varios clubes), aparece un selector para elegir con cuál
 trabajar antes de entrar al panel.
 
-Desde `admin.html` → pestaña **«Organización»**, cada cliente puede:
+Desde `admin.html` → pestaña **«Organización»**, cada cliente puede
+autogestionar sus propios datos sin pedírtelo a ti:
 - Cambiar el **nombre** de su organización.
 - Subir, cambiar o quitar su propio **logo** (se guarda en el bucket
   `galeria-padel`, como las fotos de pistas/torneos).
+- Editar sus datos de **contacto** para la web pública: dirección, teléfono,
+  email, redes sociales (Instagram/Facebook/WhatsApp) y la búsqueda que se
+  usa para el mapa de Google.
 
-Ambos cambios se reflejan al momento en la cabecera de su propia web pública
-y de su propio panel — sin tocar código ni pedirte que lo hagas tú.
+Todos estos cambios se reflejan al momento en su propia web pública
+(`index.html`) y en su propio panel — sin tocar código. (Solo tú, desde
+`plataforma.html`, puedes cambiar sus **permisos** y activarla/desactivarla
+— ver más abajo.)
 
 ### Permisos: qué módulos tiene contratados cada cliente
 
@@ -603,45 +609,59 @@ cualquier organización. El resto (**Torneos y ligas**, **Ranking**,
 por cliente, según lo que haya contratado.
 
 Solo tu cuenta (`ernestobm2012@gmail.com`, la de super-admin/"padre") puede
-cambiarlo: entra en `admin.html`, elige la organización desde el selector, y
-dentro de su panel verás una pestaña **«Permisos»** que no ve nadie más. Ahí
-marcas o desmarcas cada módulo y guardas. Al momento:
+cambiarlo, desde `plataforma.html` (ver más abajo). Al momento:
 
 - Las pestañas correspondientes desaparecen del panel de esa organización
-  (para su propio administrador, no solo para ti).
+  en `admin.html` (para su propio administrador, no solo para ti).
 - Las secciones «Torneos» y «Ranking» desaparecen igual de su web pública
   (`index.html`) si no están contratadas.
-- Ahí mismo puedes marcar la organización como **inactiva** (por ejemplo, si
+- También puedes marcar la organización como **inactiva** (por ejemplo, si
   deja de pagar): su web pública deja de funcionar (muestra un aviso) y su
   panel de administración deja de dejar entrar a su propio admin, pero tú
-  sigues viéndola en tu selector (marcada "(inactiva)") para poder
+  sigues viéndola en `plataforma.html` (marcada "Inactiva") para poder
   reactivarla cuando quieras.
 
 Está reforzado a nivel de base de datos: aunque alguien manipulara las
 peticiones directamente, un trigger (`protect_organizacion_admin_fields`)
 impide que nadie que no sea super-admin cambie los permisos o el estado
 activo/inactivo de una organización — un admin de organización solo puede
-seguir editando su propio nombre y logo, nada más.
+seguir editando los datos de su propia organización (nombre, logo, contacto),
+nada de eso.
 
-### Dar de alta un club/ayuntamiento nuevo (crear su primer administrador)
+## `plataforma.html`: el panel del "padre"
 
-Con tu cuenta de super-admin, en `admin.html` verás una pestaña más:
-**«Organizaciones»** (nadie más la ve). Desde ahí, para un cliente nuevo:
+Toda la gestión que solo te corresponde a ti como dueño de la plataforma —dar
+de alta clientes nuevos, crear sus administradores, decidir qué módulos tiene
+cada uno, activarlos o desactivarlos— vive en un archivo **aparte** de
+`admin.html`: `plataforma.html`. No es una pestaña más del panel de cada
+club, es una página independiente, con su propio login (restringido también
+a tu email), separada de la operativa diaria de cualquier organización.
+
+Desde ahí, para dar de alta un cliente nuevo:
 
 1. **"+ Nueva organización"**: nombre, tipo (ayuntamiento / comunidad de
    vecinos / club de pádel / otro) y el identificador para la URL (slug,
-   p. ej. `mi-club-de-padel` → `index.html?org=mi-club-de-padel`).
-2. En **"Crear administrador"**, eliges esa organización, escribes el email
-   y una contraseña inicial (mínimo 6 caracteres) para la persona que la va
-   a gestionar, y pulsas "Crear administrador". Esa cuenta ya puede entrar
-   en `admin.html` con ese email y esa contraseña.
-3. Esa persona puede cambiar su propia contraseña más adelante desde
-   "¿Has olvidado tu contraseña?" en la pantalla de inicio de sesión — tú no
-   vuelves a tocarla salvo que te lo pidan.
-
-Si el email ya tenía cuenta (por ejemplo, la misma persona ya administra
-otro club tuyo), no se toca su contraseña: simplemente se le añade acceso a
-la organización nueva también.
+   p. ej. `mi-club-de-padel` → `index.html?org=mi-club-de-padel`). Se crea
+   con la base de datos completamente en blanco: sin pistas, sin precios,
+   sin clientes ni reservas — nada compartido con el resto de organizaciones.
+2. Esa organización aparece debajo como una ficha completa donde rellenas
+   **todo lo que la identifica**: nombre, tipo, slug, logo, dirección,
+   teléfono, email de contacto, redes sociales (Instagram/Facebook/WhatsApp)
+   y el texto de búsqueda para el mapa de su web pública — todo lo que antes
+   estaba fijo en el código para Chozas de Canales, ahora es un dato más de
+   cada organización.
+3. En la misma ficha, marcas qué **permisos** tiene (Torneos, Ranking,
+   Estadísticas, Facturas) y si está activa.
+4. En **"Administradores"**, escribes el email y una contraseña inicial
+   (mínimo 6 caracteres) de la persona que va a gestionarla, y pulsas "Crear
+   administrador". Esa cuenta ya puede entrar en `admin.html` con ese email
+   y esa contraseña, y podrá cambiarla ella misma más adelante desde
+   "¿Has olvidado tu contraseña?" — tú no vuelves a tocarla salvo que te lo
+   pidan. Si el email ya tenía cuenta (por ejemplo, la misma persona ya
+   administra otro club tuyo), no se toca su contraseña: solo se le añade
+   acceso a la organización nueva. El botón "×" junto a un email le quita el
+   acceso a esa organización concreta (sin borrar su cuenta, por si
+   administra otras).
 
 Por seguridad, la contraseña **no se guarda ni se ve** en ningún sitio del
 panel: se crea la cuenta de Supabase Auth al vuelo desde una Edge Function
@@ -649,21 +669,9 @@ panel: se crea la cuenta de Supabase Auth al vuelo desde una Edge Function
 tu email igual que `admin-create-client-padel`), y de ahí en adelante esa
 contraseña solo la conoce quien tú se la des.
 
-La tabla de abajo («Todas las organizaciones») lista todos los clientes con
-sus administradores actuales; el botón "×" junto a un email le quita el
-acceso a esa organización concreta (sin borrar su cuenta, por si administra
-otras).
-
-### Dar de alta un cliente nuevo
-
-Hoy por hoy, dar de alta una organización nueva (ayuntamiento, comunidad o
-club) se hace insertando su fila en `organizaciones` y su primer admin en
-`organizacion_admins` desde el dashboard de Supabase (no hay todavía un
-formulario público de auto-registro, algo deliberado: son clientes que
-contratas tú, no un SaaS de alta libre). A partir de ahí, ese cliente ya
-tiene su propia web (`index.html?org=su-slug`) y su propio panel, sin
-desplegar nada nuevo ni tocar una sola línea de código — y puede personalizar
-su nombre y logo él mismo desde `admin.html`.
+Con esto, dar de alta un club nuevo no requiere tocar código ni el dashboard
+de Supabase: entras en `plataforma.html`, rellenas su ficha y le creas su
+administrador, y ese cliente ya tiene su propia web y su propio panel.
 
 ## Cómo lo pruebas en local
 

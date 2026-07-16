@@ -236,8 +236,6 @@
     <button data-tab="tabPrecios">Precios</button>
     <button data-tab="tabFacturas">Facturas</button>
     <button data-tab="tabOrganizacion">Organización</button>
-    <button data-tab="tabOrganizaciones" id="organizacionesTabBtn" hidden>Organizaciones</button>
-    <button data-tab="tabPermisos" id="permisosTabBtn" hidden>Permisos</button>
   </nav>
 
   <main>
@@ -600,91 +598,21 @@
           <span class="form-msg" id="orgLogoMsg"></span>
         </div>
       </div>
-    </section>
 
-    <!-- ---------- Organizaciones: alta de clientes nuevos (solo super-admin) ---------- -->
-    <section id="tabOrganizaciones" class="tab-panel" hidden>
-      <div class="panel-head"><h2>Organizaciones</h2><button class="btn btn-primary btn-sm" id="newOrgBtn">+ Nueva organización</button></div>
-      <div class="card" id="newOrgCard" hidden>
+      <div class="panel-head"><h2>Contacto (web pública)</h2></div>
+      <div class="card" style="max-width:640px;">
         <div class="form-grid">
-          <div class="field"><label for="neworg_nombre">Nombre</label><input type="text" id="neworg_nombre" required></div>
-          <div class="field">
-            <label for="neworg_tipo">Tipo</label>
-            <select id="neworg_tipo">
-              <option value="ayuntamiento">Ayuntamiento</option>
-              <option value="comunidad_vecinos">Comunidad de vecinos</option>
-              <option value="club_padel">Club de pádel</option>
-              <option value="otro">Otro</option>
-            </select>
-          </div>
-          <div class="field"><label for="neworg_slug">Identificador en la URL (slug)</label><input type="text" id="neworg_slug" placeholder="mi-club-de-padel" required></div>
-          <div style="grid-column:1/-1; display:flex; gap:10px; align-items:center;">
-            <button type="button" class="btn btn-primary btn-sm" id="saveNewOrgBtn">Crear organización</button>
-            <button type="button" class="btn btn-ghost btn-sm" id="cancelNewOrgBtn">Cancelar</button>
-            <span class="form-msg" id="newOrgMsg"></span>
-          </div>
+          <div class="field" style="grid-column:1/-1;"><label for="org_direccion">Dirección</label><input type="text" id="org_direccion"></div>
+          <div class="field"><label for="org_telefono">Teléfono</label><input type="text" id="org_telefono"></div>
+          <div class="field"><label for="org_email_contacto">Email de contacto</label><input type="email" id="org_email_contacto"></div>
+          <div class="field"><label for="org_instagram">Instagram (URL)</label><input type="text" id="org_instagram"></div>
+          <div class="field"><label for="org_facebook">Facebook (URL)</label><input type="text" id="org_facebook"></div>
+          <div class="field"><label for="org_whatsapp">WhatsApp (enlace wa.me)</label><input type="text" id="org_whatsapp"></div>
+          <div class="field"><label for="org_mapa">Búsqueda para el mapa</label><input type="text" id="org_mapa" placeholder="pistas de padel Mi Ciudad"></div>
         </div>
-      </div>
-
-      <div class="panel-head"><h2>Crear administrador</h2></div>
-      <p style="color:var(--ink-soft); font-size:13.5px; margin:-10px 0 10px;">
-        Le das aquí el primer email y contraseña de acceso a cada organización
-        nueva. Esa persona podrá cambiar su contraseña más adelante desde
-        "¿Has olvidado tu contraseña?" en la pantalla de inicio de sesión.
-      </p>
-      <div class="card" style="max-width:460px;">
-        <div class="field">
-          <label for="newadmin_org">Organización</label>
-          <select id="newadmin_org"></select>
-        </div>
-        <div class="field"><label for="newadmin_email">Email</label><input type="email" id="newadmin_email" required></div>
-        <div class="field"><label for="newadmin_password">Contraseña inicial</label><input type="text" id="newadmin_password" placeholder="mínimo 6 caracteres" required></div>
         <div style="display:flex; gap:10px; align-items:center; margin-top:10px;">
-          <button type="button" class="btn btn-primary btn-sm" id="createOrgAdminBtn">Crear administrador</button>
-          <span class="form-msg" id="newAdminMsg"></span>
-        </div>
-      </div>
-
-      <div class="panel-head"><h2>Todas las organizaciones</h2></div>
-      <div class="card table-wrap">
-        <table>
-          <thead><tr><th>Nombre</th><th>Tipo</th><th>Slug</th><th>Estado</th><th>Administradores</th></tr></thead>
-          <tbody id="orgsAdminBody"></tbody>
-        </table>
-      </div>
-    </section>
-
-    <!-- ---------- Permisos (solo super-admin) ---------- -->
-    <section id="tabPermisos" class="tab-panel" hidden>
-      <div class="panel-head"><h2>Permisos de esta organización</h2></div>
-      <p style="color:var(--ink-soft); font-size:13.5px; margin:-10px 0 10px;">
-        Como administrador de la plataforma, aquí decides qué funciones tiene
-        contratadas esta organización. Reservas, calendario, clientes, pistas
-        y precios están siempre incluidos.
-      </p>
-      <div class="card" style="max-width:420px;">
-        <label style="display:flex; align-items:center; gap:8px; font-weight:400; font-size:14px; margin-bottom:10px; opacity:0.6;">
-          <input type="checkbox" checked disabled style="width:auto;"> Reservas (siempre incluido)
-        </label>
-        <label style="display:flex; align-items:center; gap:8px; font-weight:400; font-size:14px; margin-bottom:10px;">
-          <input type="checkbox" id="perm_torneos" style="width:auto;"> Torneos y ligas
-        </label>
-        <label style="display:flex; align-items:center; gap:8px; font-weight:400; font-size:14px; margin-bottom:10px;">
-          <input type="checkbox" id="perm_ranking" style="width:auto;"> Ranking
-        </label>
-        <label style="display:flex; align-items:center; gap:8px; font-weight:400; font-size:14px; margin-bottom:10px;">
-          <input type="checkbox" id="perm_estadisticas" style="width:auto;"> Estadísticas
-        </label>
-        <label style="display:flex; align-items:center; gap:8px; font-weight:400; font-size:14px; margin-bottom:10px;">
-          <input type="checkbox" id="perm_facturas" style="width:auto;"> Facturas
-        </label>
-        <hr style="border:none; border-top:1px solid var(--line); margin:14px 0;">
-        <label style="display:flex; align-items:center; gap:8px; font-weight:400; font-size:14px; margin-bottom:10px;">
-          <input type="checkbox" id="perm_activo" style="width:auto;"> Organización activa
-        </label>
-        <div style="display:flex; gap:10px; align-items:center; margin-top:10px;">
-          <button type="button" class="btn btn-primary btn-sm" id="savePermisosBtn">Guardar</button>
-          <span class="form-msg" id="permisosMsg"></span>
+          <button type="button" class="btn btn-primary btn-sm" id="saveOrgContactoBtn">Guardar</button>
+          <span class="form-msg" id="orgContactoMsg"></span>
         </div>
       </div>
     </section>
@@ -769,7 +697,6 @@ const loginMsg = document.getElementById('loginMsg');
 // aquí en adelante se acotan a ORG_ID para que sea imposible mezclar datos.
 let ORG_ID = null;
 let CURRENT_ORG = null;
-let CURRENT_USER_EMAIL = null;
 
 async function resolveAdminOrganizaciones(email){
   if (email === ADMIN_EMAIL){
@@ -805,11 +732,6 @@ function applyFeatureGating(features){
   gate('tabRanking', f.ranking !== false);
   gate('tabEstadisticas', f.estadisticas !== false);
   gate('tabFacturas', f.facturas !== false);
-  const isSuperAdmin = CURRENT_USER_EMAIL === ADMIN_EMAIL;
-  const permisosBtn = document.getElementById('permisosTabBtn');
-  if (permisosBtn) permisosBtn.hidden = !isSuperAdmin;
-  const organizacionesBtn = document.getElementById('organizacionesTabBtn');
-  if (organizacionesBtn) organizacionesBtn.hidden = !isSuperAdmin;
 }
 
 async function enterOrg(org){
@@ -960,8 +882,6 @@ document.querySelectorAll('nav.tabs button').forEach(btn => {
     if (btn.dataset.tab === 'tabPrecios'){ await loadDurations(); loadExtras(); loadAjustes(); loadPreciosMode(); }
     if (btn.dataset.tab === 'tabFacturas') loadInvoices();
     if (btn.dataset.tab === 'tabOrganizacion') loadOrgSettings();
-    if (btn.dataset.tab === 'tabOrganizaciones') loadOrganizacionesAdmin();
-    if (btn.dataset.tab === 'tabPermisos') loadPermisos();
   });
 });
 
@@ -1127,6 +1047,13 @@ async function loadOrgSettings(){
   CURRENT_ORG = data;
   document.getElementById('org_nombre').value = data.nombre;
   renderOrgLogoPreview(data.logo_path);
+  document.getElementById('org_direccion').value = data.direccion || '';
+  document.getElementById('org_telefono').value = data.telefono || '';
+  document.getElementById('org_email_contacto').value = data.email_contacto || '';
+  document.getElementById('org_instagram').value = data.instagram_url || '';
+  document.getElementById('org_facebook').value = data.facebook_url || '';
+  document.getElementById('org_whatsapp').value = data.whatsapp_url || '';
+  document.getElementById('org_mapa').value = data.mapa_query || '';
 }
 
 document.getElementById('saveOrgNombreBtn').addEventListener('click', async () => {
@@ -1172,132 +1099,21 @@ document.getElementById('removeOrgLogoBtn').addEventListener('click', async () =
   await loadOrgSettings();
 });
 
-/* ---------- Organizaciones: alta de clientes nuevos (solo super-admin) ---------- */
-async function loadOrganizacionesAdmin(){
-  const [{ data: orgs }, { data: admins }] = await Promise.all([
-    supabase.from('organizaciones').select('*').order('nombre'),
-    supabase.from('organizacion_admins').select('*'),
-  ]);
-  const select = document.getElementById('newadmin_org');
-  select.innerHTML = (orgs || []).map(o => `<option value="${o.id}">${o.nombre}</option>`).join('');
-
-  const body = document.getElementById('orgsAdminBody');
-  body.innerHTML = (orgs || []).map(o => {
-    const orgAdmins = (admins || []).filter(a => a.organizacion_id === o.id);
-    const adminsHtml = orgAdmins.length
-      ? orgAdmins.map(a => `<span style="display:inline-flex; align-items:center; gap:4px; background:var(--bg-soft); border:1px solid var(--line); border-radius:999px; padding:2px 8px; margin:2px; font-size:12.5px;">${a.email} <button data-remove-admin="${a.id}" title="Quitar acceso" style="border:none; background:none; color:inherit; cursor:pointer; font-size:14px; line-height:1;">×</button></span>`).join(' ')
-      : '<span style="color:var(--ink-soft); font-size:13px;">Sin administradores</span>';
-    return `<tr data-org-id="${o.id}">
-      <td>${o.nombre}</td>
-      <td>${o.tipo || '—'}</td>
-      <td>${o.slug}</td>
-      <td>${o.activo === false ? 'Inactiva' : 'Activa'}</td>
-      <td>${adminsHtml}</td>
-    </tr>`;
-  }).join('');
-
-  body.querySelectorAll('[data-remove-admin]').forEach(btn => {
-    btn.addEventListener('click', async () => {
-      if (!confirm('¿Quitar el acceso de este administrador a esta organización?')) return;
-      await supabase.from('organizacion_admins').delete().eq('id', btn.dataset.removeAdmin);
-      loadOrganizacionesAdmin();
-    });
-  });
-}
-
-document.getElementById('newOrgBtn').addEventListener('click', () => {
-  document.getElementById('newOrgCard').hidden = false;
-});
-document.getElementById('cancelNewOrgBtn').addEventListener('click', () => {
-  document.getElementById('newOrgCard').hidden = true;
-});
-document.getElementById('saveNewOrgBtn').addEventListener('click', async () => {
-  const msg = document.getElementById('newOrgMsg');
-  const nombre = document.getElementById('neworg_nombre').value.trim();
-  const tipo = document.getElementById('neworg_tipo').value;
-  const slug = document.getElementById('neworg_slug').value.trim().toLowerCase()
-    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
-    .replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
-  if (!nombre || !slug){
-    msg.textContent = 'Nombre e identificador (slug) son obligatorios.';
-    msg.className = 'form-msg err';
-    return;
-  }
-  const { error } = await supabase.from('organizaciones').insert({ nombre, tipo, slug });
-  if (error){
-    msg.textContent = /duplicate|unique/i.test(error.message) ? 'Ya existe una organización con ese identificador.' : 'Error al crear: ' + error.message;
-    msg.className = 'form-msg err';
-    return;
-  }
-  msg.textContent = '¡Organización creada! Ya puedes crearle un administrador debajo.';
-  msg.className = 'form-msg ok';
-  document.getElementById('neworg_nombre').value = '';
-  document.getElementById('neworg_slug').value = '';
-  await loadOrganizacionesAdmin();
-});
-
-document.getElementById('createOrgAdminBtn').addEventListener('click', async () => {
-  const msg = document.getElementById('newAdminMsg');
-  const organizacion_id = document.getElementById('newadmin_org').value;
-  const email = document.getElementById('newadmin_email').value.trim();
-  const password = document.getElementById('newadmin_password').value;
-  if (!organizacion_id || !email || !password){
-    msg.textContent = 'Rellena organización, email y contraseña.';
-    msg.className = 'form-msg err';
-    return;
-  }
-  if (password.length < 6){
-    msg.textContent = 'La contraseña debe tener al menos 6 caracteres.';
-    msg.className = 'form-msg err';
-    return;
-  }
-  msg.textContent = 'Creando…';
-  msg.className = 'form-msg';
-  const { data, error } = await supabase.functions.invoke('admin-create-org-admin-padel', {
-    body: { organizacion_id, email, password },
-  });
-  if (error || data?.error){
-    msg.textContent = data?.error || 'No se ha podido crear el administrador.';
-    msg.className = 'form-msg err';
-    return;
-  }
-  msg.textContent = data.created
-    ? '¡Administrador creado! Ya puede entrar con ese email y esa contraseña.'
-    : 'Ya existía una cuenta con ese email: se le ha dado acceso a esta organización (su contraseña no ha cambiado).';
-  msg.className = 'form-msg ok';
-  document.getElementById('newadmin_email').value = '';
-  document.getElementById('newadmin_password').value = '';
-  await loadOrganizacionesAdmin();
-});
-
-/* ---------- Permisos (solo super-admin) ---------- */
-async function loadPermisos(){
-  const { data, error } = await supabase.from('organizaciones').select('*').eq('id', ORG_ID).single();
-  if (error || !data) return;
-  const f = data.features || {};
-  document.getElementById('perm_torneos').checked = f.torneos !== false;
-  document.getElementById('perm_ranking').checked = f.ranking !== false;
-  document.getElementById('perm_estadisticas').checked = f.estadisticas !== false;
-  document.getElementById('perm_facturas').checked = f.facturas !== false;
-  document.getElementById('perm_activo').checked = data.activo !== false;
-}
-
-document.getElementById('savePermisosBtn').addEventListener('click', async () => {
-  const msg = document.getElementById('permisosMsg');
-  const features = {
-    torneos: document.getElementById('perm_torneos').checked,
-    ranking: document.getElementById('perm_ranking').checked,
-    estadisticas: document.getElementById('perm_estadisticas').checked,
-    facturas: document.getElementById('perm_facturas').checked,
+document.getElementById('saveOrgContactoBtn').addEventListener('click', async () => {
+  const msg = document.getElementById('orgContactoMsg');
+  const payload = {
+    direccion: document.getElementById('org_direccion').value.trim() || null,
+    telefono: document.getElementById('org_telefono').value.trim() || null,
+    email_contacto: document.getElementById('org_email_contacto').value.trim() || null,
+    instagram_url: document.getElementById('org_instagram').value.trim() || null,
+    facebook_url: document.getElementById('org_facebook').value.trim() || null,
+    whatsapp_url: document.getElementById('org_whatsapp').value.trim() || null,
+    mapa_query: document.getElementById('org_mapa').value.trim() || null,
   };
-  const activo = document.getElementById('perm_activo').checked;
-  const { error } = await supabase.from('organizaciones').update({ features, activo }).eq('id', ORG_ID);
+  const { error } = await supabase.from('organizaciones').update(payload).eq('id', ORG_ID);
   msg.textContent = error ? 'Error al guardar.' : '¡Guardado!';
   msg.className = 'form-msg ' + (error ? 'err' : 'ok');
-  if (!error){
-    CURRENT_ORG = { ...CURRENT_ORG, features, activo };
-    applyFeatureGating(features);
-  }
+  if (!error) CURRENT_ORG = { ...CURRENT_ORG, ...payload };
 });
 
 /* ---------- Reservas ---------- */
@@ -3526,7 +3342,6 @@ async function handleSession(session){
   if (!session){
     ORG_ID = null;
     CURRENT_ORG = null;
-    CURRENT_USER_EMAIL = null;
     loginScreen.hidden = false;
     orgPickerScreen.hidden = true;
     appScreen.hidden = true;
@@ -3534,7 +3349,6 @@ async function handleSession(session){
   }
   if (handlingSession) return;
   handlingSession = true;
-  CURRENT_USER_EMAIL = session.user.email;
   try {
     const orgs = await resolveAdminOrganizaciones(session.user.email);
     if (!orgs.length){
