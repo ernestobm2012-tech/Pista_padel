@@ -326,8 +326,8 @@
         <li><a href="#pistas">Pistas</a></li>
         <li><a href="#precios">Precios</a></li>
         <li><a href="#reserva">Reservar</a></li>
-        <li><a href="#torneos">Torneos</a></li>
-        <li><a href="#ranking">Ranking</a></li>
+        <li id="navTorneos"><a href="#torneos">Torneos</a></li>
+        <li id="navRanking"><a href="#ranking">Ranking</a></li>
         <li><a href="#contacto">Contacto</a></li>
       </ul>
       <div class="nav-cta">
@@ -771,6 +771,15 @@ function applyOrgBranding(org){
     img.hidden = false;
     document.getElementById('orgDot').hidden = true;
   }
+  const f = org.features || {};
+  const gate = (navId, sectionId, enabled) => {
+    const nav = document.getElementById(navId);
+    const section = document.getElementById(sectionId);
+    if (nav) nav.hidden = !enabled;
+    if (section) section.hidden = !enabled;
+  };
+  gate('navTorneos', 'torneos', f.torneos !== false);
+  gate('navRanking', 'ranking', f.ranking !== false);
 }
 
 async function resolveOrganizacion(){
@@ -1711,7 +1720,12 @@ async function init(){
     });
   }
 
-  await Promise.all([loadCourts(), loadDurations(), loadExtras(), loadMaintenance(), loadCompetitions(), renderPublicRanking()]);
+  const f = (CURRENT_ORG && CURRENT_ORG.features) || {};
+  await Promise.all([
+    loadCourts(), loadDurations(), loadExtras(), loadMaintenance(),
+    f.torneos !== false ? loadCompetitions() : Promise.resolve(),
+    f.ranking !== false ? renderPublicRanking() : Promise.resolve(),
+  ]);
   ALL_START_TIMES = buildStartTimes();
 
   const today = new Date().toISOString().slice(0,10);

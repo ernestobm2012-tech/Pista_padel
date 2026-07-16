@@ -595,6 +595,34 @@ Desde `admin.html` → pestaña **«Organización»**, cada cliente puede:
 Ambos cambios se reflejan al momento en la cabecera de su propia web pública
 y de su propio panel — sin tocar código ni pedirte que lo hagas tú.
 
+### Permisos: qué módulos tiene contratados cada cliente
+
+Reservas, Calendario, Clientes, Pistas y Precios están siempre incluidos para
+cualquier organización. El resto (**Torneos y ligas**, **Ranking**,
+**Estadísticas**, **Facturas**) son módulos que puedes activar o desactivar
+por cliente, según lo que haya contratado.
+
+Solo tu cuenta (`ernestobm2012@gmail.com`, la de super-admin/"padre") puede
+cambiarlo: entra en `admin.html`, elige la organización desde el selector, y
+dentro de su panel verás una pestaña **«Permisos»** que no ve nadie más. Ahí
+marcas o desmarcas cada módulo y guardas. Al momento:
+
+- Las pestañas correspondientes desaparecen del panel de esa organización
+  (para su propio administrador, no solo para ti).
+- Las secciones «Torneos» y «Ranking» desaparecen igual de su web pública
+  (`index.html`) si no están contratadas.
+- Ahí mismo puedes marcar la organización como **inactiva** (por ejemplo, si
+  deja de pagar): su web pública deja de funcionar (muestra un aviso) y su
+  panel de administración deja de dejar entrar a su propio admin, pero tú
+  sigues viéndola en tu selector (marcada "(inactiva)") para poder
+  reactivarla cuando quieras.
+
+Está reforzado a nivel de base de datos: aunque alguien manipulara las
+peticiones directamente, un trigger (`protect_organizacion_admin_fields`)
+impide que nadie que no sea super-admin cambie los permisos o el estado
+activo/inactivo de una organización — un admin de organización solo puede
+seguir editando su propio nombre y logo, nada más.
+
 ### Dar de alta un cliente nuevo
 
 Hoy por hoy, dar de alta una organización nueva (ayuntamiento, comunidad o
