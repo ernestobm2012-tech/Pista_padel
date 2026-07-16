@@ -623,6 +623,37 @@ impide que nadie que no sea super-admin cambie los permisos o el estado
 activo/inactivo de una organización — un admin de organización solo puede
 seguir editando su propio nombre y logo, nada más.
 
+### Dar de alta un club/ayuntamiento nuevo (crear su primer administrador)
+
+Con tu cuenta de super-admin, en `admin.html` verás una pestaña más:
+**«Organizaciones»** (nadie más la ve). Desde ahí, para un cliente nuevo:
+
+1. **"+ Nueva organización"**: nombre, tipo (ayuntamiento / comunidad de
+   vecinos / club de pádel / otro) y el identificador para la URL (slug,
+   p. ej. `mi-club-de-padel` → `index.html?org=mi-club-de-padel`).
+2. En **"Crear administrador"**, eliges esa organización, escribes el email
+   y una contraseña inicial (mínimo 6 caracteres) para la persona que la va
+   a gestionar, y pulsas "Crear administrador". Esa cuenta ya puede entrar
+   en `admin.html` con ese email y esa contraseña.
+3. Esa persona puede cambiar su propia contraseña más adelante desde
+   "¿Has olvidado tu contraseña?" en la pantalla de inicio de sesión — tú no
+   vuelves a tocarla salvo que te lo pidan.
+
+Si el email ya tenía cuenta (por ejemplo, la misma persona ya administra
+otro club tuyo), no se toca su contraseña: simplemente se le añade acceso a
+la organización nueva también.
+
+Por seguridad, la contraseña **no se guarda ni se ve** en ningún sitio del
+panel: se crea la cuenta de Supabase Auth al vuelo desde una Edge Function
+(`admin-create-org-admin-padel`) que solo tu cuenta puede invocar (comprueba
+tu email igual que `admin-create-client-padel`), y de ahí en adelante esa
+contraseña solo la conoce quien tú se la des.
+
+La tabla de abajo («Todas las organizaciones») lista todos los clientes con
+sus administradores actuales; el botón "×" junto a un email le quita el
+acceso a esa organización concreta (sin borrar su cuenta, por si administra
+otras).
+
 ### Dar de alta un cliente nuevo
 
 Hoy por hoy, dar de alta una organización nueva (ayuntamiento, comunidad o

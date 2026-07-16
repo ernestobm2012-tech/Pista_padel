@@ -236,6 +236,7 @@
     <button data-tab="tabPrecios">Precios</button>
     <button data-tab="tabFacturas">Facturas</button>
     <button data-tab="tabOrganizacion">Organización</button>
+    <button data-tab="tabOrganizaciones" id="organizacionesTabBtn" hidden>Organizaciones</button>
     <button data-tab="tabPermisos" id="permisosTabBtn" hidden>Permisos</button>
   </nav>
 
@@ -601,6 +602,58 @@
       </div>
     </section>
 
+    <!-- ---------- Organizaciones: alta de clientes nuevos (solo super-admin) ---------- -->
+    <section id="tabOrganizaciones" class="tab-panel" hidden>
+      <div class="panel-head"><h2>Organizaciones</h2><button class="btn btn-primary btn-sm" id="newOrgBtn">+ Nueva organización</button></div>
+      <div class="card" id="newOrgCard" hidden>
+        <div class="form-grid">
+          <div class="field"><label for="neworg_nombre">Nombre</label><input type="text" id="neworg_nombre" required></div>
+          <div class="field">
+            <label for="neworg_tipo">Tipo</label>
+            <select id="neworg_tipo">
+              <option value="ayuntamiento">Ayuntamiento</option>
+              <option value="comunidad_vecinos">Comunidad de vecinos</option>
+              <option value="club_padel">Club de pádel</option>
+              <option value="otro">Otro</option>
+            </select>
+          </div>
+          <div class="field"><label for="neworg_slug">Identificador en la URL (slug)</label><input type="text" id="neworg_slug" placeholder="mi-club-de-padel" required></div>
+          <div style="grid-column:1/-1; display:flex; gap:10px; align-items:center;">
+            <button type="button" class="btn btn-primary btn-sm" id="saveNewOrgBtn">Crear organización</button>
+            <button type="button" class="btn btn-ghost btn-sm" id="cancelNewOrgBtn">Cancelar</button>
+            <span class="form-msg" id="newOrgMsg"></span>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel-head"><h2>Crear administrador</h2></div>
+      <p style="color:var(--ink-soft); font-size:13.5px; margin:-10px 0 10px;">
+        Le das aquí el primer email y contraseña de acceso a cada organización
+        nueva. Esa persona podrá cambiar su contraseña más adelante desde
+        "¿Has olvidado tu contraseña?" en la pantalla de inicio de sesión.
+      </p>
+      <div class="card" style="max-width:460px;">
+        <div class="field">
+          <label for="newadmin_org">Organización</label>
+          <select id="newadmin_org"></select>
+        </div>
+        <div class="field"><label for="newadmin_email">Email</label><input type="email" id="newadmin_email" required></div>
+        <div class="field"><label for="newadmin_password">Contraseña inicial</label><input type="text" id="newadmin_password" placeholder="mínimo 6 caracteres" required></div>
+        <div style="display:flex; gap:10px; align-items:center; margin-top:10px;">
+          <button type="button" class="btn btn-primary btn-sm" id="createOrgAdminBtn">Crear administrador</button>
+          <span class="form-msg" id="newAdminMsg"></span>
+        </div>
+      </div>
+
+      <div class="panel-head"><h2>Todas las organizaciones</h2></div>
+      <div class="card table-wrap">
+        <table>
+          <thead><tr><th>Nombre</th><th>Tipo</th><th>Slug</th><th>Estado</th><th>Administradores</th></tr></thead>
+          <tbody id="orgsAdminBody"></tbody>
+        </table>
+      </div>
+    </section>
+
     <!-- ---------- Permisos (solo super-admin) ---------- -->
     <section id="tabPermisos" class="tab-panel" hidden>
       <div class="panel-head"><h2>Permisos de esta organización</h2></div>
@@ -752,8 +805,11 @@ function applyFeatureGating(features){
   gate('tabRanking', f.ranking !== false);
   gate('tabEstadisticas', f.estadisticas !== false);
   gate('tabFacturas', f.facturas !== false);
+  const isSuperAdmin = CURRENT_USER_EMAIL === ADMIN_EMAIL;
   const permisosBtn = document.getElementById('permisosTabBtn');
-  if (permisosBtn) permisosBtn.hidden = CURRENT_USER_EMAIL !== ADMIN_EMAIL;
+  if (permisosBtn) permisosBtn.hidden = !isSuperAdmin;
+  const organizacionesBtn = document.getElementById('organizacionesTabBtn');
+  if (organizacionesBtn) organizacionesBtn.hidden = !isSuperAdmin;
 }
 
 async function enterOrg(org){
@@ -904,6 +960,7 @@ document.querySelectorAll('nav.tabs button').forEach(btn => {
     if (btn.dataset.tab === 'tabPrecios'){ await loadDurations(); loadExtras(); loadAjustes(); loadPreciosMode(); }
     if (btn.dataset.tab === 'tabFacturas') loadInvoices();
     if (btn.dataset.tab === 'tabOrganizacion') loadOrgSettings();
+    if (btn.dataset.tab === 'tabOrganizaciones') loadOrganizacionesAdmin();
     if (btn.dataset.tab === 'tabPermisos') loadPermisos();
   });
 });
@@ -1113,6 +1170,104 @@ document.getElementById('removeOrgLogoBtn').addEventListener('click', async () =
   if (error){ document.getElementById('orgLogoMsg').textContent = 'Error al quitar el logo.'; document.getElementById('orgLogoMsg').className = 'form-msg err'; return; }
   if (path) await supabase.storage.from('galeria-padel').remove([path]);
   await loadOrgSettings();
+});
+
+/* ---------- Organizaciones: alta de clientes nuevos (solo super-admin) ---------- */
+async function loadOrganizacionesAdmin(){
+  const [{ data: orgs }, { data: admins }] = await Promise.all([
+    supabase.from('organizaciones').select('*').order('nombre'),
+    supabase.from('organizacion_admins').select('*'),
+  ]);
+  const select = document.getElementById('newadmin_org');
+  select.innerHTML = (orgs || []).map(o => `<option value="${o.id}">${o.nombre}</option>`).join('');
+
+  const body = document.getElementById('orgsAdminBody');
+  body.innerHTML = (orgs || []).map(o => {
+    const orgAdmins = (admins || []).filter(a => a.organizacion_id === o.id);
+    const adminsHtml = orgAdmins.length
+      ? orgAdmins.map(a => `<span style="display:inline-flex; align-items:center; gap:4px; background:var(--bg-soft); border:1px solid var(--line); border-radius:999px; padding:2px 8px; margin:2px; font-size:12.5px;">${a.email} <button data-remove-admin="${a.id}" title="Quitar acceso" style="border:none; background:none; color:inherit; cursor:pointer; font-size:14px; line-height:1;">×</button></span>`).join(' ')
+      : '<span style="color:var(--ink-soft); font-size:13px;">Sin administradores</span>';
+    return `<tr data-org-id="${o.id}">
+      <td>${o.nombre}</td>
+      <td>${o.tipo || '—'}</td>
+      <td>${o.slug}</td>
+      <td>${o.activo === false ? 'Inactiva' : 'Activa'}</td>
+      <td>${adminsHtml}</td>
+    </tr>`;
+  }).join('');
+
+  body.querySelectorAll('[data-remove-admin]').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      if (!confirm('¿Quitar el acceso de este administrador a esta organización?')) return;
+      await supabase.from('organizacion_admins').delete().eq('id', btn.dataset.removeAdmin);
+      loadOrganizacionesAdmin();
+    });
+  });
+}
+
+document.getElementById('newOrgBtn').addEventListener('click', () => {
+  document.getElementById('newOrgCard').hidden = false;
+});
+document.getElementById('cancelNewOrgBtn').addEventListener('click', () => {
+  document.getElementById('newOrgCard').hidden = true;
+});
+document.getElementById('saveNewOrgBtn').addEventListener('click', async () => {
+  const msg = document.getElementById('newOrgMsg');
+  const nombre = document.getElementById('neworg_nombre').value.trim();
+  const tipo = document.getElementById('neworg_tipo').value;
+  const slug = document.getElementById('neworg_slug').value.trim().toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+  if (!nombre || !slug){
+    msg.textContent = 'Nombre e identificador (slug) son obligatorios.';
+    msg.className = 'form-msg err';
+    return;
+  }
+  const { error } = await supabase.from('organizaciones').insert({ nombre, tipo, slug });
+  if (error){
+    msg.textContent = /duplicate|unique/i.test(error.message) ? 'Ya existe una organización con ese identificador.' : 'Error al crear: ' + error.message;
+    msg.className = 'form-msg err';
+    return;
+  }
+  msg.textContent = '¡Organización creada! Ya puedes crearle un administrador debajo.';
+  msg.className = 'form-msg ok';
+  document.getElementById('neworg_nombre').value = '';
+  document.getElementById('neworg_slug').value = '';
+  await loadOrganizacionesAdmin();
+});
+
+document.getElementById('createOrgAdminBtn').addEventListener('click', async () => {
+  const msg = document.getElementById('newAdminMsg');
+  const organizacion_id = document.getElementById('newadmin_org').value;
+  const email = document.getElementById('newadmin_email').value.trim();
+  const password = document.getElementById('newadmin_password').value;
+  if (!organizacion_id || !email || !password){
+    msg.textContent = 'Rellena organización, email y contraseña.';
+    msg.className = 'form-msg err';
+    return;
+  }
+  if (password.length < 6){
+    msg.textContent = 'La contraseña debe tener al menos 6 caracteres.';
+    msg.className = 'form-msg err';
+    return;
+  }
+  msg.textContent = 'Creando…';
+  msg.className = 'form-msg';
+  const { data, error } = await supabase.functions.invoke('admin-create-org-admin-padel', {
+    body: { organizacion_id, email, password },
+  });
+  if (error || data?.error){
+    msg.textContent = data?.error || 'No se ha podido crear el administrador.';
+    msg.className = 'form-msg err';
+    return;
+  }
+  msg.textContent = data.created
+    ? '¡Administrador creado! Ya puede entrar con ese email y esa contraseña.'
+    : 'Ya existía una cuenta con ese email: se le ha dado acceso a esta organización (su contraseña no ha cambiado).';
+  msg.className = 'form-msg ok';
+  document.getElementById('newadmin_email').value = '';
+  document.getElementById('newadmin_password').value = '';
+  await loadOrganizacionesAdmin();
 });
 
 /* ---------- Permisos (solo super-admin) ---------- */
