@@ -80,7 +80,9 @@ Este proyecto reutiliza el proyecto Supabase **`paseo-perros-app`** (ref
 - `pistas_padel` — pistas del club (nombre, superficie, orden, activa).
 - `duraciones_padel` — precio según cuánto tiempo se reserva (1h = 3€, 1h30 =
   4,5€, 2h = 6€ por defecto); el cliente elige duración al reservar, como en
-  Playtomic. La reserva mínima es la duración más corta activa.
+  Playtomic. La reserva mínima es la duración más corta activa. Por defecto el
+  precio es el mismo en todas las pistas, pero puede tener un precio distinto
+  por pista (ver más abajo, "Precio por pista").
 - `mantenimientos_padel` — cierres temporales de una pista (fecha inicio/fin +
   motivo); mientras una pista está en mantenimiento no se puede reservar esas
   fechas.
@@ -161,6 +163,33 @@ El acceso a `admin.html` está restringido a tu cuenta (`ernestobm2012@gmail.com
 por email, no solo por tener sesión iniciada: si una cuenta de cliente intenta
 entrar ahí, se le cierra la sesión automáticamente y se le avisa de que no
 tiene acceso.
+
+### Precio por pista
+
+Por defecto todas las pistas cobran lo mismo por duración. Si en el futuro
+alguna pista debe tener un precio distinto (por ejemplo, una pista cubierta
+o con mejores vistas), en `admin.html` → pestaña «Precios» hay un check
+**"Mismo precio para todas las pistas"**:
+
+- **Marcado (por defecto):** un único precio por duración vale para todas
+  las pistas, como hasta ahora.
+- **Desmarcado:** debajo aparece una tabla de precios independiente para
+  cada pista activa, con un precio editable por cada duración. Si una pista
+  no tiene un precio propio guardado todavía para una duración concreta,
+  se usa automáticamente el precio base de esa duración — así nunca se
+  rompe la reserva de una pista recién creada o sin configurar.
+
+Este precio efectivo (el de la pista elegida, o el base si no tiene uno
+propio) es el que se muestra y se cobra en los tres sitios donde se puede
+reservar: la web pública (`index.html`), las reservas manuales desde
+`admin.html`, y el bot de WhatsApp — los tres consultan primero la pista
+elegida antes de calcular el precio.
+
+Añadir una pista nueva en el futuro no requiere ningún cambio de código: en
+`admin.html` → pestaña «Pistas» → **"+ Nueva pista"** se da de alta con su
+nombre, superficie y foto, y automáticamente aparece en el buscador de
+horarios, en las reservas manuales, en el bot de WhatsApp y en las tablas
+de precios por pista.
 
 ### Listado de clientes registrados
 

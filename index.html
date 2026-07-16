@@ -970,8 +970,19 @@ async function loadCourts(){
   select.innerHTML = ALL_COURTS.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
 }
 
+async function getEffectiveDurationsForPista(pistaId){
+  const { data: ajustes } = await supabase.from('ajustes_padel').select('precio_unico_todas_pistas').limit(1).single();
+  const unico = ajustes ? ajustes.precio_unico_todas_pistas : true;
+  if (unico || !pistaId) return DURATIONS;
+  const { data: overrides } = await supabase.from('duraciones_padel').select('*').eq('pista_id', pistaId).eq('active', true);
+  return DURATIONS.map(d => {
+    const ov = (overrides || []).find(o => o.duration_minutes === d.duration_minutes);
+    return ov ? { ...d, price: ov.price } : d;
+  });
+}
+
 async function loadDurations(){
-  const { data, error } = await supabase.from('duraciones_padel').select('*').eq('active', true).order('sort_order');
+  const { data, error } = await supabase.from('duraciones_padel').select('*').is('pista_id', null).eq('active', true).order('sort_order');
   DURATIONS = data || [];
   if (DURATIONS.length){
     document.getElementById('statMinDuration').textContent = durationLabel(Math.min(...DURATIONS.map(d => d.duration_minutes)));
@@ -1084,7 +1095,7 @@ function openBookingModal(startTime){
   showBookingForm(startTime);
 }
 
-function showBookingForm(startTime){
+async function showBookingForm(startTime){
   document.getElementById('bookingForm').hidden = false;
   document.getElementById('bookingForm').reset();
   document.getElementById('formMsg').textContent = '';
@@ -1092,9 +1103,11 @@ function showBookingForm(startTime){
   document.getElementById('phone').value = currentUser.user_metadata?.phone || '';
   document.getElementById('email').value = currentUser.email || '';
 
+  const pistaId = document.getElementById('pistaSelect').value;
+  const pistaDurations = await getEffectiveDurationsForPista(pistaId);
   const validDurations = availableDurationsFor(startTime);
   const durationsWrap = document.getElementById('durationOptions');
-  durationsWrap.innerHTML = DURATIONS.map(d => {
+  durationsWrap.innerHTML = pistaDurations.map(d => {
     const isValid = validDurations.some(v => v.duration_minutes === d.duration_minutes);
     return `<button type="button" class="duration-btn" data-duration="${d.duration_minutes}" ${isValid ? '' : 'disabled'}>
       <span>${durationLabel(d.duration_minutes)}</span><span class="amt">${formatPrice(d.price)}</span>
@@ -1106,7 +1119,7 @@ function showBookingForm(startTime){
       durationsWrap.querySelectorAll('.duration-btn').forEach(b => b.classList.remove('selected'));
       btn.classList.add('selected');
       const dur = Number(btn.dataset.duration);
-      const durationInfo = DURATIONS.find(x => x.duration_minutes === dur);
+      const durationInfo = pistaDurations.find(x => x.duration_minutes === dur);
       const startMin = toMinutes(startTime);
       selectedSlot = { start: startTime, duration: dur, end: toHHMM(startMin + dur), price: durationInfo.price };
     });
