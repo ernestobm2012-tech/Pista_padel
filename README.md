@@ -902,13 +902,13 @@ Todo esto vive en la tabla `cobros_organizacion_padel` (solo tu cuenta
 puede leerla o escribirla — ni el administrador de cada club ve esto,
 es tu contabilidad como dueño de la plataforma).
 
-> ⚠️ **Envío automático de facturas por email — pendiente de activar.** Ya
-> está todo el código listo (Edge Function `send-invoice-email-padel`),
-> pero para que realmente salga el correo hace falta darlo de alta en
-> [Resend](https://resend.com) (gratis hasta 3.000 emails/mes), verificar
-> ahí el dominio `gestionmypadel.com` y darme la API key para incluirla en
-> la función. Mientras tanto, la generación del PDF y su descarga
-> funcionan igual, solo falta ese último paso para el envío automático.
+El envío automático de facturas por email ya está **activado** (Edge
+Function `send-invoice-email-padel` con tu cuenta de
+[Resend](https://resend.com)): al marcar un cobro como pagado, o al pulsar
+«Enviar email», el cliente recibe el correo con el enlace de descarga de
+su factura, enviado desde `facturacion@gestionmypadel.com`. Si el dominio
+todavía no está verificado del todo en Resend, el aviso en pantalla te
+dirá el motivo exacto en vez de fallar en silencio.
 
 ## `contrato.html`: alta de cliente con firma digital
 
@@ -1082,7 +1082,3 @@ irá diciendo qué búsquedas te traen visitas y con qué posición media.
   esta política y la base legal (ejecución del contrato, art. 6.1.b RGPD) —
   falta publicarla como página (por ejemplo en `landing.html`) y enlazarla
   desde ahí y desde `contrato.html`.
-- **Envío automático de facturas por email (sección «Facturación» de
-  `plataforma.html`)**: falta darte de alta en Resend, verificar el dominio
-  `gestionmypadel.com` ahí y pasarme la API key para activarlo — mientras
-  tanto, generar y descargar la factura en PDF ya funciona.
