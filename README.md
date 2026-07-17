@@ -854,6 +854,19 @@ legal):
 > ⚠️ Esta plantilla de contrato (y sus plazos de baja) no ha sido revisada
 > por un abogado — solo recoge lo que me has pedido en la conversación.
 
+## `manual.html`: manual de uso con capturas
+
+Página estática (sin login, sin conexión a Supabase) con el manual de uso
+ilustrado de la plataforma: qué es cada pestaña de `admin.html` y cada
+sección de `club.html`, con una captura de pantalla real y los pasos de
+«Cómo se usa» para cada una.
+
+Tanto `admin.html` como `plataforma.html` tienen un botón **«❓ Ayuda»** en
+la cabecera que abre `manual.html` en una pestaña nueva. Las imágenes van
+incrustadas en base64 dentro del propio HTML, así que el archivo es
+autocontenido (no depende de ninguna carpeta de imágenes aparte) y funciona
+igual en local que ya publicado en GitHub Pages.
+
 ## Cómo lo pruebas en local
 
 Solo hace falta un servidor estático simple (los módulos ES no funcionan con `file://`):
