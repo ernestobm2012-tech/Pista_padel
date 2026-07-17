@@ -604,6 +604,7 @@ function orgCardHtml(org, admins, contratos, cobros){
 
       <div style="display:flex; gap:10px; align-items:center;">
         <button type="button" class="btn btn-primary btn-sm" data-save-org="${org.id}">Guardar cambios</button>
+        <button type="button" class="btn btn-danger btn-sm" data-delete-org="${org.id}" style="margin-left:auto;">Borrar organización</button>
         <span class="form-msg" data-org-msg="${org.id}"></span>
       </div>
 
@@ -992,6 +993,29 @@ function wireOrgCardEvents(){
       msg.textContent = error ? 'Error al guardar: ' + error.message : '¡Guardado!';
       msg.className = 'form-msg ' + (error ? 'err' : 'ok');
       if (!error) setTimeout(loadOrganizaciones, 900);
+    });
+  });
+
+  document.querySelectorAll('[data-delete-org]').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const orgId = btn.dataset.deleteOrg;
+      const org = ALL_ORGS.find(o => o.id === orgId);
+      if (!org) return;
+      const msg = document.querySelector(`[data-org-msg="${orgId}"]`);
+      const typed = prompt(`Esto borra "${org.nombre}" y TODOS sus datos para siempre (reservas, clientes, torneos, facturas...). No se puede deshacer.\n\nEscribe el nombre exacto de la organización para confirmar:`);
+      if (typed === null) return;
+      if (typed.trim() !== org.nombre){
+        alert('El nombre no coincide. No se ha borrado nada.');
+        return;
+      }
+      const { error } = await supabase.from('organizaciones').delete().eq('id', orgId);
+      if (error){
+        msg.textContent = 'Error al borrar: ' + error.message;
+        msg.className = 'form-msg err';
+        return;
+      }
+      SELECTED_ORG_ID = null;
+      await loadOrganizaciones();
     });
   });
 

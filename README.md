@@ -796,6 +796,12 @@ Desde ahí, para dar de alta un cliente nuevo:
    acceso a esa organización concreta (sin borrar su cuenta, por si
    administra otras).
 
+El botón **«Borrar organización»** (al lado de "Guardar cambios") la borra
+para siempre, junto con **todos** sus datos: pistas, reservas, clientes,
+torneos, facturas, contratos, todo. Para evitar un borrado accidental te
+pide escribir el nombre exacto de la organización antes de confirmar — si
+no coincide, no borra nada.
+
 Por seguridad, la contraseña **no se guarda ni se ve** en ningún sitio del
 panel: se crea la cuenta de Supabase Auth al vuelo desde una Edge Function
 (`admin-create-org-admin-padel`) que solo tu cuenta puede invocar (comprueba
@@ -813,7 +819,10 @@ gestión, `index.html` es la página de ventas propia del producto en sí —
 **GestionMyPadel** — y vive en la raíz del dominio `gestionmypadel.com`
 (ver «Dominio propio: gestionmypadel.com» más abajo). Es la página que le
 enseñas a un ayuntamiento o un club nuevo antes de darlos de alta: qué hace
-el producto, planes y precios, y un formulario para pedir una demo.
+el producto, planes y precios, y un formulario para pedir una demo. El pie
+de página muestra `info@gestionmypadel.com` como email de contacto de
+GestionMyPadel/EBM Proyectos de Software — el mismo que aparece en
+`contrato.html` como correo de contacto de "EL PRESTADOR".
 
 Planes actuales (mensuales, sin permanencia, con **2 meses gratis** para
 probar antes de pagar):
