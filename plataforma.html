@@ -296,7 +296,7 @@ function orgCardHtml(org, admins, contratos){
       <div class="org-card-head">
         <h3>${org.nombre} <span class="pill">${TIPO_LABELS[org.tipo] || org.tipo || '—'}</span> ${org.activo === false ? '<span class="pill pill-inactiva">Inactiva</span>' : ''}</h3>
         <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
-          <span style="color:var(--ink-soft); font-size:13px;">/?org=${org.slug}</span>
+          <a class="btn btn-ghost btn-sm" href="index.html?org=${org.slug}" target="_blank" rel="noopener">Ver web pública →</a>
           <a class="btn btn-ghost btn-sm" href="admin.html?org=${org.slug}" target="_blank" rel="noopener">Abrir panel de administración →</a>
           <a class="btn btn-ghost btn-sm" href="contrato.html?org=${org.slug}" target="_blank" rel="noopener">Enviar contrato de alta →</a>
         </div>

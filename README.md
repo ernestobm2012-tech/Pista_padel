@@ -707,12 +707,15 @@ a tu email), separada de la operativa diaria de cualquier organización.
 Con varias organizaciones dadas de alta, la lista no muestra todas las
 fichas abiertas a la vez: hay un **desplegable** con el nombre de todas las
 organizaciones y solo al elegir una se abren debajo sus datos completos
-(igual de editables que antes). Cada ficha incluye también un enlace
-**"Abrir panel de administración →"** que lleva directamente a
-`admin.html?org=<slug-de-esa-organización>` en una pestaña nueva — así entras
-al panel de un club concreto sin tener que buscarlo en el selector de
-organizaciones de `admin.html` (que solo te lo pregunta si no vienes con ese
-parámetro en la URL, o si tu cuenta administra más de una).
+(igual de editables que antes). Cada ficha incluye también tres accesos
+directos, cada uno en una pestaña nueva:
+- **"Ver web pública →"**: `index.html?org=<slug>`, la web de reservas de esa
+  organización, tal cual la ve cualquier vecino/cliente.
+- **"Abrir panel de administración →"**: `admin.html?org=<slug>` — así entras
+  al panel de un club concreto sin tener que buscarlo en el selector de
+  organizaciones de `admin.html` (que solo te lo pregunta si no vienes con ese
+  parámetro en la URL, o si tu cuenta administra más de una).
+- **"Enviar contrato de alta →"**: `contrato.html?org=<slug>` (ver más abajo).
 
 ### Estadísticas de la plataforma
 
