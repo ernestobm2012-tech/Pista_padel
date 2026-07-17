@@ -28,8 +28,9 @@ es "Pistas Municipales de Pádel de Chozas de Canales".
 
 ## Instalar como app
 
-Tanto `club.html` (la web de reservas) como `admin.html` (el panel) son
-instalables como una app normal, en el móvil o el ordenador:
+Tanto `club.html` (la web de reservas), `admin.html` (el panel de cada club)
+como `plataforma.html` (tu panel de dueño de la plataforma) son instalables
+como una app normal, en el móvil o el ordenador:
 
 - **Android/Chrome/Edge**: al entrar aparece un botón **"📲 Instalar app"**
   (arriba a la derecha en la web, y en la pantalla de login o la cabecera del
@@ -42,8 +43,8 @@ Una vez instalada se abre en pantalla completa, con su propio icono (la
 raqueta y pelota de pádel) y sin la barra de direcciones del navegador, como
 cualquier otra app. La web de reservas (`club.html`) además guarda su
 "cascarón" (sw-public.js) para poder abrirse aunque no haya buena conexión, y
-el panel (`admin.html`) reutiliza el service worker de las notificaciones
-(`sw-padel.js`).
+tanto `admin.html` como `plataforma.html` reutilizan el mismo service worker
+de las notificaciones (`sw-padel.js`).
 
 ## Estadísticas
 
@@ -300,6 +301,23 @@ No hace falta configurar nada más: las claves necesarias ya están
 incluidas en la propia Edge Function `notify-new-reservation-padel`, así
 que funciona de fábrica en cuanto activas las notificaciones desde un
 dispositivo.
+
+> Cada suscripción queda ligada a la organización desde la que se activó
+> (`push_subscriptions_padel.organizacion_id`), así que el administrador de
+> un club solo recibe avisos de sus propias reservas, nunca de las de otro
+> club.
+
+### Avisos de solicitudes nuevas en `plataforma.html`
+
+Igual que en `admin.html`, en `plataforma.html` hay un botón **"🔔 Activar
+notificaciones"** en la cabecera — pero para ti, como dueño de la
+plataforma: te avisa al momento, con notificación push, cuando alguien
+manda una **solicitud de demo** (formulario de `index.html`) o una
+**solicitud de alta de organización** (`alta-organizacion.html`). Usa la
+misma Edge Function de Web Push (`notify-super-admin-padel`) y la misma
+tabla `push_subscriptions_padel`, con `organizacion_id` en blanco para
+identificar que la suscripción es tuya como plataforma, no de un club
+concreto.
 
 ## Reservas manuales desde admin.html
 
@@ -834,6 +852,42 @@ tú revises el slug, le asignes un plan y le crees el acceso de
 administrador — todo eso, igual que con cualquier organización, en su
 ficha de más abajo.
 
+## Facturación: qué te debe cada organización
+
+En `plataforma.html` hay una sección **«Facturación»** con una tabla
+resumen de todas las organizaciones (plan, cuota mensual +IVA, total
+cobrado, total pendiente y si el mes en curso está al día, pendiente o
+**atrasado**), y dentro de la ficha de cada organización un bloque de
+**«Facturación»** con el detalle mes a mes:
+
+- **«+ Generar cobro de este mes»**: crea el cobro del mes en curso con el
+  importe del plan contratado (39,99 / 49,99 / 59,99 € — sin IVA, igual que
+  en el resto de la web). No deja generar dos cobros del mismo mes para la
+  misma organización.
+- Cada cobro tiene un desplegable **Pendiente / Pagado**. Al marcarlo como
+  **Pagado**:
+  1. Se genera automáticamente la **factura en PDF** (con el desglose de
+     base + IVA, o solo la tasa si la organización cobra como tasa
+     municipal) y se guarda en el bucket privado `facturas-plataforma-padel`.
+  2. Se intenta **enviar la factura por email** al `email_contacto` de la
+     organización, con un enlace de descarga válido 7 días.
+  3. Si el envío automático no está disponible (ver más abajo), te lo dice
+     en el propio aviso, pero la factura queda igualmente generada y
+     puedes descargarla con el botón **«PDF»** y mandarla tú a mano; el
+     botón **«Enviar email»** te deja reintentarlo luego cuando quieras.
+
+Todo esto vive en la tabla `cobros_organizacion_padel` (solo tu cuenta
+puede leerla o escribirla — ni el administrador de cada club ve esto,
+es tu contabilidad como dueño de la plataforma).
+
+> ⚠️ **Envío automático de facturas por email — pendiente de activar.** Ya
+> está todo el código listo (Edge Function `send-invoice-email-padel`),
+> pero para que realmente salga el correo hace falta darlo de alta en
+> [Resend](https://resend.com) (gratis hasta 3.000 emails/mes), verificar
+> ahí el dominio `gestionmypadel.com` y darme la API key para incluirla en
+> la función. Mientras tanto, la generación del PDF y su descarga
+> funcionan igual, solo falta ese último paso para el envío automático.
+
 ## `contrato.html`: alta de cliente con firma digital
 
 Cuando un cliente nuevo se va a dar de alta, `plataforma.html` tiene un
@@ -971,3 +1025,7 @@ dominio — `gestionmypadel.com` — y la app de reservas de cada cliente en
   esta política y la base legal (ejecución del contrato, art. 6.1.b RGPD) —
   falta publicarla como página (por ejemplo en `landing.html`) y enlazarla
   desde ahí y desde `contrato.html`.
+- **Envío automático de facturas por email (sección «Facturación» de
+  `plataforma.html`)**: falta darte de alta en Resend, verificar el dominio
+  `gestionmypadel.com` ahí y pasarme la API key para activarlo — mientras
+  tanto, generar y descargar la factura en PDF ya funciona.
