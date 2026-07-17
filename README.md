@@ -805,6 +805,29 @@ solo tu cuenta puede leerlas). Se ven y gestionan desde `plataforma.html`,
 en la sección **«Solicitudes de demo»**, arriba del todo: puedes marcar cada
 una como nuevo/contactado/convertido/descartado, o borrarla.
 
+## `alta-organizacion.html`: que el propio cliente rellene sus datos
+
+Cuando ya has hecho la demo y el cliente quiere seguir adelante, en vez de
+teclear tú sus datos en `plataforma.html`, le mandas el enlace de
+`alta-organizacion.html` (sin login) para que los rellene él mismo: nombre,
+tipo (ayuntamiento / comunidad de vecinos / club de pádel / otro),
+dirección, teléfono, email de contacto, Instagram, Facebook, WhatsApp y,
+si quiere, su logo.
+
+Al enviarlo se guarda en la tabla `solicitudes_organizacion_padel` (mismo
+patrón de RLS que los leads: cualquiera puede enviar una solicitud, solo tu
+cuenta puede leerlas) y el logo se sube al bucket público `galeria-padel`
+(carpeta `solicitudes/`, con una política de storage que permite subir ahí
+sin necesidad de login).
+
+En `plataforma.html`, en la sección **«Solicitudes de alta de
+organización»**, ves cada solicitud con su logo y un botón **«Crear
+organización →»**: al pulsarlo se crea de golpe la organización con todos
+esos datos ya rellenos (incluido el logo) y la marca **inactiva** hasta que
+tú revises el slug, le asignes un plan y le crees el acceso de
+administrador — todo eso, igual que con cualquier organización, en su
+ficha de más abajo.
+
 ## `contrato.html`: alta de cliente con firma digital
 
 Cuando un cliente nuevo se va a dar de alta, `plataforma.html` tiene un

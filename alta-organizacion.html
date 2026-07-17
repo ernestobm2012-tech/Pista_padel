@@ -1,0 +1,184 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>Datos de tu club — GestionMyPadel</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0B1210; --bg-soft:#101C17; --surface:#142620; --surface-2:#1A322A;
+    --ink:#EEF6F0; --ink-soft:#A9C2B3; --lime:#C6FF3D; --lime-dark:#8FCB1F;
+    --line:rgba(255,255,255,.10); --radius:14px; --red:#FF6B6B;
+  }
+  *{box-sizing:border-box;}
+  body{ margin:0; background:var(--bg); color:var(--ink); font-family:'Inter', sans-serif; line-height:1.55; }
+  h1,h2,h3,h4{ font-family:'Outfit', sans-serif; font-weight:700; margin:0; }
+  a{ color:var(--lime); }
+  .wrap{ max-width:680px; margin:0 auto; padding:0 24px; }
+  input, select, textarea, button{ font-family:inherit; }
+  input, select, textarea{
+    background:var(--bg-soft); border:1px solid var(--line); border-radius:8px;
+    padding:10px 12px; color:var(--ink); font-size:14.5px; width:100%;
+  }
+  input:focus, select:focus, textarea:focus{ outline:none; border-color:var(--lime); }
+  input[type=file]{ padding:8px; font-size:13px; }
+  label{ font-size:12.5px; font-weight:600; color:var(--ink-soft); display:block; margin-bottom:5px; }
+  .field{ margin-bottom:14px; }
+  .hint{ font-size:12px; color:var(--ink-soft); margin-top:4px; }
+  .btn{
+    display:inline-flex; align-items:center; justify-content:center; gap:8px; padding:13px 24px; border-radius:999px; border:0;
+    cursor:pointer; font-family:'Outfit'; font-weight:700; font-size:15px;
+  }
+  .btn-primary{ background:var(--lime); color:#0B1210; }
+  .btn-primary:hover{ background:var(--lime-dark); }
+  .btn-primary:disabled{ opacity:.5; cursor:not-allowed; }
+  .btn-block{ width:100%; }
+  header{ border-bottom:1px solid var(--line); padding:16px 0; }
+  .logo{ font-family:'Outfit'; font-weight:800; font-size:18px; display:flex; align-items:center; gap:8px; }
+  .logo .dot{ width:9px; height:9px; border-radius:50%; background:var(--lime); }
+  main{ padding:32px 0 64px; }
+  h1.page-title{ font-size:clamp(24px,3vw,32px); margin-bottom:6px; }
+  .subtitle{ color:var(--ink-soft); font-size:14.5px; margin-bottom:28px; }
+  .card{ background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); padding:24px; }
+  .form-grid{ display:grid; gap:14px; }
+  .logo-preview{ height:60px; width:auto; border-radius:8px; margin-bottom:8px; display:block; }
+  .form-msg{ font-size:13.5px; min-height:18px; margin-top:10px; }
+  .form-msg.ok{ color:var(--lime); }
+  .form-msg.err{ color:var(--red); }
+  #successScreen{ min-height:50vh; display:flex; align-items:center; justify-content:center; text-align:center; padding:40px; }
+  #successScreen p{ color:var(--ink-soft); max-width:420px; margin:10px auto 0; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap">
+    <div class="logo"><span class="dot"></span> GestionMyPadel</div>
+  </div>
+</header>
+
+<main class="wrap">
+  <div id="formScreen">
+    <h1 class="page-title">Cuéntanos sobre tu club</h1>
+    <p class="subtitle">Rellena estos datos y nos ponemos manos a la obra para dejarte lista tu web de reservas.</p>
+
+    <div class="card">
+      <form id="altaForm" class="form-grid">
+        <div class="field"><label for="f_nombre">Nombre de la instalación / entidad</label><input type="text" id="f_nombre" required></div>
+        <div class="field">
+          <label for="f_tipo">Tipo</label>
+          <select id="f_tipo">
+            <option value="ayuntamiento">Ayuntamiento</option>
+            <option value="comunidad_vecinos">Comunidad de vecinos</option>
+            <option value="club_padel" selected>Club de pádel</option>
+            <option value="otro">Otro</option>
+          </select>
+        </div>
+        <div class="field"><label for="f_direccion">Dirección</label><input type="text" id="f_direccion"></div>
+        <div class="field"><label for="f_telefono">Teléfono</label><input type="text" id="f_telefono"></div>
+        <div class="field"><label for="f_email">Email de contacto</label><input type="email" id="f_email"></div>
+        <div class="field"><label for="f_instagram">Instagram (URL)</label><input type="text" id="f_instagram" placeholder="https://instagram.com/tuclub"></div>
+        <div class="field"><label for="f_facebook">Facebook (URL)</label><input type="text" id="f_facebook" placeholder="https://facebook.com/tuclub"></div>
+        <div class="field"><label for="f_whatsapp">WhatsApp (enlace wa.me)</label><input type="text" id="f_whatsapp" placeholder="https://wa.me/34600000000"></div>
+
+        <div class="field">
+          <label>Logo</label>
+          <div id="logoPreviewWrap"></div>
+          <input type="file" accept="image/*" id="f_logo">
+          <p class="hint">Opcional. Si no lo tienes a mano ahora, puedes mandarlo más adelante.</p>
+        </div>
+
+        <div class="field"><label for="f_mensaje">Algo más que debamos saber</label><textarea id="f_mensaje" rows="3"></textarea></div>
+
+        <button type="submit" class="btn btn-primary btn-block" id="submitBtn">Enviar datos</button>
+        <span class="form-msg" id="formMsg"></span>
+      </form>
+    </div>
+  </div>
+
+  <div id="successScreen" hidden>
+    <div>
+      <h1 style="font-size:22px; margin-bottom:10px;">¡Gracias!</h1>
+      <p>Hemos recibido los datos de tu club. Nos ponemos en contacto contigo en breve para dejarte lista tu web de reservas.</p>
+    </div>
+  </div>
+</main>
+
+<script type="module">
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+
+const SUPABASE_URL = 'https://stnuvhlqicftjbtlybit.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN0bnV2aGxxaWNmdGpidGx5Yml0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMyNDY4NzgsImV4cCI6MjA5ODgyMjg3OH0.1a8uenfaddy_yiXPgerteMoktCEeeFhkH021qp0okPY';
+const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+const fileInput = document.getElementById('f_logo');
+fileInput.addEventListener('change', () => {
+  const wrap = document.getElementById('logoPreviewWrap');
+  const file = fileInput.files[0];
+  wrap.innerHTML = '';
+  if (!file) return;
+  const img = document.createElement('img');
+  img.className = 'logo-preview';
+  img.src = URL.createObjectURL(file);
+  wrap.appendChild(img);
+});
+
+document.getElementById('altaForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const msg = document.getElementById('formMsg');
+  const submitBtn = document.getElementById('submitBtn');
+  const nombre = document.getElementById('f_nombre').value.trim();
+  if (!nombre){
+    msg.textContent = 'El nombre es obligatorio.';
+    msg.className = 'form-msg err';
+    return;
+  }
+  submitBtn.disabled = true;
+  msg.textContent = '';
+
+  let logo_path = null;
+  const file = fileInput.files[0];
+  if (file){
+    const ext = (file.name.split('.').pop() || 'jpg').toLowerCase().replace(/[^a-z0-9]/g, '') || 'jpg';
+    const path = `solicitudes/${crypto.randomUUID()}-${Date.now()}.${ext}`;
+    const { error: uploadError } = await supabase.storage.from('galeria-padel').upload(path, file);
+    if (uploadError){
+      msg.textContent = 'No se ha podido subir el logo: ' + uploadError.message;
+      msg.className = 'form-msg err';
+      submitBtn.disabled = false;
+      return;
+    }
+    logo_path = path;
+  }
+
+  const { error } = await supabase.from('solicitudes_organizacion_padel').insert({
+    nombre,
+    tipo: document.getElementById('f_tipo').value,
+    direccion: document.getElementById('f_direccion').value.trim() || null,
+    telefono: document.getElementById('f_telefono').value.trim() || null,
+    email_contacto: document.getElementById('f_email').value.trim() || null,
+    instagram_url: document.getElementById('f_instagram').value.trim() || null,
+    facebook_url: document.getElementById('f_facebook').value.trim() || null,
+    whatsapp_url: document.getElementById('f_whatsapp').value.trim() || null,
+    logo_path,
+    mensaje: document.getElementById('f_mensaje').value.trim() || null,
+  });
+
+  submitBtn.disabled = false;
+  if (error){
+    msg.textContent = 'Error al enviar: ' + error.message;
+    msg.className = 'form-msg err';
+    return;
+  }
+
+  document.getElementById('formScreen').hidden = true;
+  document.getElementById('successScreen').hidden = false;
+});
+</script>
+
+</body>
+</html>

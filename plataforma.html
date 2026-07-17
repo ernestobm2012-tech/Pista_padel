@@ -117,6 +117,16 @@
     </section>
 
     <section>
+      <div class="panel-head"><h2>Solicitudes de alta de organización</h2></div>
+      <div class="card table-wrap" id="solicitudesCard">
+        <table>
+          <thead><tr><th>Fecha</th><th>Logo</th><th>Nombre / Tipo</th><th>Contacto</th><th>Redes</th><th>Mensaje</th><th>Estado</th><th></th></tr></thead>
+          <tbody id="solicitudesBody"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section>
       <div class="panel-head"><h2>Estadísticas de uso</h2></div>
       <div class="card table-wrap" id="analyticsCard">
         <table>
@@ -200,7 +210,7 @@ async function handleSession(session){
   }
   loginScreen.hidden = true;
   appScreen.hidden = false;
-  await Promise.all([loadOrganizaciones(), loadLeads()]);
+  await Promise.all([loadOrganizaciones(), loadLeads(), loadSolicitudes()]);
   await loadAnalytics();
 }
 
@@ -240,6 +250,76 @@ async function loadLeads(){
       if (!confirm('¿Borrar esta solicitud?')) return;
       await supabase.from('leads_gestionmypadel').delete().eq('id', btn.dataset.deleteLead);
       await loadLeads();
+    });
+  });
+}
+
+let ALL_SOLICITUDES = [];
+
+const SOLICITUD_STATUS_LABELS = { pendiente: 'Pendiente', procesada: 'Procesada', descartada: 'Descartada' };
+
+async function loadSolicitudes(){
+  const { data: solicitudes } = await supabase.from('solicitudes_organizacion_padel').select('*').order('created_at', { ascending: false });
+  ALL_SOLICITUDES = solicitudes || [];
+  const body = document.getElementById('solicitudesBody');
+  if (!ALL_SOLICITUDES.length){
+    body.innerHTML = '<tr><td colspan="8" style="color:var(--ink-soft);">No hay solicitudes todavía.</td></tr>';
+    return;
+  }
+  body.innerHTML = ALL_SOLICITUDES.map(s => `
+    <tr data-solicitud-id="${s.id}">
+      <td>${new Date(s.created_at).toLocaleDateString('es-ES')}</td>
+      <td>${s.logo_path ? `<img src="${padelImageUrl(s.logo_path)}" style="height:40px; width:auto; border-radius:6px;">` : '—'}</td>
+      <td>${s.nombre}<br><span class="pill">${TIPO_LABELS[s.tipo] || s.tipo}</span></td>
+      <td>${s.direccion || '—'}<br>${s.telefono || ''}${s.telefono && s.email_contacto ? ' · ' : ''}${s.email_contacto || ''}</td>
+      <td style="font-size:12.5px;">
+        ${s.instagram_url ? `<a href="${s.instagram_url}" target="_blank" rel="noopener">Instagram</a><br>` : ''}
+        ${s.facebook_url ? `<a href="${s.facebook_url}" target="_blank" rel="noopener">Facebook</a><br>` : ''}
+        ${s.whatsapp_url ? `<a href="${s.whatsapp_url}" target="_blank" rel="noopener">WhatsApp</a>` : ''}
+      </td>
+      <td style="max-width:200px;">${s.mensaje || '—'}</td>
+      <td>${SOLICITUD_STATUS_LABELS[s.status] || s.status}</td>
+      <td style="white-space:nowrap;">
+        ${s.status === 'pendiente' ? `<button type="button" class="btn btn-primary btn-sm" data-convert-solicitud="${s.id}">Crear organización →</button>` : ''}
+        <button type="button" class="btn btn-danger btn-sm" data-delete-solicitud="${s.id}">Borrar</button>
+      </td>
+    </tr>
+  `).join('');
+
+  body.querySelectorAll('[data-convert-solicitud]').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const sol = ALL_SOLICITUDES.find(s => s.id === btn.dataset.convertSolicitud);
+      if (!sol) return;
+      if (!confirm(`¿Crear la organización "${sol.nombre}" con estos datos?`)) return;
+      const slug = slugify(sol.nombre);
+      const { data, error } = await supabase.from('organizaciones').insert({
+        nombre: sol.nombre,
+        tipo: sol.tipo,
+        slug,
+        direccion: sol.direccion,
+        telefono: sol.telefono,
+        email_contacto: sol.email_contacto,
+        instagram_url: sol.instagram_url,
+        facebook_url: sol.facebook_url,
+        whatsapp_url: sol.whatsapp_url,
+        logo_path: sol.logo_path,
+        activo: false,
+      }).select().single();
+      if (error){
+        alert(/duplicate|unique/i.test(error.message) ? `Ya existe una organización con un identificador parecido a "${slug}". Créala a mano desde "+ Nueva organización" y ajusta el slug.` : 'Error al crear: ' + error.message);
+        return;
+      }
+      await supabase.from('solicitudes_organizacion_padel').update({ status: 'procesada' }).eq('id', sol.id);
+      SELECTED_ORG_ID = data.id;
+      await Promise.all([loadOrganizaciones(), loadSolicitudes()]);
+      alert('Organización creada. Revisa el slug, asigna el plan y crea el acceso de administrador en su ficha, más abajo.');
+    });
+  });
+  body.querySelectorAll('[data-delete-solicitud]').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      if (!confirm('¿Borrar esta solicitud?')) return;
+      await supabase.from('solicitudes_organizacion_padel').delete().eq('id', btn.dataset.deleteSolicitud);
+      await loadSolicitudes();
     });
   });
 }
