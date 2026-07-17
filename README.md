@@ -723,6 +723,14 @@ cada uno, activarlos o desactivarlos— vive en un archivo **aparte** de
 club, es una página independiente, con su propio login (restringido también
 a tu email), separada de la operativa diaria de cualquier organización.
 
+Al igual que `admin.html`, `plataforma.html` tiene su propio **menú de
+pestañas** arriba (Solicitudes de demo / Altas de organización /
+Estadísticas / Facturación / Organizaciones): cada una es su propia
+pantalla, no todo apilado en una sola página larguísima. En el móvil, si
+hay más pestañas de las que caben en el ancho de pantalla, la barra de
+pestañas se desliza horizontalmente (como en `admin.html`) en vez de
+obligar a alejar el zoom para ver la página entera.
+
 Con varias organizaciones dadas de alta, la lista no muestra todas las
 fichas abiertas a la vez: hay un **desplegable** con el nombre de todas las
 organizaciones y solo al elegir una se abren debajo sus datos completos
