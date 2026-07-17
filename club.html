@@ -208,7 +208,13 @@
   /* ---------- Torneos ---------- */
   .competitions-grid{ display:grid; grid-template-columns:repeat(auto-fit, minmax(280px,1fr)); gap:20px; }
   .competition-card{ background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); padding:24px; }
-  .competition-card .comp-photo{ width:100%; max-height:340px; object-fit:contain; border-radius:10px; margin-bottom:14px; background:var(--bg-soft); }
+  .competition-card .comp-photo{ width:100%; max-height:340px; object-fit:contain; border-radius:10px; margin-bottom:14px; background:var(--bg-soft); cursor:zoom-in; }
+
+  /* ---------- Lightbox de fotos ---------- */
+  #imgLightbox{ position:fixed; inset:0; background:rgba(0,0,0,.9); display:flex; align-items:center; justify-content:center; z-index:999; cursor:zoom-out; padding:24px; }
+  #imgLightbox[hidden]{ display:none; }
+  #imgLightbox img{ max-width:100%; max-height:100%; object-fit:contain; border-radius:8px; }
+  #imgLightbox .lightbox-close{ position:absolute; top:16px; right:20px; background:none; border:0; color:#fff; font-size:32px; line-height:1; cursor:pointer; }
   .competition-card h3{ font-size:18px; }
   .competition-card .comp-type{ font-size:11.5px; text-transform:uppercase; letter-spacing:.06em; color:var(--lime); font-weight:600; margin-bottom:8px; }
   .competition-card .comp-meta{ color:var(--ink-soft); font-size:13.5px; margin:10px 0 16px; display:grid; gap:4px; }
@@ -326,6 +332,11 @@
 </style>
 </head>
 <body>
+
+<div id="imgLightbox" hidden>
+  <button type="button" class="lightbox-close" aria-label="Cerrar">&times;</button>
+  <img id="imgLightboxImg" src="" alt="">
+</div>
 
 <header>
   <div class="wrap nav">
@@ -760,6 +771,27 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 const SUPABASE_URL = 'https://stnuvhlqicftjbtlybit.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN0bnV2aGxxaWNmdGpidGx5Yml0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMyNDY4NzgsImV4cCI6MjA5ODgyMjg3OH0.1a8uenfaddy_yiXPgerteMoktCEeeFhkH021qp0okPY';
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+/* ---------- Lightbox de fotos (ver imagen en grande) ---------- */
+const imgLightbox = document.getElementById('imgLightbox');
+const imgLightboxImg = document.getElementById('imgLightboxImg');
+function openLightbox(src, alt){
+  imgLightboxImg.src = src;
+  imgLightboxImg.alt = alt || '';
+  imgLightbox.hidden = false;
+}
+function closeLightbox(){
+  imgLightbox.hidden = true;
+  imgLightboxImg.src = '';
+}
+imgLightbox.addEventListener('click', closeLightbox);
+document.querySelector('#imgLightbox .lightbox-close').addEventListener('click', closeLightbox);
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !imgLightbox.hidden) closeLightbox(); });
+function wireLightboxPhotos(container){
+  container.querySelectorAll('.comp-photo').forEach(img => {
+    img.addEventListener('click', (e) => { e.stopPropagation(); openLightbox(img.src, img.alt); });
+  });
+}
 
 /* ---------- Organización (multi-tenant): resolución por ?org=slug ---------- */
 // Esta misma web sirve a varias organizaciones (ayuntamientos, comunidades de
@@ -1445,6 +1477,7 @@ async function loadCompetitions(){
   grid.querySelectorAll('[data-results]').forEach(btn => {
     btn.addEventListener('click', () => toggleCompetitionResults(btn.dataset.results, btn));
   });
+  wireLightboxPhotos(grid);
 }
 
 /* ---------- Ranking de clientes: puntos por ronda alcanzada (torneo) o posición final (liga) ---------- */
