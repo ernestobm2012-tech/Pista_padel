@@ -1,0 +1,9 @@
+User-agent: *
+Allow: /
+Disallow: /admin.html
+Disallow: /plataforma.html
+Disallow: /contrato.html
+Disallow: /alta-organizacion.html
+Disallow: /manual.html
+
+Sitemap: https://gestionmypadel.com/sitemap.xml

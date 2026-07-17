@@ -844,7 +844,12 @@ Quien rellena el formulario de la landing queda guardado en la tabla
 `leads_gestionmypadel` (con RLS: cualquiera puede enviar una solicitud, pero
 solo tu cuenta puede leerlas). Se ven y gestionan desde `plataforma.html`,
 en la sección **«Solicitudes de demo»**, arriba del todo: puedes marcar cada
-una como nuevo/contactado/convertido/descartado, o borrarla.
+una como nuevo/contactado/convertido/descartado, o borrarla. Cada solicitud
+tiene también dos botones para mandarle el enlace de alta al cliente
+(**"📋 Copiar"**, que copia `alta-organizacion.html` al portapapeles, y
+**"✉️ Email"**, que abre tu programa de correo con un mensaje ya escrito
+para ese contacto) — de momento no se manda solo, tienes que darle tú al
+botón, ver más abajo por qué.
 
 ## `alta-organizacion.html`: que el propio cliente rellene sus datos
 
@@ -1003,6 +1008,41 @@ sitio de GitHub Pages en vez de a la URL `github.io`. Dos partes:
 `index.html` (la web de ventas de GestionMyPadel) queda así en la raíz del
 dominio — `gestionmypadel.com` — y la app de reservas de cada cliente en
 `gestionmypadel.com/club.html?org=<slug>`.
+
+### Posicionarte en Google (SEO)
+
+Del lado del código ya está todo listo para que Google pueda rastrear e
+indexar `index.html` (la web de ventas):
+
+- **`robots.txt`** en la raíz: permite el rastreo de la web pública y
+  bloquea explícitamente los paneles privados (`admin.html`,
+  `plataforma.html`, `contrato.html`, `alta-organizacion.html`,
+  `manual.html`), que además ya llevan `<meta name="robots"
+  content="noindex, nofollow">` cada uno.
+- **`sitemap.xml`** en la raíz: por ahora solo lista `index.html` (la
+  página que quieres que aparezca en las búsquedas).
+- **Meta tags de `index.html`**: `<link rel="canonical">`, título y
+  descripción ya existentes, y las etiquetas Open Graph / Twitter Card
+  (`og:title`, `og:description`, `og:image`...) para que se vea bien
+  cuando alguien comparta el enlace en WhatsApp, redes sociales, etc.
+
+Lo que falta es **cosa tuya, en tu cuenta de Google** (no puedo hacerlo yo):
+
+1. Entra en [Google Search Console](https://search.google.com/search-console)
+   con tu cuenta de Google y añade la propiedad `gestionmypadel.com`.
+2. Verifica que eres el dueño del dominio — la forma más simple aquí es
+   añadiendo el registro TXT que te proponga Search Console en Cloudflare
+   → DNS (parecido a como añadimos los del correo).
+3. Una vez verificado, en el menú **«Sitemaps»** de Search Console, envía
+   la URL `https://gestionmypadel.com/sitemap.xml`.
+4. En **«Inspección de URLs»**, pega `https://gestionmypadel.com/` y pulsa
+   **«Solicitar indexación»** para acelerar que Google la rastree por
+   primera vez (si no, puede tardar días o semanas en encontrarla sola).
+
+A partir de ahí, aparecer bien posicionado (arriba en los resultados) ya no
+depende del código, sino del tiempo, de cuántas páginas enlacen a la tuya y
+de si la gente busca términos que la web responde bien — Search Console te
+irá diciendo qué búsquedas te traen visitas y con qué posición media.
 
 ## Pendiente de tu parte / a revisar
 
