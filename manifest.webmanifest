@@ -2,7 +2,7 @@
   "name": "Pistas Municipales de Pádel — Chozas de Canales",
   "short_name": "Pádel Chozas",
   "description": "Reserva las pistas municipales de pádel de Chozas de Canales.",
-  "start_url": "./index.html",
+  "start_url": "./club.html",
   "scope": "./",
   "display": "standalone",
   "background_color": "#0B1210",

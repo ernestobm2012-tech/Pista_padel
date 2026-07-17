@@ -1,6 +1,7 @@
-# Pistas de Pádel — plataforma multi-cliente (Chozas de Canales y otros)
+# GestionMyPadel — plataforma multi-cliente (Chozas de Canales y otros)
 
-Sitio de una sola página (`index.html`) para reservar pistas de pádel online,
+`index.html` es la web de ventas de **GestionMyPadel** (el producto), y
+`club.html` es la web de reservas de pistas de pádel de cada cliente,
 más un panel de administración (`admin.html`). Sin build step: HTML/CSS/JS
 puro + Supabase JS por CDN, así que se puede abrir tal cual o subir a
 cualquier hosting estático (GitHub Pages, Netlify, Vercel...).
@@ -27,7 +28,7 @@ es "Pistas Municipales de Pádel de Chozas de Canales".
 
 ## Instalar como app
 
-Tanto `index.html` (la web de reservas) como `admin.html` (el panel) son
+Tanto `club.html` (la web de reservas) como `admin.html` (el panel) son
 instalables como una app normal, en el móvil o el ordenador:
 
 - **Android/Chrome/Edge**: al entrar aparece un botón **"📲 Instalar app"**
@@ -39,7 +40,7 @@ instalables como una app normal, en el móvil o el ordenador:
 
 Una vez instalada se abre en pantalla completa, con su propio icono (la
 raqueta y pelota de pádel) y sin la barra de direcciones del navegador, como
-cualquier otra app. La web de reservas (`index.html`) además guarda su
+cualquier otra app. La web de reservas (`club.html`) además guarda su
 "cascarón" (sw-public.js) para poder abrirse aunque no haya buena conexión, y
 el panel (`admin.html`) reutiliza el service worker de las notificaciones
 (`sw-padel.js`).
@@ -71,14 +72,14 @@ Cada organización tiene su propia pestaña «Noticias» en `admin.html` para
 publicar novedades: título, texto y una imagen opcional (se sube al mismo
 bucket `galeria-padel` que las fotos de pistas/torneos). Se puede publicar y
 borrar, pero no editar — si te equivocas, borras y vuelves a publicar. En
-`index.html` aparecen en una sección propia («Noticias», entre «Reservar» y
+`club.html` aparecen en una sección propia («Noticias», entre «Reservar» y
 «Torneos»), ordenadas de más reciente a más antigua; si una organización no
 tiene ninguna, se muestra un aviso de que todavía no hay noticias en vez de
 ocultar la sección.
 
 ## Banner de publicidad
 
-En `index.html` hay un banner flotante fijo (esquina inferior izquierda) que
+En `club.html` hay un banner flotante fijo (esquina inferior izquierda) que
 enlaza a un patrocinador externo (actualmente `1105sports.com`). La imagen
 vive en `assets/banner-1105sports.jpg` y el enlace de destino está en el
 propio HTML (`<div id="adBanner">`). Cualquiera puede cerrarlo con la "✕";
@@ -122,7 +123,7 @@ pide elegir otro horario.
 
 ## Cuentas de cliente
 
-Reservar una pista desde `index.html` **exige tener cuenta** (email y
+Reservar una pista desde `club.html` **exige tener cuenta** (email y
 contraseña, botón **"Iniciar sesión"** arriba a la derecha). Ya no existe la
 opción de reservar como invitado: si alguien sin sesión pulsa un horario
 libre, se le abre directamente el formulario de inicio de sesión/registro y,
@@ -151,7 +152,7 @@ una reserva antes de crear otra.
 
 Este proyecto Supabase se comparte con la app de pasear perros
 (`paseo-perros-app`), pero **ambas gestionan sus propios clientes de forma
-independiente**: al registrarse desde `index.html`, la cuenta se marca
+independiente**: al registrarse desde `club.html`, la cuenta se marca
 internamente como cliente de pádel (`is_padel_customer`), y tanto el
 disparador que rellena `clientes_padel` como el de la app de pasear perros
 (que crea sus propios perfiles) respetan esa marca — un alta en una app
@@ -199,7 +200,7 @@ o con mejores vistas), en `admin.html` → pestaña «Precios» hay un check
 
 Este precio efectivo (el de la pista elegida, o el base si no tiene uno
 propio) es el que se muestra y se cobra en los tres sitios donde se puede
-reservar: la web pública (`index.html`), las reservas manuales desde
+reservar: la web pública (`club.html`), las reservas manuales desde
 `admin.html`, y el bot de WhatsApp — los tres consultan primero la pista
 elegida antes de calcular el precio.
 
@@ -243,7 +244,7 @@ Funciona con la API de WhatsApp Cloud de Meta:
    directamente en `reservas_padel` ya **confirmada** (si la hora sigue libre
    en ese momento), igual que si reservara por la web.
 3. Respeta los mantenimientos (`mantenimientos_padel`) y los horarios ya
-   ocupados, igual que el calendario de `index.html`.
+   ocupados, igual que el calendario de `club.html`.
 4. Si el cliente escribe algo que no encaja en el guion (una pregunta libre),
    el bot puede responder con IA (Claude) si se configura `ANTHROPIC_API_KEY`;
    si no, simplemente pide que llames por teléfono.
@@ -371,7 +372,7 @@ guarda hasta que todas las reservas en conflicto quedan resueltas.
 
 Desde `admin.html` → pestaña «Torneos» puedes crear un torneo (eliminatoria
 directa) o una liga (todos contra todos), eligiendo pistas, fechas y fecha
-límite de inscripción. La gente se apunta por parejas desde `index.html`
+límite de inscripción. La gente se apunta por parejas desde `club.html`
 (sección «Torneos»), hasta esa fecha límite.
 
 Cuando cierras inscripciones, el botón **"🎲 Generar cruces"**:
@@ -409,7 +410,7 @@ como quién pasa a consolación.
 
 ### Resultados públicos en la web
 
-En `index.html`, cada torneo o liga con las inscripciones ya cerradas
+En `club.html`, cada torneo o liga con las inscripciones ya cerradas
 muestra un botón **"🏆 Ver resultados"** con el cuadro (principal +
 consolación) o, en una liga, la tabla de clasificación y las jornadas —
 en modo solo lectura, sin controles de admin. En las ligas, si hay
@@ -502,7 +503,7 @@ y ligas que ya estén **finalizados**:
   esa persona hasta que quede vinculada.
 
 Los valores de puntos están definidos en el código (`admin.html` e
-`index.html`, buscar `TORNEO_PRINCIPAL_POINTS` / `TORNEO_CONSOLACION_POINTS`
+`club.html`, buscar `TORNEO_PRINCIPAL_POINTS` / `TORNEO_CONSOLACION_POINTS`
 / `LIGA_POSICION_POINTS`) — son un punto de partida razonable, no una
 tabla configurable desde el panel todavía; si el ayuntamiento quiere
 ajustarlos más adelante, se puede convertir en una tabla editable en
@@ -516,7 +517,7 @@ ajustarlos más adelante, se puede convertir en una tabla editable en
 ### Chat interno del torneo/liga
 
 Cada competición tiene un chat privado en tiempo real, solo visible para
-quienes tengan una inscripción activa en ella. En `index.html`, las tarjetas
+quienes tengan una inscripción activa en ella. En `club.html`, las tarjetas
 de torneos/ligas muestran un botón **"💬 Chat"** únicamente a los
 participantes ya identificados; ahí pueden ver el historial de mensajes y
 escribir, y los mensajes nuevos de cualquier jugador aparecen al instante
@@ -529,7 +530,7 @@ esa competición. No hay panel de moderación en `admin.html` por ahora.
 
 ## Aviso legal, privacidad y cookies
 
-En el pie de página de `index.html` hay tres enlaces («Aviso legal», «Política
+En el pie de página de `club.html` hay tres enlaces («Aviso legal», «Política
 de privacidad» y «Política de cookies») que abren un modal con el texto
 correspondiente, además del logo de **EBM Proyectos de Software** y el crédito
 "Desarrollado por Ernesto Bermejo Montalvo" (imagen en `assets/logo-ebm.png`).
@@ -581,7 +582,7 @@ aislados de los demás en la misma base de datos.
 ### Cómo se elige la organización
 
 Por ahora, sin dominio propio comprado todavía, cada organización se
-identifica por un parámetro en la URL: `index.html?org=slug-del-cliente`.
+identifica por un parámetro en la URL: `club.html?org=slug-del-cliente`.
 La web pública busca ese `slug` (función `organizacion_por_slug`), carga el
 nombre/logo de esa organización y a partir de ahí todas las consultas van
 filtradas por su `organizacion_id`. Si el enlace no lleva `?org=...` o el
@@ -610,7 +611,7 @@ autogestionar sus propios datos sin pedírtelo a ti:
   usa para el mapa de Google.
 
 Todos estos cambios se reflejan al momento en su propia web pública
-(`index.html`) y en su propio panel — sin tocar código. (Solo tú, desde
+(`club.html`) y en su propio panel — sin tocar código. (Solo tú, desde
 `plataforma.html`, puedes cambiar sus **permisos** y activarla/desactivarla
 — ver más abajo.)
 
@@ -681,7 +682,7 @@ cambiarlo, desde `plataforma.html` (ver más abajo). Al momento:
 - Las pestañas correspondientes desaparecen del panel de esa organización
   en `admin.html` (para su propio administrador, no solo para ti).
 - Las secciones «Torneos» y «Ranking» desaparecen igual de su web pública
-  (`index.html`) si no están contratadas.
+  (`club.html`) si no están contratadas.
 - También puedes marcar la organización como **inactiva** (por ejemplo, si
   deja de pagar): su web pública deja de funcionar (muestra un aviso) y su
   panel de administración deja de dejar entrar a su propio admin, pero tú
@@ -709,7 +710,7 @@ fichas abiertas a la vez: hay un **desplegable** con el nombre de todas las
 organizaciones y solo al elegir una se abren debajo sus datos completos
 (igual de editables que antes). Cada ficha incluye también tres accesos
 directos, cada uno en una pestaña nueva:
-- **"Ver web pública →"**: `index.html?org=<slug>`, la web de reservas de esa
+- **"Ver web pública →"**: `club.html?org=<slug>`, la web de reservas de esa
   organización, tal cual la ve cualquier vecino/cliente.
 - **"Abrir panel de administración →"**: `admin.html?org=<slug>` — así entras
   al panel de un club concreto sin tener que buscarlo en el selector de
@@ -723,13 +724,13 @@ Arriba del todo, antes de la lista de organizaciones, hay una tabla con un
 resumen de uso de cada organización:
 
 - **Visitas (30 días)** y **visitas (total)**: cada vez que alguien abre la
-  web pública de una organización (`index.html?org=...`) se registra un
+  web pública de una organización (`club.html?org=...`) se registra un
   evento `page_view`. No distingue visitantes únicos, es un contador simple
   de cargas de página.
 - **Reservas este mes**: cuántas reservas (sin contar las canceladas) tiene
   esa organización en el mes en curso.
 - **Clics en el banner**: cuántas veces se ha pulsado el banner de publicidad
-  de `index.html` estando en la web de esa organización.
+  de `club.html` estando en la web de esa organización.
 
 Estos datos viven en una tabla nueva, `analytics_eventos_padel` (evento +
 organización + fecha), donde cualquier visitante anónimo puede insertar un
@@ -741,7 +742,7 @@ Desde ahí, para dar de alta un cliente nuevo:
 
 1. **"+ Nueva organización"**: nombre, tipo (ayuntamiento / comunidad de
    vecinos / club de pádel / otro) y el identificador para la URL (slug,
-   p. ej. `mi-club-de-padel` → `index.html?org=mi-club-de-padel`). Se crea
+   p. ej. `mi-club-de-padel` → `club.html?org=mi-club-de-padel`). Se crea
    con la base de datos completamente en blanco: sin pistas, sin precios,
    sin clientes ni reservas — nada compartido con el resto de organizaciones.
 2. Esa organización aparece debajo como una ficha completa donde rellenas
@@ -773,14 +774,14 @@ Con esto, dar de alta un club nuevo no requiere tocar código ni el dashboard
 de Supabase: entras en `plataforma.html`, rellenas su ficha y le creas su
 administrador, y ese cliente ya tiene su propia web y su propio panel.
 
-## `landing.html`: la web de ventas de GestionMyPadel
+## `index.html`: la web de ventas de GestionMyPadel
 
-Además de la web de cada club (`index.html?org=...`) y de los paneles de
-gestión, hay una página de ventas propia del producto en sí —
-**GestionMyPadel**, pensada para el dominio `gestionmypadel.com` cuando lo
-compres. Es la página que le enseñas a un ayuntamiento o un club nuevo antes
-de darlos de alta: qué hace el producto, planes y precios, y un formulario
-para pedir una demo.
+Además de la web de cada club (`club.html?org=...`) y de los paneles de
+gestión, `index.html` es la página de ventas propia del producto en sí —
+**GestionMyPadel** — y vive en la raíz del dominio `gestionmypadel.com`
+(ver «Dominio propio: gestionmypadel.com» más abajo). Es la página que le
+enseñas a un ayuntamiento o un club nuevo antes de darlos de alta: qué hace
+el producto, planes y precios, y un formulario para pedir una demo.
 
 Planes actuales (mensuales, sin permanencia, con **2 meses gratis** para
 probar antes de pagar):
@@ -864,15 +865,43 @@ python3 -m http.server 8000
 
 ## Publicar la web
 
-La forma más rápida y gratuita es **GitHub Pages**:
-- En GitHub → Settings → Pages → Source: rama `main`, carpeta `/root`.
-- En unos minutos tendrás la web en
-  `https://ernestobm2012-tech.github.io/pista_padel/`.
+Se publica sola con **GitHub Pages**: cada `git push` a `main` dispara el
+workflow `.github/workflows/deploy-pages.yml`, que sube el repositorio tal
+cual (sin build) y lo despliega. En unos segundos queda en
+`https://ernestobm2012-tech.github.io/Pista_padel/` (con el nombre exacto
+del repositorio — GitHub Pages distingue mayúsculas de minúsculas en esa
+URL).
+
+### Dominio propio: gestionmypadel.com
+
+El dominio `gestionmypadel.com` (comprado en Cloudflare) apunta a este mismo
+sitio de GitHub Pages en vez de a la URL `github.io`. Dos partes:
+
+1. **En Cloudflare → DNS**, con el proxy en "DNS only" (nube gris, no
+   naranja — si no, GitHub Pages no puede emitir el certificado HTTPS):
+   - 4 registros `A` en `@` a las IPs de GitHub Pages: `185.199.108.153`,
+     `185.199.109.153`, `185.199.110.153`, `185.199.111.153`.
+   - 1 registro `CNAME` en `www` a `ernestobm2012-tech.github.io`.
+2. **En GitHub → Settings → Pages → Custom domain**: `gestionmypadel.com`.
+   El archivo `CNAME` en la raíz del repositorio ya lo deja configurado
+   desde el código; una vez GitHub verifique el DNS, activa **"Enforce
+   HTTPS"**.
+
+`index.html` (la web de ventas de GestionMyPadel) queda así en la raíz del
+dominio — `gestionmypadel.com` — y la app de reservas de cada cliente en
+`gestionmypadel.com/club.html?org=<slug>`.
 
 ## Pendiente de tu parte / a revisar
 
+- **Enlaces ya compartidos con `index.html?org=...` han cambiado de
+  dirección.** Al mover la web de ventas a la raíz del dominio, la antigua
+  web de reservas (`index.html`) pasó a llamarse `club.html`. Si ya le has
+  dado a Chozas de Canales (o a cualquier vecino) un enlace del tipo
+  `.../index.html?org=chozas-de-canales`, ahora es
+  `.../club.html?org=chozas-de-canales` — conviene avisarles o volver a
+  compartirlo.
 - Sustituye los datos de contacto de ejemplo (teléfono, email, dirección, redes
-  sociales, mapa) por los reales en `index.html` (sección «Contacto»).
+  sociales, mapa) por los reales en `club.html` (sección «Contacto»).
 - Ya se han creado 2 pistas y los 3 precios por duración de ejemplo (1h=3€,
   1h30=4,5€, 2h=6€) en Supabase — ajústalos desde `admin.html` → pestaña
   «Precios» a los reales.
@@ -880,11 +909,11 @@ La forma más rápida y gratuita es **GitHub Pages**:
   → pestaña «Precios» → «Extras».
 - El horario de apertura está fijado de 08:00 a 23:00, con horarios de inicio
   cada 30 minutos (constantes `OPEN_TIME`, `CLOSE_TIME`, `START_STEP_MINUTES`
-  en `index.html`); cámbialo si tu club tiene otro horario.
+  en `club.html`); cámbialo si tu club tiene otro horario.
 - Este proyecto está pensado para poder migrar más adelante a un stack con build
   (ej. Next.js) si el negocio crece — Supabase seguiría siendo la base de datos.
 - El «Aviso legal» y la «Política de privacidad» (enlaces en el pie de página de
-  `index.html`) llevan datos de ejemplo con `[pendiente de completar]` en el CIF,
+  `club.html`) llevan datos de ejemplo con `[pendiente de completar]` en el CIF,
   la dirección y el email de contacto del ayuntamiento — complétalos (o pide que
   los revise alguien con conocimientos legales) antes de publicar, ya que son
   textos de referencia, no un documento legal certificado. La «Política de
@@ -893,7 +922,7 @@ La forma más rápida y gratuita es **GitHub Pages**:
   publicidad con cookies de terceros.
 - Falta una **«Política de privacidad» propia de GestionMyPadel/EBM Proyectos
   de Software** (a nivel de proveedor, distinta de la de cada club en
-  `index.html`) que recoja cómo tratas los datos de tus clientes: los que
+  `club.html`) que recoja cómo tratas los datos de tus clientes: los que
   rellenan el formulario de la landing (`leads_gestionmypadel`) y los que
   firman el contrato de alta (`contratos_padel`: nombre/razón social, NIF,
   domicilio, email, teléfono e IBAN). El propio contrato de alta ya menciona

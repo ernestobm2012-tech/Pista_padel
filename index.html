@@ -3,381 +3,271 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="GestionMyPadel: el software de gestión para clubes de pádel y pistas municipales. Reservas online, torneos y ligas, facturación y estadísticas en un solo panel. 2 meses gratis.">
+<title>GestionMyPadel — Software de gestión para clubes de pádel</title>
 <link rel="icon" href="assets/favicon-32.png" sizes="32x32" type="image/png">
-<link rel="icon" href="assets/favicon-16.png" sizes="16x16" type="image/png">
-<link rel="icon" href="assets/favicon-48.png" sizes="48x48" type="image/png">
-<link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
-<link rel="manifest" href="./manifest.webmanifest">
-<meta name="theme-color" content="#0B1210">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Pádel Chozas">
-<title>Pistas Municipales de Pádel — Chozas de Canales</title>
-<meta name="description" content="Reserva online las pistas municipales de pádel de Chozas de Canales: consulta horarios disponibles, precios y confirma tu partido en segundos.">
-
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
   :root{
-    --bg:#0B1210;
-    --bg-soft:#101C17;
-    --surface:#142620;
-    --surface-2:#1A322A;
-    --ink:#EEF6F0;
-    --ink-soft:#A9C2B3;
-    --lime:#C6FF3D;
-    --lime-dark:#8FCB1F;
-    --line:rgba(255,255,255,.10);
-    --radius:14px;
-    --maxw:1120px;
-    --red:#FF6B6B;
-    --amber:#FFC857;
+    --bg:#0B1210; --bg-soft:#101C17; --surface:#142620; --surface-2:#1A322A;
+    --ink:#EEF6F0; --ink-soft:#A9C2B3; --lime:#C6FF3D; --lime-dark:#8FCB1F;
+    --line:rgba(255,255,255,.10); --radius:16px; --red:#FF6B6B; --amber:#FFC857;
   }
   *{box-sizing:border-box;}
-  html{scroll-behavior:smooth;}
-  body{
-    margin:0;
-    background:var(--bg);
-    color:var(--ink);
-    font-family:'Inter', sans-serif;
-    line-height:1.55;
-    -webkit-font-smoothing:antialiased;
+  html{ scroll-behavior:smooth; }
+  body{ margin:0; background:var(--bg); color:var(--ink); font-family:'Inter', sans-serif; line-height:1.55; }
+  h1,h2,h3{ font-family:'Outfit', sans-serif; font-weight:700; margin:0; }
+  a{ color:inherit; }
+  .wrap{ max-width:1120px; margin:0 auto; padding:0 24px; }
+  input, select, textarea, button{ font-family:inherit; }
+  input, select, textarea{
+    background:var(--bg-soft); border:1px solid var(--line); border-radius:8px;
+    padding:12px 14px; color:var(--ink); font-size:15px; width:100%;
   }
-  h1,h2,h3,.display{
-    font-family:'Outfit', sans-serif;
-    font-weight:700;
-    letter-spacing:-0.01em;
-    color:var(--ink);
-    margin:0;
-  }
-  a{color:inherit;}
-  img{max-width:100%; display:block;}
-  .wrap{max-width:var(--maxw); margin:0 auto; padding:0 24px;}
-  .eyebrow{
-    font-family:'Outfit', sans-serif;
-    text-transform:uppercase;
-    letter-spacing:.14em;
-    font-size:12.5px;
-    font-weight:600;
-    color:var(--lime);
-  }
+  input:focus, select:focus, textarea:focus{ outline:none; border-color:var(--lime); }
+  label{ font-size:13px; font-weight:600; color:var(--ink-soft); display:block; margin-bottom:6px; }
   .btn{
-    display:inline-flex; align-items:center; justify-content:center; gap:8px;
-    padding:14px 26px; border-radius:999px; border:0; cursor:pointer;
-    font-family:'Outfit', sans-serif; font-weight:600; font-size:15px;
-    text-decoration:none; transition:transform .15s ease, opacity .15s ease;
+    display:inline-flex; align-items:center; justify-content:center; gap:8px; padding:14px 26px; border-radius:999px; border:0;
+    cursor:pointer; font-family:'Outfit'; font-weight:700; font-size:15.5px; text-decoration:none;
   }
-  .btn:active{ transform:scale(.97); }
   .btn-primary{ background:var(--lime); color:#0B1210; }
   .btn-primary:hover{ background:var(--lime-dark); }
   .btn-ghost{ background:transparent; color:var(--ink); border:1px solid var(--line); }
   .btn-ghost:hover{ border-color:var(--lime); color:var(--lime); }
-  .btn:disabled{ opacity:.5; cursor:not-allowed; }
-  .btn[hidden]{ display:none; }
-  .btn-sm{ padding:8px 16px; font-size:13px; }
+  .btn-block{ width:100%; }
+  .eyebrow{ color:var(--lime); font-family:'Outfit'; font-weight:700; font-size:13px; letter-spacing:.06em; text-transform:uppercase; }
+  section{ padding:88px 0; }
+  @media (max-width:760px){ section{ padding:56px 0; } }
 
   /* ---------- Header ---------- */
   header{
-    position:sticky; top:0; z-index:40;
-    background:rgba(11,18,16,.85); backdrop-filter:blur(8px);
+    position:sticky; top:0; z-index:40; background:rgba(11,18,16,.9); backdrop-filter:blur(8px);
     border-bottom:1px solid var(--line);
   }
-  .nav{ display:flex; align-items:center; justify-content:space-between; padding:16px 0; }
-  .logo{ font-family:'Outfit', sans-serif; font-weight:800; font-size:20px; display:flex; align-items:center; gap:8px; }
-  .logo .dot{ width:12px; height:12px; border-radius:50%; background:var(--lime); }
-  .logo img{ height:52px; width:auto; border-radius:8px; }
-  .nav-menu{ display:contents; }
-  .nav-links{ display:flex; gap:28px; list-style:none; margin:0; padding:0; }
+  .nav{ display:flex; align-items:center; justify-content:space-between; padding:16px 24px; max-width:1120px; margin:0 auto; }
+  .logo{ font-family:'Outfit'; font-weight:800; font-size:19px; display:flex; align-items:center; gap:8px; }
+  .logo .dot{ width:11px; height:11px; border-radius:50%; background:var(--lime); }
+  .nav-links{ display:flex; gap:30px; list-style:none; margin:0; padding:0; }
   .nav-links a{ text-decoration:none; font-size:14.5px; font-weight:500; color:var(--ink-soft); }
   .nav-links a:hover{ color:var(--lime); }
   .nav-cta{ display:flex; align-items:center; gap:12px; }
-  .burger{ display:none; background:none; border:0; color:var(--ink); font-size:24px; cursor:pointer; }
-  @media (max-width:760px){
-    .nav-menu{ display:none; }
-    .burger{ display:block; }
-    header.nav-open .nav-menu{
-      display:flex; flex-direction:column; gap:18px; position:absolute; top:100%; left:0; right:0;
-      background:var(--bg-soft); border-bottom:1px solid var(--line); padding:8px 24px 24px;
-    }
-    header.nav-open .nav-links{ display:flex; flex-direction:column; gap:0; }
-    header.nav-open .nav-links a{ padding:12px 0; border-bottom:1px solid var(--line); }
-    header.nav-open .nav-links li:last-child a{ border-bottom:0; }
-    header.nav-open .nav-cta{ flex-direction:column; align-items:stretch; gap:10px; }
-  }
-
-  /* ---------- Botón flotante de reservar ---------- */
-  .floating-book-btn{
-    position:fixed; bottom:22px; right:22px; z-index:90;
-    display:flex; align-items:center; gap:8px;
-    background:var(--lime); color:#0B1210; text-decoration:none;
-    font-family:'Outfit', sans-serif; font-weight:700; font-size:15px;
-    padding:14px 22px; border-radius:999px;
-    box-shadow:0 10px 28px rgba(0,0,0,.4);
-  }
-  .floating-book-btn:active{ transform:scale(.97); }
-  @media (max-width:480px){
-    .floating-book-btn{ bottom:16px; right:16px; padding:13px 18px; font-size:14px; }
-    .logo img{ height:40px; }
-  }
-
-  /* ---------- Banner flotante de publicidad ---------- */
-  .ad-banner{
-    position:fixed; bottom:22px; left:22px; z-index:89;
-    width:150px; border-radius:14px; overflow:hidden;
-    background:var(--bg-soft); border:1px solid var(--line);
-    box-shadow:0 10px 28px rgba(0,0,0,.4);
-  }
-  .ad-banner .ad-tag{
-    position:absolute; top:6px; left:8px; font-size:9px; font-weight:700;
-    letter-spacing:.06em; text-transform:uppercase; color:#fff;
-    background:rgba(0,0,0,.55); padding:2px 6px; border-radius:6px;
-  }
-  .ad-banner .ad-close{
-    position:absolute; top:4px; right:4px; width:22px; height:22px;
-    border-radius:50%; border:0; background:rgba(0,0,0,.55); color:#fff;
-    font-size:14px; line-height:1; cursor:pointer; display:flex;
-    align-items:center; justify-content:center;
-  }
-  .ad-banner a{ display:block; }
-  .ad-banner img{ display:block; width:100%; height:auto; }
-  @media (max-width:480px){
-    .ad-banner{ width:110px; left:14px; bottom:14px; }
-  }
+  @media (max-width:820px){ .nav-links{ display:none; } }
 
   /* ---------- Hero ---------- */
-  .hero{
-    padding:80px 0 60px;
-    background:
-      radial-gradient(60% 60% at 85% 10%, rgba(198,255,61,.14), transparent),
-      var(--bg);
-    border-bottom:1px solid var(--line);
-  }
-  .hero-grid{ display:grid; grid-template-columns:1.1fr .9fr; gap:48px; align-items:center; }
-  @media (max-width:860px){ .hero-grid{ grid-template-columns:1fr; } }
-  .hero h1{ font-size:clamp(34px, 5.2vw, 56px); line-height:1.05; margin:14px 0 18px; }
-  .hero p{ color:var(--ink-soft); font-size:17px; max-width:46ch; margin:0 0 28px; }
-  .hero-actions{ display:flex; gap:14px; flex-wrap:wrap; }
-  .hero-card{
-    background:var(--surface); border:1px solid var(--line); border-radius:20px; padding:24px;
-    display:grid; gap:14px;
-  }
-  .hero-stat{ display:flex; justify-content:space-between; align-items:baseline; padding:10px 0; border-bottom:1px dashed var(--line); }
-  .hero-stat:last-child{ border-bottom:0; }
-  .hero-stat b{ font-family:'Outfit'; font-size:22px; color:var(--lime); }
+  .hero{ padding:100px 0 70px; text-align:center; }
+  .hero h1{ font-size:46px; line-height:1.12; max-width:820px; margin:18px auto 0; }
+  @media (max-width:640px){ .hero h1{ font-size:32px; } }
+  .hero p.sub{ color:var(--ink-soft); font-size:18px; max-width:600px; margin:20px auto 0; }
+  .hero-ctas{ display:flex; gap:14px; justify-content:center; margin-top:32px; flex-wrap:wrap; }
+  .trust-line{ color:var(--ink-soft); font-size:13.5px; margin-top:22px; }
 
-  section{ padding:64px 0; }
-  .section-head{ max-width:640px; margin:0 auto 36px; text-align:center; }
-  .section-head h2{ font-size:clamp(26px,3.4vw,36px); margin-top:10px; }
-  .section-head p{ color:var(--ink-soft); margin-top:12px; }
+  /* ---------- Features ---------- */
+  .feature-grid{ display:grid; grid-template-columns:repeat(3, 1fr); gap:20px; margin-top:48px; }
+  @media (max-width:900px){ .feature-grid{ grid-template-columns:1fr 1fr; } }
+  @media (max-width:600px){ .feature-grid{ grid-template-columns:1fr; } }
+  .feature-card{ background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); padding:26px; }
+  .feature-card .icon{ font-size:26px; }
+  .feature-card h3{ font-size:17px; margin-top:14px; }
+  .feature-card p{ color:var(--ink-soft); font-size:14.5px; margin-top:8px; }
+  .section-head{ text-align:center; max-width:640px; margin:0 auto; }
+  .section-head h2{ font-size:34px; margin-top:12px; }
+  @media (max-width:640px){ .section-head h2{ font-size:26px; } }
 
-  /* ---------- Pistas ---------- */
-  .courts-grid{ display:grid; grid-template-columns:repeat(auto-fit, minmax(220px,1fr)); gap:20px; }
-  .court-card{
-    background:var(--surface); border:1px solid var(--line); border-radius:var(--radius);
-    padding:24px; text-align:center;
+  /* ---------- Cómo funciona ---------- */
+  .steps{ display:grid; grid-template-columns:repeat(3, 1fr); gap:24px; margin-top:48px; }
+  @media (max-width:800px){ .steps{ grid-template-columns:1fr; } }
+  .step{ text-align:center; }
+  .step .num{
+    width:44px; height:44px; border-radius:50%; background:var(--surface-2); border:1px solid var(--line);
+    display:flex; align-items:center; justify-content:center; font-family:'Outfit'; font-weight:800; color:var(--lime);
+    margin:0 auto 16px;
   }
-  .court-card .icon{ font-size:32px; margin-bottom:10px; }
-  .court-card .court-photo{ width:100%; height:140px; object-fit:cover; border-radius:10px; margin-bottom:12px; }
-  .court-card h3{ font-size:19px; }
-  .court-card .surface{ color:var(--ink-soft); font-size:14px; margin-top:6px; }
+  .step h3{ font-size:16.5px; }
+  .step p{ color:var(--ink-soft); font-size:14.5px; margin-top:8px; }
 
-  /* ---------- Precios ---------- */
-  .price-groups{ display:grid; grid-template-columns:repeat(auto-fit, minmax(280px,1fr)); gap:20px; }
-  .price-group{ background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); padding:24px; }
-  .price-group h3{ font-size:16px; color:var(--lime); text-transform:uppercase; letter-spacing:.08em; margin-bottom:14px; }
-  .price-row{ display:flex; justify-content:space-between; padding:10px 0; border-bottom:1px solid var(--line); font-size:15px; }
-  .price-row:last-child{ border-bottom:0; }
-  .price-row .amt{ font-family:'Outfit'; font-weight:700; color:var(--ink); }
-  .price-row .label{ color:var(--ink-soft); }
-  .price-row .range{ display:block; font-size:12.5px; color:var(--ink-soft); opacity:.8; }
-  .table-wrap{ background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); padding:8px 20px; overflow-x:auto; }
-  .table-wrap table{ width:100%; border-collapse:collapse; }
-  .table-wrap th, .table-wrap td{ text-align:left; padding:10px 8px; border-bottom:1px solid var(--line); font-size:14.5px; }
-  .table-wrap th{ color:var(--ink-soft); text-transform:uppercase; font-size:12px; letter-spacing:.05em; }
-  .table-wrap tr:last-child td{ border-bottom:0; }
+  /* ---------- Pricing ---------- */
+  .pricing-grid{ display:grid; grid-template-columns:repeat(3, 1fr); gap:20px; margin-top:48px; align-items:stretch; }
+  @media (max-width:900px){ .pricing-grid{ grid-template-columns:1fr; max-width:420px; margin-left:auto; margin-right:auto; } }
+  .price-card{
+    background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); padding:32px 28px;
+    display:flex; flex-direction:column; position:relative;
+  }
+  .price-card.featured{ border-color:var(--lime); background:linear-gradient(180deg, rgba(198,255,61,.08), var(--surface) 40%); }
+  .price-card .badge{
+    position:absolute; top:-13px; left:50%; transform:translateX(-50%); background:var(--lime); color:#0B1210;
+    font-family:'Outfit'; font-weight:700; font-size:12px; padding:5px 14px; border-radius:999px; white-space:nowrap;
+  }
+  .price-card h3{ font-size:19px; }
+  .price-card .price{ font-family:'Outfit'; font-weight:800; font-size:40px; margin-top:14px; }
+  .price-card .price span{ font-family:'Inter'; font-weight:500; font-size:15px; color:var(--ink-soft); }
+  .price-card .free-months{ color:var(--lime); font-size:13.5px; font-weight:600; margin-top:6px; }
+  .price-card ul{ list-style:none; margin:24px 0 0; padding:0; display:grid; gap:12px; flex:1; }
+  .price-card li{ display:flex; gap:10px; font-size:14.5px; color:var(--ink-soft); }
+  .price-card li b{ color:var(--ink); font-weight:600; }
+  .price-card .check{ color:var(--lime); flex-shrink:0; }
+  .price-card .btn{ margin-top:26px; }
+  .pricing-note{ text-align:center; color:var(--ink-soft); font-size:13px; margin-top:28px; }
 
-  /* ---------- Noticias ---------- */
-  .noticias-grid{ display:grid; grid-template-columns:repeat(auto-fit, minmax(280px,1fr)); gap:20px; }
-  .noticia-card{ background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); padding:24px; }
-  .noticia-card .noticia-photo{ width:100%; height:170px; object-fit:cover; border-radius:10px; margin-bottom:14px; }
-  .noticia-card h3{ font-size:18px; }
-  .noticia-card .noticia-date{ font-size:12.5px; color:var(--ink-soft); margin-top:2px; }
-  .noticia-card p{ margin-top:12px; color:var(--ink-soft); font-size:14.5px; white-space:pre-wrap; }
+  /* ---------- FAQ ---------- */
+  .faq-list{ max-width:760px; margin:48px auto 0; display:grid; gap:12px; }
+  .faq-item{ background:var(--surface); border:1px solid var(--line); border-radius:12px; overflow:hidden; }
+  .faq-item summary{ padding:18px 22px; cursor:pointer; font-family:'Outfit'; font-weight:600; font-size:15.5px; list-style:none; display:flex; justify-content:space-between; align-items:center; gap:12px; }
+  .faq-item summary::-webkit-details-marker{ display:none; }
+  .faq-item summary::after{ content:'+'; color:var(--lime); font-size:22px; flex-shrink:0; }
+  .faq-item[open] summary::after{ content:'–'; }
+  .faq-item p{ padding:0 22px 20px; color:var(--ink-soft); font-size:14.5px; margin:0; }
 
-  /* ---------- Torneos ---------- */
-  .competitions-grid{ display:grid; grid-template-columns:repeat(auto-fit, minmax(280px,1fr)); gap:20px; }
-  .competition-card{ background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); padding:24px; }
-  .competition-card .comp-photo{ width:100%; max-height:340px; object-fit:contain; border-radius:10px; margin-bottom:14px; background:var(--bg-soft); }
-  .competition-card h3{ font-size:18px; }
-  .competition-card .comp-type{ font-size:11.5px; text-transform:uppercase; letter-spacing:.06em; color:var(--lime); font-weight:600; margin-bottom:8px; }
-  .competition-card .comp-meta{ color:var(--ink-soft); font-size:13.5px; margin:10px 0 16px; display:grid; gap:4px; }
-  .competition-card .btn{ width:100%; }
-  .comp-results[hidden]{ display:none; }
-  .comp-results{ display:block; margin-top:16px; padding-top:16px; border-top:1px solid var(--line); }
-  .comp-results h5{ font-size:12px; text-transform:uppercase; letter-spacing:.05em; color:var(--ink-soft); margin:14px 0 8px; }
-  .comp-results h5:first-child{ margin-top:0; }
-  .pub-round{ margin-bottom:10px; }
-  .pub-round > b{ font-size:12.5px; display:block; margin-bottom:6px; }
-  .pub-match-card{ background:var(--bg-soft); border:1px solid var(--line); border-radius:10px; padding:10px 12px; margin-bottom:6px; font-size:13px; }
-  .pub-match-head{ display:flex; justify-content:space-between; align-items:center; gap:8px; flex-wrap:wrap; }
-  .pub-match-meta{ color:var(--ink-soft); font-size:12px; margin-top:4px; }
-  .pub-match-winner{ font-size:12px; margin-top:4px; }
-  .pub-table-wrap{ overflow-x:auto; }
-  .pub-table-wrap table{ width:100%; border-collapse:collapse; font-size:13px; }
-  .pub-table-wrap th, .pub-table-wrap td{ padding:6px 8px; border-bottom:1px solid var(--line); text-align:left; }
-  .pub-pending-alert{ background:rgba(230,160,30,.15); border:1px solid rgba(230,160,30,.4); color:#e6a01e; border-radius:10px; padding:10px 12px; font-size:12.5px; margin:10px 0; }
-  .pill{ font-size:11px; font-weight:600; padding:2px 9px; border-radius:999px; white-space:nowrap; }
-  .pill-confirmada{ background:rgba(163,230,53,.15); color:var(--lime); }
-  .pill-pendiente{ background:rgba(230,160,30,.15); color:#e6a01e; }
-
-  /* ---------- Reserva ---------- */
-  .booking-panel{
-    background:var(--surface); border:1px solid var(--line); border-radius:20px; padding:28px;
-  }
-  .booking-controls{ display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:24px; }
-  @media (max-width:600px){ .booking-controls{ grid-template-columns:1fr; } }
-  .field{ display:grid; gap:6px; }
-  .field label{ font-size:13px; font-weight:600; color:var(--ink-soft); }
-  .field input, .field select, .field textarea{
-    background:var(--bg-soft); border:1px solid var(--line); border-radius:10px;
-    padding:12px 14px; color:var(--ink); font-family:inherit; font-size:15px;
-  }
-  .field input:focus, .field select:focus, .field textarea:focus{ outline:none; border-color:var(--lime); }
-
-  .slots-grid{ display:grid; grid-template-columns:repeat(auto-fill, minmax(120px,1fr)); gap:10px; }
-  .slot-btn{
-    background:var(--bg-soft); border:1px solid var(--line); border-radius:10px; padding:12px 8px;
-    color:var(--ink); font-family:'Outfit'; font-weight:600; font-size:14px; cursor:pointer;
-    text-align:center; transition:border-color .15s ease, background .15s ease;
-  }
-  .slot-btn:hover{ border-color:var(--lime); }
-  .slot-btn.taken{ opacity:.35; text-decoration:line-through; cursor:not-allowed; background:transparent; }
-  .slot-btn.taken:hover{ border-color:var(--line); }
-  .slots-empty{ color:var(--ink-soft); font-size:14px; padding:20px 0; text-align:center; }
-
-  .duration-options{ display:grid; grid-template-columns:repeat(3, 1fr); gap:10px; }
-  .duration-btn{
-    background:var(--bg-soft); border:1px solid var(--line); border-radius:10px; padding:12px 6px;
-    color:var(--ink); font-family:'Outfit'; font-weight:600; font-size:13.5px; cursor:pointer; text-align:center;
-    display:flex; flex-direction:column; gap:2px; transition:border-color .15s ease;
-  }
-  .duration-btn .amt{ color:var(--lime); font-size:15px; }
-  .duration-btn:hover{ border-color:var(--lime); }
-  .duration-btn.selected{ border-color:var(--lime); background:rgba(198,255,61,.08); }
-  .duration-btn:disabled{ opacity:.35; cursor:not-allowed; text-decoration:line-through; }
-
-  /* ---------- Modal ---------- */
-  .modal-backdrop{
-    position:fixed; inset:0; background:rgba(0,0,0,.6); display:flex; align-items:center; justify-content:center;
-    padding:20px; z-index:100;
-  }
-  .modal-backdrop[hidden]{ display:none; }
-  .modal{
-    background:var(--bg-soft); border:1px solid var(--line); border-radius:20px; padding:28px;
-    width:100%; max-width:460px; max-height:90vh; overflow:auto;
-  }
-  .modal-head{ display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:18px; }
-  .modal-close{ background:none; border:0; color:var(--ink-soft); font-size:22px; cursor:pointer; line-height:1; }
-  .chat-messages{ max-height:360px; overflow-y:auto; display:flex; flex-direction:column; gap:10px; padding:6px 2px; }
-  .chat-msg{ background:var(--bg-soft); border-radius:12px; padding:8px 12px; max-width:85%; align-self:flex-start; }
-  .chat-msg.mine{ background:var(--lime); color:#0B1210; align-self:flex-end; }
-  .chat-msg .sender{ font-size:11px; font-weight:700; opacity:.7; margin-bottom:2px; }
-  .chat-msg .time{ font-size:10px; opacity:.6; margin-top:4px; text-align:right; }
-  .my-res-card{ background:var(--bg-soft); border:1px solid var(--line); border-radius:12px; padding:14px 16px; margin-bottom:10px; display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap; }
-  .my-res-card .info{ font-size:14px; }
-  .my-res-card .info b{ display:block; margin-bottom:2px; }
-  .my-res-card .status{ font-size:12px; text-transform:uppercase; color:var(--ink-soft); }
-  .my-res-card .status.confirmada{ color:var(--lime); }
-  .my-res-card .status.cancelada{ color:#FF6B6B; }
-  .modal form{ display:grid; gap:14px; }
-  .modal form[hidden]{ display:none; }
-  .light-check{ display:flex; align-items:center; gap:10px; font-size:14.5px; color:var(--ink); cursor:pointer; }
-  .light-check input{ width:18px; height:18px; accent-color:var(--lime); }
-  .maintenance-note{
-    background:rgba(255,200,87,.1); border:1px solid rgba(255,200,87,.3); color:var(--amber);
-    border-radius:10px; padding:14px; font-size:14px; text-align:center;
-  }
-  .form-msg{ font-size:14px; min-height:20px; }
+  /* ---------- Contacto / Lead form ---------- */
+  #contacto .card{ background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); padding:36px; max-width:640px; margin:48px auto 0; }
+  .form-grid{ display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+  @media (max-width:600px){ .form-grid{ grid-template-columns:1fr; } }
+  .field{ margin-bottom:0; }
+  .field.full{ grid-column:1/-1; }
+  .form-msg{ font-size:14px; min-height:20px; margin-top:14px; }
   .form-msg.ok{ color:var(--lime); }
   .form-msg.err{ color:var(--red); }
 
-  /* ---------- Contacto / Footer ---------- */
-  .contact-grid{ display:grid; grid-template-columns:1fr 1fr; gap:32px; }
-  @media (max-width:760px){ .contact-grid{ grid-template-columns:1fr; } }
-  .social-links{ display:flex; gap:12px; margin-top:18px; }
-  .social-links a{
-    width:42px; height:42px; border-radius:50%; border:1px solid var(--line);
-    display:flex; align-items:center; justify-content:center; text-decoration:none; font-size:18px;
-  }
-  .social-links a:hover{ border-color:var(--lime); color:var(--lime); }
-  footer{ border-top:1px solid var(--line); padding:28px 0; text-align:center; color:var(--ink-soft); font-size:13.5px; }
-  .footer-grid{ display:flex; flex-direction:column; align-items:center; gap:14px; }
-  .footer-legal-links{ display:flex; gap:18px; flex-wrap:wrap; justify-content:center; }
-  .footer-legal-links a{ color:var(--ink-soft); text-decoration:underline; font-size:13px; }
-  .footer-legal-links a:hover{ color:var(--lime); }
-  .footer-credit{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; justify-content:center; font-size:12.5px; opacity:.85; }
-  .footer-logo{ height:28px; width:auto; }
-  .modal-wide{ max-width:640px; }
-  .legal-text{ display:grid; gap:12px; font-size:13.5px; line-height:1.6; color:var(--ink-soft); max-height:60vh; overflow:auto; padding-right:4px; }
-  .legal-text b{ color:var(--ink); }
-  .map-frame{ border:1px solid var(--line); border-radius:var(--radius); overflow:hidden; height:280px; }
-  .map-frame iframe{ width:100%; height:100%; border:0; filter:grayscale(.3) invert(.9) contrast(.85); }
+  footer{ border-top:1px solid var(--line); padding:36px 0; }
+  .footer-grid{ display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:14px; color:var(--ink-soft); font-size:13.5px; }
 </style>
 </head>
 <body>
 
 <header>
-  <div class="wrap nav">
-    <div class="logo"><img id="orgLogoHeader" alt="" hidden><span class="dot" id="orgDot"></span> <span id="orgNameHeader">Pistas Municipales · Chozas de Canales</span></div>
-    <div class="nav-menu">
-      <ul class="nav-links">
-        <li><a href="#pistas">Pistas</a></li>
-        <li><a href="#precios">Precios</a></li>
-        <li><a href="#reserva">Reservar</a></li>
-        <li><a href="#noticias">Noticias</a></li>
-        <li id="navTorneos"><a href="#torneos">Torneos</a></li>
-        <li id="navRanking"><a href="#ranking">Ranking</a></li>
-        <li><a href="#contacto">Contacto</a></li>
-      </ul>
-      <div class="nav-cta">
-        <button class="btn btn-ghost" id="installBtn" hidden>📲 Instalar app</button>
-        <button class="btn btn-ghost" id="accountBtn">Iniciar sesión</button>
-        <a href="#reserva" class="btn btn-primary">Reservar pista</a>
-      </div>
+  <div class="nav">
+    <div class="logo"><span class="dot"></span> GestionMyPadel</div>
+    <ul class="nav-links">
+      <li><a href="#para-quien">Para quién</a></li>
+      <li><a href="#funciones">Funciones</a></li>
+      <li><a href="#precios">Precios</a></li>
+      <li><a href="#como-funciona">Cómo funciona</a></li>
+      <li><a href="#faq">Preguntas frecuentes</a></li>
+    </ul>
+    <div class="nav-cta">
+      <a href="#contacto" class="btn btn-primary">Pedir demo gratis</a>
     </div>
-    <button class="burger" id="burgerBtn" aria-label="Menú">☰</button>
   </div>
 </header>
 
 <section class="hero">
-  <div class="wrap hero-grid">
-    <div>
-      <span class="eyebrow">Reservas online</span>
-      <h1>Reserva tu pista de pádel en segundos</h1>
-      <p>Elige pista, fecha y hora, y confirma tu reserva al momento. Sin llamadas, sin esperas.</p>
-      <div class="hero-actions">
-        <a href="#reserva" class="btn btn-primary">Ver horarios disponibles</a>
-        <a href="#precios" class="btn btn-ghost">Ver precios</a>
-      </div>
+  <div class="wrap">
+    <span class="eyebrow">Software de gestión de pistas de pádel para ayuntamientos, comunidades de vecinos y clubes</span>
+    <h1>Tus pistas de pádel, en un solo panel</h1>
+    <p class="sub">Reservas online 24 horas, torneos y ligas con ranking automático, facturación y estadísticas — sin llamadas, sin hojas de cálculo, sin líos entre vecinos.</p>
+    <div class="hero-ctas">
+      <a href="#contacto" class="btn btn-primary" data-plan-cta="Torneos y Ligas">Prueba gratis 2 meses</a>
+      <a href="#precios" class="btn btn-ghost">Ver planes y precios</a>
     </div>
-    <div class="hero-card">
-      <div class="hero-stat"><span>Pistas disponibles</span><b id="statCourts">—</b></div>
-      <div class="hero-stat"><span>Reserva mínima</span><b id="statMinDuration">—</b></div>
-      <div class="hero-stat"><span>Horario</span><b>08:00–23:00</b></div>
+    <p class="trust-line">2 meses gratis con el plan Torneos y Ligas · Sin permanencia · Cancela cuando quieras</p>
+  </div>
+</section>
+
+<section id="para-quien" style="background:var(--bg-soft);">
+  <div class="wrap">
+    <div class="section-head">
+      <span class="eyebrow">Para quién es GestionMyPadel</span>
+      <h2>Un mismo panel, pensado para cada tipo de gestor</h2>
+    </div>
+    <div class="feature-grid">
+      <div class="feature-card">
+        <div class="icon">🏛️</div>
+        <h3>Ayuntamientos</h3>
+        <p>Gestiona las pistas municipales sin depender de que alguien conteste el teléfono en horario de oficina. Reservas transparentes para todos los vecinos, sin favoritismos, con estadísticas de uso listas para justificar la inversión pública.</p>
+      </div>
+      <div class="feature-card">
+        <div class="icon">🏘️</div>
+        <h3>Comunidades de vecinos</h3>
+        <p>Se acabaron los líos por la pista de la urbanización: quién la reservó, si le tocaba a otro, el grupo de WhatsApp con diez mensajes cruzados. Cada vecino reserva su turno desde el móvil, sin necesitar conserje ni administrador de por medio.</p>
+      </div>
+      <div class="feature-card">
+        <div class="icon">🎾</div>
+        <h3>Clubes de pádel</h3>
+        <p>Además de las reservas, organiza torneos y ligas con ranking automático para fidelizar a tus socios, y factura cada uso sin duplicar el trabajo en otra herramienta.</p>
+      </div>
     </div>
   </div>
 </section>
 
-<section id="pistas">
+<section id="funciones">
   <div class="wrap">
     <div class="section-head">
-      <span class="eyebrow">Instalaciones</span>
-      <h2>Nuestras pistas</h2>
-      <p>Pistas cuidadas y listas para tu partido.</p>
+      <span class="eyebrow">Funciones</span>
+      <h2>Todo lo que necesita tu club, ya construido</h2>
     </div>
-    <div class="courts-grid" id="courtsGrid">
-      <p style="text-align:center; color:var(--ink-soft);">Cargando pistas…</p>
+    <div class="feature-grid">
+      <div class="feature-card">
+        <div class="icon">📅</div>
+        <h3>Reservas online 24/7</h3>
+        <p>Tus socios reservan pista, eligen duración y pagan luz extra desde el móvil, sin llamar ni escribir.</p>
+      </div>
+      <div class="feature-card">
+        <div class="icon">🏆</div>
+        <h3>Torneos, ligas y ranking</h3>
+        <p>Cuadros eliminatorios, ligas por divisiones y una clasificación de jugadores que se calcula sola.</p>
+      </div>
+      <div class="feature-card">
+        <div class="icon">🧾</div>
+        <h3>Facturación con un clic</h3>
+        <p>Genera facturas numeradas ligadas a cada reserva, sin duplicar el trabajo en otra herramienta.</p>
+      </div>
+      <div class="feature-card">
+        <div class="icon">🔔</div>
+        <h3>Notificaciones al instante</h3>
+        <p>Avisos push en cuanto entra una reserva nueva, sin depender de revisar el correo o el móvil.</p>
+      </div>
+      <div class="feature-card">
+        <div class="icon">📊</div>
+        <h3>Estadísticas del negocio</h3>
+        <p>Ingresos, ocupación por franja horaria y clientes más frecuentes, de un vistazo.</p>
+      </div>
+      <div class="feature-card">
+        <div class="icon">📲</div>
+        <h3>App instalable</h3>
+        <p>Tanto tus socios como tu equipo pueden instalarla como una app normal, sin pasar por ninguna tienda.</p>
+      </div>
+      <div class="feature-card">
+        <div class="icon">💬</div>
+        <h3>Bot de WhatsApp</h3>
+        <p>Reserva por WhatsApp, sin abrir la web, para los socios que prefieren escribir directamente.</p>
+      </div>
+      <div class="feature-card">
+        <div class="icon">🎨</div>
+        <h3>Tu marca, tu web</h3>
+        <p>Tu propio nombre, logo y web de reservas — sin que se note que hay una plataforma detrás.</p>
+      </div>
+      <div class="feature-card">
+        <div class="icon">🔒</div>
+        <h3>Datos siempre aislados</h3>
+        <p>Cada club tiene sus propios datos, completamente separados de cualquier otro cliente de la plataforma.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="como-funciona" style="background:var(--bg-soft);">
+  <div class="wrap">
+    <div class="section-head">
+      <span class="eyebrow">Cómo funciona</span>
+      <h2>En marcha en menos de 48 horas</h2>
+    </div>
+    <div class="steps">
+      <div class="step">
+        <div class="num">1</div>
+        <h3>Pide tu demo gratuita</h3>
+        <p>Rellena el formulario de abajo y te contactamos para conocer tu club y resolver dudas.</p>
+      </div>
+      <div class="step">
+        <div class="num">2</div>
+        <h3>Configuramos tu club</h3>
+        <p>Damos de alta tu organización con tu nombre, logo, pistas y precios — listo para usar.</p>
+      </div>
+      <div class="step">
+        <div class="num">3</div>
+        <h3>Empiezas a recibir reservas</h3>
+        <p>Compartes tu enlace y tus socios ya pueden reservar solos, sin llamarte a ti.</p>
+      </div>
     </div>
   </div>
 </section>
@@ -385,374 +275,124 @@
 <section id="precios">
   <div class="wrap">
     <div class="section-head">
-      <span class="eyebrow">Tarifas</span>
-      <h2>Precios por duración</h2>
-      <p>Elige cuánto tiempo quieres jugar al reservar.</p>
+      <span class="eyebrow">Precios</span>
+      <h2>Un plan para cada club, ayuntamiento o comunidad</h2>
+      <p style="color:var(--ink-soft); margin-top:12px;">Empieza gratis 2 meses con el plan Torneos y Ligas. Al terminar la prueba, eliges el plan que mejor encaje contigo.</p>
     </div>
-    <div class="price-groups" id="priceGroups">
-      <p style="text-align:center; color:var(--ink-soft);">Cargando precios…</p>
-    </div>
-  </div>
-</section>
-
-<section id="reserva">
-  <div class="wrap">
-    <div class="section-head">
-      <span class="eyebrow">Disponibilidad</span>
-      <h2>Reserva tu pista</h2>
-      <p>Elige pista y fecha para ver los horarios libres.</p>
-    </div>
-    <div class="booking-panel">
-      <div class="booking-controls">
-        <div class="field">
-          <label for="pistaSelect">Pista</label>
-          <select id="pistaSelect"></select>
-        </div>
-        <div class="field">
-          <label for="dateInput">Fecha</label>
-          <input type="date" id="dateInput">
-        </div>
+    <div class="pricing-grid">
+      <div class="price-card" data-plan="Reservas">
+        <h3>Reservas</h3>
+        <div class="price">49,99€ <span>/ mes</span></div>
+        <ul>
+          <li><span class="check">✓</span> Reservas online 24/7</li>
+          <li><span class="check">✓</span> Calendario y gestión de pistas</li>
+          <li><span class="check">✓</span> Precios por duración y por pista</li>
+          <li><span class="check">✓</span> Gestión de clientes</li>
+          <li><span class="check">✓</span> Notificaciones push</li>
+          <li><span class="check">✓</span> Tu propia web con tu nombre y logo</li>
+        </ul>
+        <a href="#contacto" class="btn btn-ghost btn-block" data-plan-cta="Reservas">Solicitar este plan</a>
       </div>
-      <div class="slots-grid" id="slotsGrid">
-        <p class="slots-empty">Elige pista y fecha para ver horarios.</p>
+      <div class="price-card featured" data-plan="Torneos y Ligas">
+        <span class="badge">Prueba gratuita 2 meses</span>
+        <h3>Torneos y Ligas</h3>
+        <div class="price">59,99€ <span>/ mes</span></div>
+        <div class="free-months">Empieza gratis 2 meses con este plan</div>
+        <ul>
+          <li><span class="check">✓</span> <b>Todo lo del plan Reservas</b></li>
+          <li><span class="check">✓</span> Torneos con cuadro eliminatorio</li>
+          <li><span class="check">✓</span> Ligas por divisiones</li>
+          <li><span class="check">✓</span> Ranking automático de jugadores</li>
+          <li><span class="check">✓</span> Chat privado por competición</li>
+          <li><span class="check">✓</span> Estadísticas y facturación</li>
+        </ul>
+        <a href="#contacto" class="btn btn-primary btn-block" data-plan-cta="Torneos y Ligas">Empezar prueba gratuita</a>
+      </div>
+      <div class="price-card" data-plan="Premium">
+        <h3>Premium</h3>
+        <div class="price">69,99€ <span>/ mes</span></div>
+        <ul>
+          <li><span class="check">✓</span> <b>Todo lo del plan Torneos y Ligas</b></li>
+          <li><span class="check">✓</span> Pasarela de pago online</li>
+          <li><span class="check">✓</span> Apertura de pista con código domotizado</li>
+          <li><span class="check">✓</span> Soporte prioritario</li>
+        </ul>
+        <a href="#contacto" class="btn btn-ghost btn-block" data-plan-cta="Premium">Solicitar este plan</a>
       </div>
     </div>
+    <p class="pricing-note">Precios sin IVA. Sin permanencia: cancela cuando quieras una vez terminada la prueba gratuita.</p>
   </div>
 </section>
 
-<section id="noticias">
+<section id="faq" style="background:var(--bg-soft);">
   <div class="wrap">
     <div class="section-head">
-      <span class="eyebrow">Novedades</span>
-      <h2>Noticias</h2>
-      <p>Últimas novedades de las pistas.</p>
+      <span class="eyebrow">Preguntas frecuentes</span>
+      <h2>Todo lo que quieras saber antes de empezar</h2>
     </div>
-    <div class="noticias-grid" id="noticiasGrid">
-      <p style="text-align:center; color:var(--ink-soft);">Cargando noticias…</p>
-    </div>
-  </div>
-</section>
-
-<section id="torneos">
-  <div class="wrap">
-    <div class="section-head">
-      <span class="eyebrow">Competiciones</span>
-      <h2>Torneos y ligas</h2>
-      <p>Apunta tu pareja antes de la fecha límite.</p>
-    </div>
-    <div class="competitions-grid" id="competitionsGrid">
-      <p style="text-align:center; color:var(--ink-soft);">Cargando torneos y ligas…</p>
-    </div>
-  </div>
-</section>
-
-<section id="ranking">
-  <div class="wrap">
-    <div class="section-head">
-      <span class="eyebrow">Clasificación</span>
-      <h2>Ranking de jugadores</h2>
-      <p>Puntos acumulados en los torneos y ligas ya finalizados, según la ronda o posición alcanzada.</p>
-    </div>
-    <div id="rankingList">
-      <p style="text-align:center; color:var(--ink-soft);">Cargando ranking…</p>
+    <div class="faq-list">
+      <details class="faq-item">
+        <summary>¿Cómo funciona la prueba gratuita de 2 meses?</summary>
+        <p>Empiezas con acceso completo al plan Torneos y Ligas durante 2 meses, sin coste. Antes de que termine te avisamos, y entonces eliges si te quedas en ese plan, cambias a Reservas o a Premium, o simplemente no continúas — en ese caso no se te cobra nada.</p>
+      </details>
+      <details class="faq-item">
+        <summary>¿Puedo cambiar de plan más adelante?</summary>
+        <p>Sí, puedes subir o bajar de plan cuando quieras, sin perder tus datos ni tener que volver a configurar nada.</p>
+      </details>
+      <details class="faq-item">
+        <summary>¿Necesito instalar algo o tener conocimientos técnicos?</summary>
+        <p>No. Todo funciona desde el navegador, tanto para ti como para tus socios. Además, se puede instalar como una app normal en el móvil si lo prefieres.</p>
+      </details>
+      <details class="faq-item">
+        <summary>¿Mis datos se mezclan con los de otros clubes?</summary>
+        <p>No, nunca. Cada organización tiene sus datos completamente aislados a nivel de base de datos, aunque todas compartan la misma plataforma.</p>
+      </details>
+      <details class="faq-item">
+        <summary>¿Qué pasa con mis datos si me doy de baja?</summary>
+        <p>Te los entregamos en un formato exportable y los eliminamos de nuestros sistemas cuando nos lo confirmes.</p>
+      </details>
     </div>
   </div>
 </section>
 
 <section id="contacto">
-  <div class="wrap contact-grid">
-    <div>
-      <span class="eyebrow">Contacto</span>
-      <h2 style="margin-top:10px;">¿Hablamos?</h2>
-      <p style="color:var(--ink-soft); margin-top:14px;" id="contactoInfo"></p>
-      <div class="social-links" id="socialLinks"></div>
+  <div class="wrap">
+    <div class="section-head">
+      <span class="eyebrow">Empieza ahora</span>
+      <h2>Pide tu demo gratuita</h2>
+      <p style="color:var(--ink-soft); margin-top:12px;">Cuéntanos sobre tu club y te contactamos en menos de 24-48 horas.</p>
     </div>
-    <div class="map-frame" id="mapFrame"></div>
+    <div class="card">
+      <form id="leadForm">
+        <div class="form-grid">
+          <div class="field"><label for="lead_nombre">Tu nombre</label><input type="text" id="lead_nombre" required></div>
+          <div class="field"><label for="lead_club">Nombre del club / ayuntamiento</label><input type="text" id="lead_club" required></div>
+          <div class="field"><label for="lead_email">Email</label><input type="email" id="lead_email" required></div>
+          <div class="field"><label for="lead_telefono">Teléfono (opcional)</label><input type="tel" id="lead_telefono"></div>
+          <div class="field full">
+            <label for="lead_plan">Plan que te interesa</label>
+            <select id="lead_plan">
+              <option value="Reservas">Reservas — 49,99€/mes</option>
+              <option value="Torneos y Ligas" selected>Torneos y Ligas — 59,99€/mes</option>
+              <option value="Premium">Premium — 69,99€/mes</option>
+              <option value="No lo tengo claro">Todavía no lo tengo claro</option>
+            </select>
+          </div>
+          <div class="field full"><label for="lead_mensaje">Cuéntanos algo más (opcional)</label><textarea id="lead_mensaje" rows="3"></textarea></div>
+        </div>
+        <button type="submit" class="btn btn-primary btn-block" style="margin-top:20px;">Pedir demo gratuita</button>
+        <div class="form-msg" id="leadMsg"></div>
+      </form>
+    </div>
   </div>
 </section>
 
-<a href="#reserva" class="floating-book-btn">📅 Reservar</a>
-
-<div class="ad-banner" id="adBanner">
-  <span class="ad-tag">Publicidad</span>
-  <button type="button" class="ad-close" id="adBannerClose" aria-label="Cerrar publicidad">✕</button>
-  <a href="https://1105sports.com/" target="_blank" rel="noopener sponsored">
-    <img src="./assets/banner-1105sports.jpg" alt="1105 Sports">
-  </a>
-</div>
-
 <footer>
   <div class="wrap footer-grid">
-    <div>© <span id="year"></span> <span id="orgNameFooter">Pistas Municipales de Pádel de Chozas de Canales</span>.</div>
-    <nav class="footer-legal-links">
-      <a href="#" id="openLegalLink">Aviso legal</a>
-      <a href="#" id="openPrivacyLink">Política de privacidad</a>
-      <a href="#" id="openCookiesLink">Política de cookies</a>
-    </nav>
-    <div class="footer-credit">
-      <img src="./assets/logo-ebm.png" alt="EBM Proyectos de Software" class="footer-logo">
-      <span>Desarrollado por Ernesto Bermejo Montalvo · EBM Proyectos de Software</span>
-    </div>
+    <div>© <span id="year"></span> GestionMyPadel · Desarrollado por EBM Proyectos de Software.</div>
+    <div>¿Ya eres cliente? <a href="club.html" style="color:var(--lime); text-decoration:none;">Accede a tu club →</a></div>
   </div>
 </footer>
-
-<!-- ---------- Modal de reserva ---------- -->
-<div class="modal-backdrop" id="bookingModal" hidden>
-  <div class="modal">
-    <div class="modal-head">
-      <div>
-        <span class="eyebrow" id="modalPista"></span>
-        <h3 id="modalDateTime" style="margin-top:6px; font-size:20px;"></h3>
-      </div>
-      <button class="modal-close" id="modalClose" aria-label="Cerrar">✕</button>
-    </div>
-    <form id="bookingForm">
-      <div class="field">
-        <label>Duración</label>
-        <div class="duration-options" id="durationOptions"></div>
-      </div>
-      <div class="field">
-        <label for="full_name">Nombre y apellidos</label>
-        <input type="text" id="full_name" required>
-      </div>
-      <div class="field">
-        <label for="phone">Teléfono</label>
-        <input type="tel" id="phone" required>
-      </div>
-      <div class="field">
-        <label for="email">Email</label>
-        <input type="email" id="email" required>
-      </div>
-      <div class="field">
-        <label for="players_count">Nº de jugadores</label>
-        <select id="players_count">
-          <option value="2">2</option>
-          <option value="4" selected>4</option>
-        </select>
-      </div>
-      <label class="light-check" id="lightField" hidden>
-        <input type="checkbox" id="wants_light"> <span id="lightLabel">¿Quieres luz?</span>
-      </label>
-      <div class="field">
-        <label for="message">Comentario (opcional)</label>
-        <textarea id="message" rows="2"></textarea>
-      </div>
-      <label class="light-check">
-        <input type="checkbox" id="accept_privacy" required>
-        <span>He leído y acepto la <a href="#" id="openPrivacyFromBooking">política de privacidad</a>.</span>
-      </label>
-      <div class="form-msg" id="formMsg"></div>
-      <button type="submit" class="btn btn-primary">Confirmar reserva</button>
-    </form>
-  </div>
-</div>
-
-<!-- ---------- Modal de inscripción a torneo/liga ---------- -->
-<div class="modal-backdrop" id="signupModal" hidden>
-  <div class="modal">
-    <div class="modal-head">
-      <div>
-        <span class="eyebrow">Apuntarse</span>
-        <h3 id="signupCompName" style="margin-top:6px; font-size:20px;"></h3>
-      </div>
-      <button class="modal-close" id="signupModalClose" aria-label="Cerrar">✕</button>
-    </div>
-    <form id="signupForm">
-      <div class="field">
-        <label for="signup_p1_name">Jugador/a 1 — nombre</label>
-        <input type="text" id="signup_p1_name" required>
-      </div>
-      <div class="field">
-        <label for="signup_p1_phone">Jugador/a 1 — teléfono</label>
-        <input type="tel" id="signup_p1_phone" required>
-      </div>
-      <div class="field">
-        <label for="signup_p2_phone">Jugador/a 2 — teléfono (opcional)</label>
-        <input type="tel" id="signup_p2_phone" placeholder="Debe tener cuenta creada en la web">
-      </div>
-      <div class="field">
-        <label for="signup_p2_name">Jugador/a 2 — nombre</label>
-        <input type="text" id="signup_p2_name" readonly placeholder="Se rellena solo al encontrar el teléfono">
-      </div>
-      <div class="form-msg" id="signupP2Msg"></div>
-      <div class="form-msg" id="signupFormMsg"></div>
-      <button type="submit" class="btn btn-primary">Apuntar pareja</button>
-    </form>
-  </div>
-</div>
-
-<!-- ---------- Modal de chat de torneo/liga ---------- -->
-<div class="modal-backdrop" id="chatModal" hidden>
-  <div class="modal">
-    <div class="modal-head">
-      <div>
-        <span class="eyebrow">Chat del torneo/liga</span>
-        <h3 id="chatCompName" style="margin-top:6px; font-size:20px;"></h3>
-      </div>
-      <button class="modal-close" id="chatModalClose" aria-label="Cerrar">✕</button>
-    </div>
-    <div class="chat-messages" id="chatMessages"></div>
-    <form id="chatForm" style="display:flex; gap:8px; margin-top:14px;">
-      <input type="text" id="chatInput" placeholder="Escribe un mensaje…" required style="flex:1;">
-      <button type="submit" class="btn btn-primary btn-sm">Enviar</button>
-    </form>
-  </div>
-</div>
-
-<!-- ---------- Modal de cuenta (login / registro / mis reservas) ---------- -->
-<div class="modal-backdrop" id="accountModal" hidden>
-  <div class="modal">
-    <div class="modal-head">
-      <div>
-        <span class="eyebrow">Mi cuenta</span>
-        <h3 id="accountModalTitle" style="margin-top:6px; font-size:20px;">Iniciar sesión</h3>
-      </div>
-      <button class="modal-close" id="accountModalClose" aria-label="Cerrar">✕</button>
-    </div>
-
-    <div id="authView">
-      <form id="loginForm">
-        <div class="field"><label for="login_email">Email</label><input type="email" id="login_email" required></div>
-        <div class="field"><label for="login_password">Contraseña</label><input type="password" id="login_password" required></div>
-        <div class="form-msg" id="loginMsg"></div>
-        <button type="submit" class="btn btn-primary">Entrar</button>
-      </form>
-      <p style="text-align:center; margin-top:14px; font-size:14px; color:var(--ink-soft);" id="showSignupWrap">
-        <a href="#" id="showForgotLink">¿Has olvidado tu contraseña?</a><br>
-        ¿No tienes cuenta? <a href="#" id="showSignupLink">Regístrate</a>
-      </p>
-
-      <form id="forgotPasswordForm" hidden>
-        <div class="field"><label for="forgot_email">Email</label><input type="email" id="forgot_email" required></div>
-        <div class="form-msg" id="forgotPasswordMsg"></div>
-        <button type="submit" class="btn btn-primary">Enviar enlace para restablecer</button>
-      </form>
-      <p style="text-align:center; margin-top:14px; font-size:14px; color:var(--ink-soft);" id="showLoginFromForgotWrap" hidden>
-        <a href="#" id="showLoginFromForgotLink">Volver a iniciar sesión</a>
-      </p>
-
-      <form id="signupAccountForm" hidden>
-        <div class="field"><label for="signup_full_name">Nombre y apellidos</label><input type="text" id="signup_full_name" required></div>
-        <div class="field"><label for="signup_phone">Teléfono</label><input type="tel" id="signup_phone" required></div>
-        <div class="field"><label for="signup_email">Email</label><input type="email" id="signup_email" required></div>
-        <div class="field"><label for="signup_password">Contraseña (mínimo 6 caracteres)</label><input type="password" id="signup_password" required minlength="6"></div>
-        <div class="form-msg" id="signupAccountMsg"></div>
-        <button type="submit" class="btn btn-primary">Crear cuenta</button>
-      </form>
-      <p style="text-align:center; margin-top:14px; font-size:14px; color:var(--ink-soft);" id="showLoginWrap" hidden>
-        ¿Ya tienes cuenta? <a href="#" id="showLoginLink">Inicia sesión</a>
-      </p>
-    </div>
-
-    <div id="myAccountView" hidden>
-      <p style="font-size:14px; color:var(--ink-soft); margin:-8px 0 14px;">Sesión iniciada como <b id="accountEmail"></b></p>
-      <div id="myReservationsList"></div>
-      <button type="button" class="btn btn-ghost" id="accountLogoutBtn" style="margin-top:16px; width:100%;">Cerrar sesión</button>
-    </div>
-
-    <div id="resetPasswordView" hidden>
-      <p style="font-size:14px; color:var(--ink-soft); margin:0 0 16px;">Elige una nueva contraseña para tu cuenta.</p>
-      <form id="resetPasswordForm">
-        <div class="field"><label for="new_password">Nueva contraseña (mínimo 6 caracteres)</label><input type="password" id="new_password" required minlength="6"></div>
-        <div class="form-msg" id="resetPasswordMsg"></div>
-        <button type="submit" class="btn btn-primary">Guardar nueva contraseña</button>
-      </form>
-    </div>
-  </div>
-</div>
-
-<!-- ---------- Modales legales ---------- -->
-<div class="modal-backdrop" id="legalModal" hidden>
-  <div class="modal modal-wide">
-    <div class="modal-head">
-      <h3 style="font-size:20px;">Aviso legal</h3>
-      <button class="modal-close" id="legalModalClose" aria-label="Cerrar">✕</button>
-    </div>
-    <div class="legal-text">
-      <p><b>Titular del sitio:</b> Ayuntamiento de Chozas de Canales — CIF [pendiente de completar] —
-        domicilio en [dirección del ayuntamiento] — contacto: [email/teléfono de contacto].</p>
-      <p>Esta web es la plataforma de reservas online de las pistas municipales de pádel de Chozas de
-        Canales, y permite además apuntarse a los torneos y ligas organizados por el ayuntamiento.</p>
-      <p><b>Condiciones de uso:</b> el acceso y uso de esta web atribuye la condición de usuario y
-        exige la aceptación de este aviso legal. El usuario se compromete a facilitar datos veraces
-        al registrarse o reservar, y a hacer un uso correcto del servicio (no acaparar horarios,
-        no suplantar a otras personas, respetar las normas de uso de las instalaciones deportivas).</p>
-      <p><b>Propiedad intelectual:</b> los contenidos, diseño y código de esta web son propiedad del
-        Ayuntamiento de Chozas de Canales, salvo el desarrollo técnico de la plataforma, realizado por
-        <b>EBM Proyectos de Software</b> (Ernesto Bermejo Montalvo).</p>
-      <p><b>Responsabilidad:</b> el ayuntamiento no se hace responsable de la imposibilidad de acceso
-        al servicio por causas ajenas (caídas de conexión, mantenimiento técnico, etc.), ni de un uso
-        indebido de la web por parte de terceros.</p>
-      <p><b>Legislación aplicable:</b> este aviso legal se rige por la legislación española.</p>
-      <p style="color:var(--ink-soft); font-size:12.5px;">Texto de referencia pendiente de revisión y
-        cumplimentación por parte del ayuntamiento (datos identificativos exactos, CIF, domicilio y
-        contacto).</p>
-    </div>
-  </div>
-</div>
-
-<div class="modal-backdrop" id="privacyModal" hidden>
-  <div class="modal modal-wide">
-    <div class="modal-head">
-      <h3 style="font-size:20px;">Política de privacidad</h3>
-      <button class="modal-close" id="privacyModalClose" aria-label="Cerrar">✕</button>
-    </div>
-    <div class="legal-text">
-      <p><b>Responsable del tratamiento:</b> Ayuntamiento de Chozas de Canales — CIF [pendiente de
-        completar] — [dirección] — [email de contacto].</p>
-      <p><b>Finalidad:</b> gestionar las reservas de pistas, la creación y gestión de tu cuenta de
-        usuario, tu inscripción y participación en torneos y ligas municipales (incluido el chat de
-        cada competición y el ranking de jugadores), y, si lo activas, el envío de avisos por
-        WhatsApp relacionados con tus reservas.</p>
-      <p><b>Legitimación:</b> tu consentimiento al crear la cuenta y al reservar, y la ejecución de la
-        relación con el ayuntamiento como usuario de un servicio público municipal.</p>
-      <p><b>Datos que tratamos:</b> nombre y apellidos, teléfono, email, contraseña (nunca en texto
-        claro: se guarda cifrada por el propio sistema de autenticación), e historial de tus reservas
-        e inscripciones.</p>
-      <p><b>Encargados del tratamiento:</b> esta web usa <b>Supabase</b> (proveedor de base de datos y
-        autenticación, con servidores en la Unión Europea) como encargado de tratamiento para alojar
-        los datos, y <b>EBM Proyectos de Software</b> (Ernesto Bermejo Montalvo) como encargado del
-        desarrollo y mantenimiento técnico de la plataforma. Ambos actúan bajo las garantías de
-        confidencialidad y seguridad exigidas por el RGPD, y no usan tus datos para fines propios.</p>
-      <p><b>Conservación:</b> tus datos se conservan mientras mantengas la cuenta activa, y el tiempo
-        adicional que exija la normativa aplicable a las administraciones públicas.</p>
-      <p><b>Tus derechos:</b> puedes ejercer en cualquier momento tus derechos de acceso, rectificación,
-        supresión, oposición, limitación y portabilidad escribiendo a [email de contacto del
-        ayuntamiento]. También puedes cancelar tus propias reservas y ver tu historial desde
-        "Mi cuenta" en esta misma web.</p>
-      <p style="color:var(--ink-soft); font-size:12.5px;">Texto de referencia pendiente de revisión y
-        cumplimentación por parte del ayuntamiento (datos identificativos exactos y canal de contacto
-        para ejercer derechos).</p>
-    </div>
-  </div>
-</div>
-
-<div class="modal-backdrop" id="cookiesModal" hidden>
-  <div class="modal modal-wide">
-    <div class="modal-head">
-      <h3 style="font-size:20px;">Política de cookies</h3>
-      <button class="modal-close" id="cookiesModalClose" aria-label="Cerrar">✕</button>
-    </div>
-    <div class="legal-text">
-      <p>Esta web <b>no usa cookies de análisis ni de publicidad de terceros</b>. Solo guarda datos
-        técnicos en tu propio navegador (almacenamiento local, equivalente a una cookie) necesarios
-        para que la web funcione:</p>
-      <ul style="padding-left:18px; display:grid; gap:6px;">
-        <li>Mantener tu sesión iniciada, para no tener que volver a escribir tu contraseña cada vez
-          (gestionado por Supabase Auth).</li>
-        <li>Recordar que has cerrado el aviso de publicidad, para no volver a mostrártelo.</li>
-        <li>Si instalas la web como aplicación (PWA), una caché técnica para que cargue más rápido.</li>
-      </ul>
-      <p>El banner de publicidad que puede aparecer en la portada es una imagen estática con un
-        enlace a un tercero (1105 Sports); no incluye ningún píxel de rastreo ni comparte datos tuyos
-        con ese anunciante.</p>
-      <p>Puedes borrar estos datos en cualquier momento desde los ajustes de tu navegador (borrar
-        datos de navegación / almacenamiento del sitio). Si el ayuntamiento incorpora en el futuro
-        herramientas de analítica o publicidad que sí usen cookies, esta política se actualizará y se
-        pedirá tu consentimiento antes de activarlas.</p>
-    </div>
-  </div>
-</div>
 
 <script type="module">
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
@@ -761,1215 +401,38 @@ const SUPABASE_URL = 'https://stnuvhlqicftjbtlybit.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN0bnV2aGxxaWNmdGpidGx5Yml0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMyNDY4NzgsImV4cCI6MjA5ODgyMjg3OH0.1a8uenfaddy_yiXPgerteMoktCEeeFhkH021qp0okPY';
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-/* ---------- Organización (multi-tenant): resolución por ?org=slug ---------- */
-// Esta misma web sirve a varias organizaciones (ayuntamientos, comunidades de
-// vecinos, clubs...); cada una tiene su propio enlace con "?org=su-slug" y sus
-// propios datos, completamente aislados en la base de datos (organizacion_id).
-let CURRENT_ORG = null; // { id, nombre, logo_path, tipo }
-let ORG_ID = null;
-
-function showOrgError(message){
-  document.body.innerHTML = `<div style="min-height:100vh; display:flex; align-items:center; justify-content:center; text-align:center; padding:40px; font-family:-apple-system,'Segoe UI',Roboto,sans-serif; color:#EFEFE9; background:#0B1210;">
-    <div><h1 style="font-size:22px; margin-bottom:10px;">No se puede cargar esta web</h1><p style="color:#9aa39a; max-width:420px; margin:0 auto;">${message}</p></div>
-  </div>`;
-}
-
-function applyOrgBranding(org){
-  document.title = org.nombre;
-  document.querySelectorAll('#orgNameHeader, #orgNameFooter').forEach(el => { el.textContent = org.nombre; });
-  if (org.logo_path){
-    const url = supabase.storage.from('galeria-padel').getPublicUrl(org.logo_path).data.publicUrl;
-    const img = document.getElementById('orgLogoHeader');
-    img.src = url;
-    img.hidden = false;
-    document.getElementById('orgDot').hidden = true;
-  }
-  const f = org.features || {};
-  const gate = (navId, sectionId, enabled) => {
-    const nav = document.getElementById(navId);
-    const section = document.getElementById(sectionId);
-    if (nav) nav.hidden = !enabled;
-    if (section) section.hidden = !enabled;
-  };
-  gate('navTorneos', 'torneos', f.torneos !== false);
-  gate('navRanking', 'ranking', f.ranking !== false);
-
-  const infoLines = [];
-  if (org.direccion) infoLines.push(`📍 ${org.direccion}`);
-  if (org.telefono) infoLines.push(`📞 <a href="tel:${org.telefono.replace(/\s+/g, '')}">${org.telefono}</a>`);
-  if (org.email_contacto) infoLines.push(`✉️ <a href="mailto:${org.email_contacto}">${org.email_contacto}</a>`);
-  const contactoEl = document.getElementById('contactoInfo');
-  contactoEl.innerHTML = infoLines.length ? infoLines.join('<br>') : 'Datos de contacto próximamente.';
-
-  const socials = [
-    org.instagram_url ? { href: org.instagram_url, key: 'instagram', label: 'IG', aria: 'Instagram' } : null,
-    org.facebook_url ? { href: org.facebook_url, key: 'facebook', label: 'FB', aria: 'Facebook' } : null,
-    org.whatsapp_url ? { href: org.whatsapp_url, key: 'whatsapp', label: 'WA', aria: 'WhatsApp' } : null,
-  ].filter(Boolean);
-  document.getElementById('socialLinks').innerHTML = socials.map(s =>
-    `<a href="${s.href}" target="_blank" rel="noopener" data-social="${s.key}" aria-label="${s.aria}">${s.label}</a>`
-  ).join('');
-
-  const mapFrame = document.getElementById('mapFrame');
-  mapFrame.innerHTML = org.mapa_query
-    ? `<iframe loading="lazy" src="https://www.google.com/maps?q=${encodeURIComponent(org.mapa_query)}&output=embed"></iframe>`
-    : '<div style="height:100%; display:flex; align-items:center; justify-content:center; color:var(--ink-soft); font-size:13.5px;">Mapa próximamente.</div>';
-}
-
-async function resolveOrganizacion(){
-  const slug = new URLSearchParams(window.location.search).get('org');
-  if (!slug){
-    showOrgError('Falta indicar el club/ayuntamiento en el enlace. Pide a quien te lo haya compartido que añada "?org=..." al final de la URL.');
-    return false;
-  }
-  const { data, error } = await supabase.rpc('organizacion_por_slug', { p_slug: slug });
-  const org = Array.isArray(data) ? data[0] : data;
-  if (error || !org){
-    showOrgError('No encontramos ninguna organización activa con ese identificador. Comprueba el enlace.');
-    return false;
-  }
-  CURRENT_ORG = org;
-  ORG_ID = org.id;
-  applyOrgBranding(org);
-  trackAnalyticsEvent('page_view');
-  return true;
-}
-
-function trackAnalyticsEvent(event_type){
-  if (!ORG_ID) return;
-  supabase.from('analytics_eventos_padel').insert({ organizacion_id: ORG_ID, event_type }).then(() => {});
-}
-
 document.getElementById('year').textContent = new Date().getFullYear();
 
-/* ---------- Instalar como app ---------- */
-if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('./sw-public.js').catch(() => {});
-}
-let deferredInstallPrompt = null;
-const installBtn = document.getElementById('installBtn');
-window.addEventListener('beforeinstallprompt', (e) => {
-  e.preventDefault();
-  deferredInstallPrompt = e;
-  installBtn.hidden = false;
-});
-installBtn.addEventListener('click', async () => {
-  if (!deferredInstallPrompt) return;
-  installBtn.hidden = true;
-  deferredInstallPrompt.prompt();
-  await deferredInstallPrompt.userChoice;
-  deferredInstallPrompt = null;
-});
-window.addEventListener('appinstalled', () => { installBtn.hidden = true; });
-
-/* ---------- Cuenta de cliente (login / registro / mis reservas) ---------- */
-let currentUser = null;
-
-const accountBtn = document.getElementById('accountBtn');
-const accountModal = document.getElementById('accountModal');
-const accountModalTitle = document.getElementById('accountModalTitle');
-const authView = document.getElementById('authView');
-const myAccountView = document.getElementById('myAccountView');
-const loginForm = document.getElementById('loginForm');
-const signupAccountForm = document.getElementById('signupAccountForm');
-const loginMsg = document.getElementById('loginMsg');
-const signupAccountMsg = document.getElementById('signupAccountMsg');
-
-const resetPasswordView = document.getElementById('resetPasswordView');
-const forgotPasswordForm = document.getElementById('forgotPasswordForm');
-const forgotPasswordMsg = document.getElementById('forgotPasswordMsg');
-
-function showLoginForm(){
-  accountModalTitle.textContent = 'Iniciar sesión';
-  loginForm.hidden = false;
-  document.getElementById('showSignupWrap').hidden = false;
-  forgotPasswordForm.hidden = true;
-  document.getElementById('showLoginFromForgotWrap').hidden = true;
-  signupAccountForm.hidden = true;
-  document.getElementById('showLoginWrap').hidden = true;
-  loginMsg.textContent = '';
-}
-function showSignupForm(){
-  accountModalTitle.textContent = 'Crear cuenta';
-  loginForm.hidden = true;
-  document.getElementById('showSignupWrap').hidden = true;
-  forgotPasswordForm.hidden = true;
-  document.getElementById('showLoginFromForgotWrap').hidden = true;
-  signupAccountForm.hidden = false;
-  document.getElementById('showLoginWrap').hidden = false;
-  signupAccountMsg.textContent = '';
-}
-function showForgotPasswordForm(){
-  accountModalTitle.textContent = 'Recuperar contraseña';
-  loginForm.hidden = true;
-  document.getElementById('showSignupWrap').hidden = true;
-  forgotPasswordForm.hidden = false;
-  document.getElementById('showLoginFromForgotWrap').hidden = false;
-  signupAccountForm.hidden = true;
-  document.getElementById('showLoginWrap').hidden = true;
-  forgotPasswordMsg.textContent = '';
-}
-function renderAccountModal(){
-  resetPasswordView.hidden = true;
-  if (currentUser){
-    accountModalTitle.textContent = 'Mi cuenta';
-    authView.hidden = true;
-    myAccountView.hidden = false;
-    document.getElementById('accountEmail').textContent = currentUser.email;
-    loadMyReservations();
-  } else {
-    accountModalTitle.textContent = 'Iniciar sesión';
-    authView.hidden = false;
-    myAccountView.hidden = true;
-    showLoginForm();
-  }
-}
-function showResetPasswordView(){
-  accountModal.hidden = false;
-  authView.hidden = true;
-  myAccountView.hidden = true;
-  resetPasswordView.hidden = false;
-  accountModalTitle.textContent = 'Nueva contraseña';
-}
-let awaitingLoginForBooking = false;
-let awaitingLoginForSignup = false;
-let pendingSignupCompId = null;
-
-function openAccountModal(){
-  accountModal.hidden = false;
-  renderAccountModal();
-}
-function closeAccountModal(){
-  accountModal.hidden = true;
-  awaitingLoginForBooking = false;
-  awaitingLoginForSignup = false;
-}
-function resumePendingBooking(){
-  if (awaitingLoginForSignup && pendingSignupCompId){
-    awaitingLoginForSignup = false;
-    accountModal.hidden = true;
-    openSignupModal(pendingSignupCompId);
-    return;
-  }
-  if (!awaitingLoginForBooking || !pendingStartTime) return;
-  awaitingLoginForBooking = false;
-  accountModal.hidden = true;
-  openBookingModal(pendingStartTime);
-}
-
-accountBtn.addEventListener('click', openAccountModal);
-document.getElementById('accountModalClose').addEventListener('click', closeAccountModal);
-accountModal.addEventListener('click', (e) => { if (e.target.id === 'accountModal') closeAccountModal(); });
-document.getElementById('showSignupLink').addEventListener('click', (e) => { e.preventDefault(); showSignupForm(); });
-document.getElementById('showLoginLink').addEventListener('click', (e) => { e.preventDefault(); showLoginForm(); });
-document.getElementById('showForgotLink').addEventListener('click', (e) => { e.preventDefault(); showForgotPasswordForm(); });
-document.getElementById('showLoginFromForgotLink').addEventListener('click', (e) => { e.preventDefault(); showLoginForm(); });
-
-loginForm.addEventListener('submit', async (e) => {
-  e.preventDefault();
-  loginMsg.textContent = 'Entrando…';
-  loginMsg.className = 'form-msg';
-  const email = document.getElementById('login_email').value.trim();
-  const password = document.getElementById('login_password').value;
-  const { error } = await supabase.auth.signInWithPassword({ email, password });
-  if (error){
-    if (/email not confirmed/i.test(error.message)){
-      loginMsg.textContent = 'Todavía no has confirmado tu email. Revisa tu bandeja de entrada (y spam) y pulsa el enlace de confirmación.';
-    } else {
-      loginMsg.textContent = 'Email o contraseña incorrectos.';
-    }
-    loginMsg.className = 'form-msg err';
-    return;
-  }
-  loginForm.reset();
-  resumePendingBooking();
-});
-
-forgotPasswordForm.addEventListener('submit', async (e) => {
-  e.preventDefault();
-  forgotPasswordMsg.textContent = 'Enviando…';
-  forgotPasswordMsg.className = 'form-msg';
-  const email = document.getElementById('forgot_email').value.trim();
-  const { error } = await supabase.auth.resetPasswordForEmail(email, {
-    redirectTo: window.location.origin + window.location.pathname,
+document.querySelectorAll('[data-plan-cta]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.getElementById('lead_plan').value = btn.dataset.planCta;
   });
-  if (error){
-    forgotPasswordMsg.textContent = 'No se ha podido enviar el correo. Inténtalo de nuevo.';
-    forgotPasswordMsg.className = 'form-msg err';
-    return;
-  }
-  forgotPasswordForm.reset();
-  forgotPasswordMsg.textContent = 'Te hemos enviado un enlace a tu email para elegir una nueva contraseña.';
-  forgotPasswordMsg.className = 'form-msg ok';
 });
 
-document.getElementById('resetPasswordForm').addEventListener('submit', async (e) => {
+document.getElementById('leadForm').addEventListener('submit', async (e) => {
   e.preventDefault();
-  const msg = document.getElementById('resetPasswordMsg');
-  msg.textContent = 'Guardando…';
-  msg.className = 'form-msg';
-  const password = document.getElementById('new_password').value;
-  const { error } = await supabase.auth.updateUser({ password });
+  const msg = document.getElementById('leadMsg');
+  const submitBtn = e.target.querySelector('button[type="submit"]');
+  const payload = {
+    nombre_contacto: document.getElementById('lead_nombre').value.trim(),
+    nombre_club: document.getElementById('lead_club').value.trim(),
+    email: document.getElementById('lead_email').value.trim(),
+    telefono: document.getElementById('lead_telefono').value.trim() || null,
+    plan_interes: document.getElementById('lead_plan').value,
+    mensaje: document.getElementById('lead_mensaje').value.trim() || null,
+  };
+  submitBtn.disabled = true;
+  const { error } = await supabase.from('leads_gestionmypadel').insert(payload);
+  submitBtn.disabled = false;
   if (error){
-    msg.textContent = 'No se ha podido guardar la contraseña. Inténtalo de nuevo.';
+    msg.textContent = 'No se ha podido enviar. Inténtalo de nuevo en unos minutos.';
     msg.className = 'form-msg err';
     return;
   }
-  e.target.reset();
-  msg.textContent = '¡Contraseña actualizada! Ya puedes usarla la próxima vez que inicies sesión.';
+  msg.textContent = '¡Gracias! Te contactaremos muy pronto.';
   msg.className = 'form-msg ok';
-  setTimeout(() => { resetPasswordView.hidden = true; renderAccountModal(); }, 2000);
-});
-
-signupAccountForm.addEventListener('submit', async (e) => {
-  e.preventDefault();
-  signupAccountMsg.textContent = 'Creando cuenta…';
-  signupAccountMsg.className = 'form-msg';
-  const full_name = document.getElementById('signup_full_name').value.trim();
-  const phone = document.getElementById('signup_phone').value.trim();
-  const email = document.getElementById('signup_email').value.trim();
-  const password = document.getElementById('signup_password').value;
-  const { data, error } = await supabase.auth.signUp({
-    email, password,
-    options: { data: { full_name, phone, is_padel_customer: true, organizacion_id: ORG_ID } },
-  });
-  if (error){
-    signupAccountMsg.textContent = /already registered|already exists/i.test(error.message)
-      ? 'Ya existe una cuenta con ese email. Inicia sesión.'
-      : 'No se ha podido crear la cuenta. Inténtalo de nuevo.';
-    signupAccountMsg.className = 'form-msg err';
-    return;
-  }
-  signupAccountForm.reset();
-  if (data.session){ resumePendingBooking(); return; }
-  signupAccountMsg.textContent = 'Cuenta creada. Revisa tu email para confirmarla y luego inicia sesión.';
-  signupAccountMsg.className = 'form-msg ok';
-  setTimeout(showLoginForm, 2500);
-});
-
-document.getElementById('accountLogoutBtn').addEventListener('click', async () => {
-  await supabase.auth.signOut();
-  closeAccountModal();
-});
-
-function fmtResDate(d){
-  return new Date(d + 'T00:00:00').toLocaleDateString('es-ES', { day:'numeric', month:'short', year:'numeric' });
-}
-
-async function loadMyReservations(){
-  const list = document.getElementById('myReservationsList');
-  list.innerHTML = '<p style="color:var(--ink-soft); font-size:14px;">Cargando…</p>';
-  const { data, error } = await supabase.from('reservas_padel').select('*')
-    .eq('user_id', currentUser.id)
-    .eq('organizacion_id', ORG_ID)
-    .order('reservation_date', { ascending: false })
-    .order('start_time', { ascending: false });
-  if (error || !data){
-    list.innerHTML = '<p style="color:var(--ink-soft); font-size:14px;">Error cargando tus reservas.</p>';
-    return;
-  }
-  if (!data.length){
-    list.innerHTML = '<p style="color:var(--ink-soft); font-size:14px;">Todavía no tienes reservas hechas con esta cuenta.</p>';
-    return;
-  }
-  const now = new Date();
-  list.innerHTML = data.map(r => {
-    const court = ALL_COURTS.find(c => c.id === r.pista_id);
-    const resDateTime = new Date(`${r.reservation_date}T${r.start_time}`);
-    const canCancel = r.status !== 'cancelada' && resDateTime > now;
-    return `
-      <div class="my-res-card" data-id="${r.id}">
-        <div class="info">
-          <b>${court ? court.name : 'Pista'} · ${fmtResDate(r.reservation_date)}</b>
-          <span>${r.start_time.slice(0,5)}–${r.end_time.slice(0,5)}${r.wants_light ? ' · con luz' : ''}</span>
-          <div class="status ${r.status}">${r.status}</div>
-          ${r.message ? `<div style="font-size:12.5px; color:var(--ink-soft); margin-top:4px;">ℹ️ ${r.message}</div>` : ''}
-        </div>
-        ${canCancel ? `<button type="button" class="btn btn-ghost btn-sm" data-cancel="${r.id}">Cancelar</button>` : ''}
-      </div>`;
-  }).join('');
-
-  list.querySelectorAll('[data-cancel]').forEach(btn => {
-    btn.addEventListener('click', async () => {
-      if (!confirm('¿Seguro que quieres cancelar esta reserva?')) return;
-      btn.disabled = true;
-      btn.textContent = 'Cancelando…';
-      const { error } = await supabase.rpc('cancelar_reserva_cliente', { p_reserva_id: btn.dataset.cancel });
-      if (error){
-        alert('No se ha podido cancelar: ' + error.message);
-        btn.disabled = false;
-        btn.textContent = 'Cancelar';
-        return;
-      }
-      loadMyReservations();
-      refreshSlots();
-    });
-  });
-}
-
-supabase.auth.onAuthStateChange((event, session) => {
-  currentUser = session ? session.user : null;
-  accountBtn.textContent = currentUser ? 'Mi cuenta' : 'Iniciar sesión';
-  if (event === 'PASSWORD_RECOVERY'){
-    showResetPasswordView();
-    return;
-  }
-  if (!accountModal.hidden) renderAccountModal();
-  if (window._COMPETITIONS_PUBLIC) loadCompetitions();
-});
-
-const OPEN_TIME = '08:00';
-const CLOSE_TIME = '23:00';
-const START_STEP_MINUTES = 30;
-
-function toMinutes(hhmm){
-  const [h, m] = hhmm.split(':').map(Number);
-  return h * 60 + m;
-}
-function toHHMM(mins){
-  const h = String(Math.floor(mins / 60)).padStart(2, '0');
-  const m = String(mins % 60).padStart(2, '0');
-  return `${h}:${m}`;
-}
-function durationLabel(mins){
-  if (mins === 60) return '1 hora';
-  if (mins % 60 === 0) return `${mins / 60} horas`;
-  return `${Math.floor(mins/60)}h ${mins%60}min`;
-}
-
-let DURATIONS = [];
-let ALL_START_TIMES = [];
-function buildStartTimes(){
-  const minDuration = DURATIONS.length ? Math.min(...DURATIONS.map(d => d.duration_minutes)) : 60;
-  const starts = [];
-  let t = toMinutes(OPEN_TIME);
-  const close = toMinutes(CLOSE_TIME);
-  while (t + minDuration <= close){
-    starts.push(toHHMM(t));
-    t += START_STEP_MINUTES;
-  }
-  return starts;
-}
-
-function formatPrice(n){
-  return new Intl.NumberFormat('es-ES', { style:'currency', currency:'EUR', minimumFractionDigits:0 }).format(n);
-}
-function padelImageUrl(path){
-  return supabase.storage.from('galeria-padel').getPublicUrl(path).data.publicUrl;
-}
-function addDays(dateStr, n){
-  const d = new Date(dateStr + 'T00:00:00');
-  d.setDate(d.getDate() + n);
-  return d.toISOString().slice(0,10);
-}
-
-let LIGHT_EXTRA = null;
-async function loadExtras(){
-  const { data } = await supabase.from('extras_padel').select('*').eq('active', true).eq('organizacion_id', ORG_ID);
-  LIGHT_EXTRA = (data || []).find(e => e.name.toLowerCase().includes('luz')) || null;
-}
-
-let MAINTENANCE = [];
-async function loadMaintenance(){
-  const today = new Date().toISOString().slice(0,10);
-  const { data } = await supabase.from('mantenimientos_padel').select('*').gte('end_date', today).eq('organizacion_id', ORG_ID);
-  MAINTENANCE = data || [];
-}
-function maintenanceFor(pistaId, dateStr){
-  return MAINTENANCE.find(m => m.pista_id === pistaId && dateStr >= m.start_date && dateStr <= m.end_date) || null;
-}
-
-let ALL_COURTS = [];
-async function loadCourts(){
-  const { data, error } = await supabase.from('pistas_padel').select('*').eq('active', true).eq('organizacion_id', ORG_ID).order('sort_order');
-  ALL_COURTS = data || [];
-  document.getElementById('statCourts').textContent = ALL_COURTS.length;
-
-  const grid = document.getElementById('courtsGrid');
-  if (error || !ALL_COURTS.length){
-    grid.innerHTML = '<p style="text-align:center; color:var(--ink-soft);">Aún no hay pistas configuradas.</p>';
-  } else {
-    grid.innerHTML = ALL_COURTS.map(c => `
-      <div class="court-card">
-        ${c.image_path ? `<img class="court-photo" src="${padelImageUrl(c.image_path)}" alt="${c.name}">` : `<div class="icon">🎾</div>`}
-        <h3>${c.name}</h3>
-        ${c.surface ? `<div class="surface">${c.surface}</div>` : ''}
-      </div>
-    `).join('');
-  }
-
-  const select = document.getElementById('pistaSelect');
-  select.innerHTML = ALL_COURTS.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
-}
-
-async function getEffectiveDurationsForPista(pistaId){
-  const { data: ajustes } = await supabase.from('ajustes_padel').select('precio_unico_todas_pistas').eq('organizacion_id', ORG_ID).single();
-  const unico = ajustes ? ajustes.precio_unico_todas_pistas : true;
-  if (unico || !pistaId) return DURATIONS;
-  const { data: overrides } = await supabase.from('duraciones_padel').select('*').eq('pista_id', pistaId).eq('active', true).eq('organizacion_id', ORG_ID);
-  return DURATIONS.map(d => {
-    const ov = (overrides || []).find(o => o.duration_minutes === d.duration_minutes);
-    return ov ? { ...d, price: ov.price } : d;
-  });
-}
-
-async function loadDurations(){
-  const { data, error } = await supabase.from('duraciones_padel').select('*').is('pista_id', null).eq('active', true).eq('organizacion_id', ORG_ID).order('sort_order');
-  DURATIONS = data || [];
-  if (DURATIONS.length){
-    document.getElementById('statMinDuration').textContent = durationLabel(Math.min(...DURATIONS.map(d => d.duration_minutes)));
-  }
-  const wrap = document.getElementById('priceGroups');
-  if (error || !DURATIONS.length){
-    wrap.innerHTML = '<p style="text-align:center; color:var(--ink-soft);">Aún no hay precios configurados.</p>';
-    return;
-  }
-  wrap.innerHTML = `
-    <div class="price-group">
-      ${DURATIONS.map(d => `
-        <div class="price-row">
-          <span class="label">${durationLabel(d.duration_minutes)}</span>
-          <span class="amt">${formatPrice(d.price)}</span>
-        </div>
-      `).join('')}
-    </div>
-  `;
-}
-
-let BUSY_INTERVALS = [];
-async function loadAvailability(pistaId, dateStr){
-  const { data } = await supabase
-    .rpc('disponibilidad_padel_publica', { p_organizacion_id: ORG_ID })
-    .eq('pista_id', pistaId)
-    .eq('reservation_date', dateStr);
-  BUSY_INTERVALS = (data || []).map(r => [toMinutes(r.start_time.slice(0,5)), toMinutes(r.end_time.slice(0,5))]);
-}
-
-function overlapsBusy(startMin, endMin){
-  return BUSY_INTERVALS.some(([bStart, bEnd]) => startMin < bEnd && endMin > bStart);
-}
-
-function availableDurationsFor(startStr){
-  const startMin = toMinutes(startStr);
-  const close = toMinutes(CLOSE_TIME);
-  return DURATIONS.filter(d => {
-    const endMin = startMin + d.duration_minutes;
-    return endMin <= close && !overlapsBusy(startMin, endMin);
-  });
-}
-
-function renderSlots(dateStr, maintenance){
-  const grid = document.getElementById('slotsGrid');
-  const today = new Date().toISOString().slice(0,10);
-  const isPast = dateStr < today;
-  if (isPast){
-    grid.innerHTML = '<p class="slots-empty">Elige una fecha a partir de hoy.</p>';
-    return;
-  }
-  if (maintenance){
-    const desde = new Date(maintenance.start_date + 'T00:00:00').toLocaleDateString('es-ES', { day:'numeric', month:'short' });
-    const hasta = new Date(maintenance.end_date + 'T00:00:00').toLocaleDateString('es-ES', { day:'numeric', month:'short' });
-    grid.innerHTML = `<div class="maintenance-note">🔧 Esta pista está en mantenimiento del ${desde} al ${hasta}${maintenance.reason ? ` (${maintenance.reason})` : ''}. Elige otra pista u otra fecha.</div>`;
-    return;
-  }
-  const isToday = dateStr === today;
-  const nowMinutes = toMinutes(new Date().toTimeString().slice(0,5));
-  grid.innerHTML = ALL_START_TIMES.map(s => {
-    const isPastToday = isToday && toMinutes(s) <= nowMinutes;
-    const taken = isPastToday || !availableDurationsFor(s).length;
-    return `<button type="button" class="slot-btn ${taken ? 'taken' : ''}" ${taken ? 'disabled' : ''} data-start="${s}">${s}</button>`;
-  }).join('');
-}
-
-async function refreshSlots(){
-  const pistaId = document.getElementById('pistaSelect').value;
-  const dateStr = document.getElementById('dateInput').value;
-  if (!pistaId || !dateStr){
-    document.getElementById('slotsGrid').innerHTML = '<p class="slots-empty">Elige pista y fecha para ver horarios.</p>';
-    return;
-  }
-  const maintenance = maintenanceFor(pistaId, dateStr);
-  if (maintenance){
-    renderSlots(dateStr, maintenance);
-    return;
-  }
-  document.getElementById('slotsGrid').innerHTML = '<p class="slots-empty">Cargando…</p>';
-  await loadAvailability(pistaId, dateStr);
-  renderSlots(dateStr, null);
-}
-
-let selectedSlot = null;
-let pendingStartTime = null;
-
-function openBookingModal(startTime){
-  if (!currentUser){
-    pendingStartTime = startTime;
-    awaitingLoginForBooking = true;
-    openAccountModal();
-    showLoginForm();
-    loginMsg.textContent = 'Inicia sesión o crea una cuenta para reservar una pista.';
-    return;
-  }
-
-  pendingStartTime = startTime;
-  selectedSlot = null;
-  const pistaId = document.getElementById('pistaSelect').value;
-  const court = ALL_COURTS.find(c => c.id === pistaId);
-  const dateStr = document.getElementById('dateInput').value;
-  const d = new Date(dateStr + 'T00:00:00');
-
-  document.getElementById('modalPista').textContent = court ? court.name : '';
-  document.getElementById('modalDateTime').textContent =
-    `${d.toLocaleDateString('es-ES', { weekday:'long', day:'numeric', month:'long' })} · ${startTime}`;
-
-  document.getElementById('bookingModal').hidden = false;
-  showBookingForm(startTime);
-}
-
-async function showBookingForm(startTime){
-  document.getElementById('bookingForm').hidden = false;
-  document.getElementById('bookingForm').reset();
-  document.getElementById('formMsg').textContent = '';
-  document.getElementById('full_name').value = currentUser.user_metadata?.full_name || '';
-  document.getElementById('phone').value = currentUser.user_metadata?.phone || '';
-  document.getElementById('email').value = currentUser.email || '';
-
-  const pistaId = document.getElementById('pistaSelect').value;
-  const pistaDurations = await getEffectiveDurationsForPista(pistaId);
-  const validDurations = availableDurationsFor(startTime);
-  const durationsWrap = document.getElementById('durationOptions');
-  durationsWrap.innerHTML = pistaDurations.map(d => {
-    const isValid = validDurations.some(v => v.duration_minutes === d.duration_minutes);
-    return `<button type="button" class="duration-btn" data-duration="${d.duration_minutes}" ${isValid ? '' : 'disabled'}>
-      <span>${durationLabel(d.duration_minutes)}</span><span class="amt">${formatPrice(d.price)}</span>
-    </button>`;
-  }).join('');
-
-  durationsWrap.querySelectorAll('.duration-btn:not(:disabled)').forEach(btn => {
-    btn.addEventListener('click', () => {
-      durationsWrap.querySelectorAll('.duration-btn').forEach(b => b.classList.remove('selected'));
-      btn.classList.add('selected');
-      const dur = Number(btn.dataset.duration);
-      const durationInfo = pistaDurations.find(x => x.duration_minutes === dur);
-      const startMin = toMinutes(startTime);
-      selectedSlot = { start: startTime, duration: dur, end: toHHMM(startMin + dur), price: durationInfo.price };
-    });
-  });
-  const firstValidBtn = durationsWrap.querySelector('.duration-btn:not(:disabled)');
-  if (firstValidBtn) firstValidBtn.click();
-
-  const lightField = document.getElementById('lightField');
-  if (LIGHT_EXTRA){
-    document.getElementById('lightLabel').textContent = `¿Quieres luz? (+${formatPrice(LIGHT_EXTRA.price)})`;
-    lightField.hidden = false;
-  } else {
-    lightField.hidden = true;
-  }
-
-}
-function closeBookingModal(){
-  document.getElementById('bookingModal').hidden = true;
-}
-
-function setMsg(text, type){
-  const el = document.getElementById('formMsg');
-  el.textContent = text;
-  el.className = 'form-msg ' + (type || '');
-}
-
-function fmtCompDate(d){
-  return new Date(d + 'T00:00:00').toLocaleDateString('es-ES', { day:'numeric', month:'short' });
-}
-
-async function loadNoticias(){
-  const { data } = await supabase.from('noticias_padel').select('*').eq('organizacion_id', ORG_ID).order('created_at', { ascending: false });
-  const grid = document.getElementById('noticiasGrid');
-  if (!data || !data.length){
-    grid.innerHTML = '<p style="text-align:center; color:var(--ink-soft);">No hay noticias publicadas todavía.</p>';
-    return;
-  }
-  grid.innerHTML = data.map(n => `
-    <div class="noticia-card">
-      ${n.imagen_path ? `<img class="noticia-photo" src="${padelImageUrl(n.imagen_path)}" alt="">` : ''}
-      <h3>${n.titulo}</h3>
-      <div class="noticia-date">${fmtResDate(n.created_at.slice(0, 10))}</div>
-      ${n.contenido ? `<p>${n.contenido}</p>` : ''}
-    </div>
-  `).join('');
-}
-
-async function loadCompetitions(){
-  const today = new Date().toISOString().slice(0,10);
-  const { data: comps } = await supabase.from('competiciones_padel').select('*').eq('organizacion_id', ORG_ID).order('start_date');
-  const { data: inscPublic } = await supabase.rpc('inscripciones_padel_publicas', { p_organizacion_id: ORG_ID }).eq('status', 'activa');
-  const grid = document.getElementById('competitionsGrid');
-  window._COMPETITIONS_PUBLIC = comps || [];
-  window._INSCRIPCIONES_PUBLIC = inscPublic || [];
-  if (!comps || !comps.length){
-    grid.innerHTML = '<p style="text-align:center; color:var(--ink-soft);">No hay torneos ni ligas programados ahora mismo.</p>';
-    return;
-  }
-  const TYPE_LABELS = { torneo: 'Torneo', liga: 'Liga' };
-  grid.innerHTML = comps.map(c => {
-    const count = (inscPublic || []).filter(i => i.competicion_id === c.id).length;
-    const open = c.status === 'inscripciones_abiertas' && c.registration_deadline >= today && (!c.max_pairs || count < c.max_pairs);
-    const isParticipant = currentUser && (inscPublic || []).some(i => i.competicion_id === c.id && i.user_id === currentUser.id);
-    const hasResults = c.status !== 'inscripciones_abiertas';
-    return `
-      <div class="competition-card">
-        ${c.image_path ? `<img class="comp-photo" src="${padelImageUrl(c.image_path)}" alt="${c.name}">` : ''}
-        <div class="comp-type">${TYPE_LABELS[c.type] || c.type}</div>
-        <h3>${c.name}</h3>
-        <div class="comp-meta">
-          <div>📅 ${fmtCompDate(c.start_date)} – ${fmtCompDate(c.end_date)}</div>
-          <div>⏳ Inscripción hasta ${fmtCompDate(c.registration_deadline)}</div>
-          <div>👥 ${count}${c.max_pairs ? '/' + c.max_pairs : ''} parejas apuntadas</div>
-        </div>
-        <div style="display:flex; gap:10px; flex-wrap:wrap;">
-          ${open
-            ? `<button type="button" class="btn btn-primary" data-signup="${c.id}">Apuntar mi pareja</button>`
-            : `<button type="button" class="btn btn-ghost" disabled>${c.status === 'finalizado' ? 'Finalizado' : 'Inscripciones cerradas'}</button>`}
-          ${isParticipant ? `<button type="button" class="btn btn-ghost" data-chat="${c.id}">💬 Chat</button>` : ''}
-          ${hasResults ? `<button type="button" class="btn btn-ghost" data-results="${c.id}">🏆 Ver resultados</button>` : ''}
-        </div>
-        <div class="comp-results" id="compResults${c.id}" hidden></div>
-      </div>`;
-  }).join('');
-
-  grid.querySelectorAll('[data-signup]').forEach(btn => {
-    btn.addEventListener('click', () => openSignupModal(btn.dataset.signup));
-  });
-  grid.querySelectorAll('[data-chat]').forEach(btn => {
-    btn.addEventListener('click', () => openCompChatModal(btn.dataset.chat));
-  });
-  grid.querySelectorAll('[data-results]').forEach(btn => {
-    btn.addEventListener('click', () => toggleCompetitionResults(btn.dataset.results, btn));
-  });
-}
-
-/* ---------- Ranking de clientes: puntos por ronda alcanzada (torneo) o posición final (liga) ---------- */
-// Solo cuentan las competiciones ya finalizadas. Índice del array = distancia a la final
-// (0 = jugó la final); el primer valor es para quien la gana, el segundo para quien la pierde.
-const TORNEO_PRINCIPAL_POINTS = [100, 60, 30, 15, 8, 4];
-const TORNEO_CONSOLACION_POINTS = [20, 12, 6, 3];
-const LIGA_POSICION_POINTS = [50, 35, 25, 15, 10, 5];
-
-function furthestResultForPareja(matches, parejaId){
-  const mine = matches.filter(m => (m.pareja1_id === parejaId || m.pareja2_id === parejaId) && m.status === 'jugado');
-  if (!mine.length) return null;
-  const totalRounds = Math.max(...matches.map(m => m.round_number));
-  const last = mine.reduce((a, b) => (b.round_number > a.round_number ? b : a));
-  return { distFromFinal: totalRounds - last.round_number, won: last.winner_pareja_id === parejaId };
-}
-function pointsForDistance(table, distFromFinal, won){
-  if (distFromFinal === 0) return won ? table[0] : table[1];
-  return table[Math.min(distFromFinal + 1, table.length - 1)];
-}
-function torneoPointsForPareja(partidos, parejaId){
-  const principal = partidos.filter(p => p.bracket !== 'consolacion');
-  const consolacion = partidos.filter(p => p.bracket === 'consolacion');
-  let points = 0;
-  const rP = furthestResultForPareja(principal, parejaId);
-  if (rP) points += pointsForDistance(TORNEO_PRINCIPAL_POINTS, rP.distFromFinal, rP.won);
-  const rC = furthestResultForPareja(consolacion, parejaId);
-  if (rC) points += pointsForDistance(TORNEO_CONSOLACION_POINTS, rC.distFromFinal, rC.won);
-  return points;
-}
-function ligaDivisionStandingOrder(partidos, insc){
-  const standings = {};
-  insc.filter(i => i.status === 'activa').forEach(i => { standings[i.id] = 0; });
-  partidos.forEach(m => {
-    if (m.status === 'jugado' && m.winner_pareja_id && standings[m.winner_pareja_id] !== undefined){
-      standings[m.winner_pareja_id]++;
-    }
-  });
-  return Object.entries(standings).sort((a, b) => b[1] - a[1]).map(([id]) => id);
-}
-function ligaPointsForPareja(partidos, insc, parejaId, division){
-  const divPartidos = partidos.filter(p => (p.division || 1) === (division || 1));
-  const divInsc = insc.filter(i => (i.division || 1) === (division || 1));
-  const order = ligaDivisionStandingOrder(divPartidos, divInsc);
-  const position = order.indexOf(parejaId);
-  if (position === -1) return 0;
-  return LIGA_POSICION_POINTS[Math.min(position, LIGA_POSICION_POINTS.length - 1)];
-}
-function buildClientRanking(comps, insc, partidos){
-  const totals = {};
-  const add = (clientId, name, points) => {
-    if (!clientId || !points) return;
-    if (!totals[clientId]) totals[clientId] = { name: name || 'Cliente', points: 0 };
-    totals[clientId].points += points;
-  };
-  comps.filter(c => c.status === 'finalizado').forEach(comp => {
-    const compInsc = insc.filter(i => i.competicion_id === comp.id && i.status === 'activa');
-    const compPartidos = partidos.filter(p => p.competicion_id === comp.id);
-    compInsc.forEach(i => {
-      const points = comp.type === 'torneo'
-        ? torneoPointsForPareja(compPartidos, i.id)
-        : ligaPointsForPareja(compPartidos, compInsc, i.id, i.division);
-      add(i.user_id, i.player1_name, points);
-      add(i.pareja2_client_id, i.player2_name, points);
-    });
-  });
-  return Object.values(totals).sort((a, b) => b.points - a.points);
-}
-
-async function renderPublicRanking(){
-  const wrap = document.getElementById('rankingList');
-  const [{ data: comps }, { data: insc }, { data: partidos }] = await Promise.all([
-    supabase.from('competiciones_padel').select('*').eq('organizacion_id', ORG_ID),
-    supabase.rpc('inscripciones_padel_publicas', { p_organizacion_id: ORG_ID }),
-    supabase.from('competicion_partidos_padel').select('*').eq('organizacion_id', ORG_ID),
-  ]);
-  const ranking = buildClientRanking(comps || [], insc || [], partidos || []);
-  if (!ranking.length){
-    wrap.innerHTML = '<p style="text-align:center; color:var(--ink-soft);">Todavía no hay ranking: se irá completando según se cierren torneos y ligas.</p>';
-    return;
-  }
-  wrap.innerHTML = `
-    <div class="table-wrap" style="max-width:520px; margin:0 auto;">
-      <table>
-        <thead><tr><th>#</th><th>Jugador/a</th><th>Puntos</th></tr></thead>
-        <tbody>
-          ${ranking.map((r, i) => `<tr><td>${i + 1}</td><td>${r.name}</td><td>${r.points}</td></tr>`).join('')}
-        </tbody>
-      </table>
-    </div>`;
-}
-
-/* ---------- Resultados públicos de torneos/ligas (solo lectura) ---------- */
-function parejaLabelPublic(parejaId, insc){
-  if (!parejaId) return null;
-  const p = insc.find(i => i.id === parejaId);
-  if (!p) return '—';
-  return p.player1_name + (p.player2_name ? ' / ' + p.player2_name : '');
-}
-function matchSlotLabelPublic(match, side, insc, allPartidos){
-  const parejaId = side === 1 ? match.pareja1_id : match.pareja2_id;
-  const origenId = side === 1 ? match.pareja1_origen_partido_id : match.pareja2_origen_partido_id;
-  const origenTipo = side === 1 ? match.pareja1_origen_tipo : match.pareja2_origen_tipo;
-  if (parejaId) return parejaLabelPublic(parejaId, insc);
-  if (origenId){
-    const origenMatch = allPartidos.find(p => p.id === origenId);
-    const verbo = origenTipo === 'loser' ? 'Perdedor' : 'Ganador';
-    return `${verbo} de ${origenMatch ? origenMatch.round_name : '?'}`;
-  }
-  return 'Por determinar';
-}
-function publicMatchCardHtml(m, label1, label2){
-  const isPast = m.match_date && m.match_date < new Date().toISOString().slice(0,10) && m.status !== 'jugado';
-  return `
-    <div class="pub-match-card">
-      <div class="pub-match-head">
-        <span>${label1} <b>vs</b> ${label2}</span>
-        <span class="pill pill-${m.status === 'jugado' ? 'confirmada' : 'pendiente'}">${m.status}${isPast ? ' · atrasado' : ''}</span>
-      </div>
-      <div class="pub-match-meta">📅 ${m.match_date ? fmtCompDate(m.match_date) : '—'} · ⏰ ${m.start_time ? m.start_time.slice(0,5) : '--'}-${m.end_time ? m.end_time.slice(0,5) : '--'}</div>
-      ${m.winner_pareja_id ? `<div class="pub-match-winner">🏆 ${m.status === 'jugado' ? 'Ganador' : ''}</div>` : ''}
-    </div>`;
-}
-function renderPublicBracketSection(matchesInSection, allPartidos, insc, title){
-  const rounds = {};
-  matchesInSection.forEach(p => { (rounds[p.round_number] = rounds[p.round_number] || []).push(p); });
-  const roundNumbers = Object.keys(rounds).map(Number).sort((a,b) => a-b);
-  let html = `<h5>${title}</h5>`;
-  roundNumbers.forEach(rn => {
-    const matches = rounds[rn];
-    html += `<div class="pub-round"><b>${matches[0].round_name}</b>`;
-    html += matches.map(m => publicMatchCardHtml(m, matchSlotLabelPublic(m, 1, insc, allPartidos), matchSlotLabelPublic(m, 2, insc, allPartidos))).join('');
-    html += '</div>';
-  });
-  return html;
-}
-function renderPublicTournamentResults(partidos, insc){
-  if (!partidos.length) return '<p class="empty-msg">Todavía no se han generado los cruces.</p>';
-  const principal = partidos.filter(p => p.bracket !== 'consolacion');
-  const consolacion = partidos.filter(p => p.bracket === 'consolacion');
-  let html = renderPublicBracketSection(principal, partidos, insc, 'Cuadro');
-  if (consolacion.length) html += renderPublicBracketSection(consolacion, partidos, insc, '🥉 Cuadro de consolación');
-  return html;
-}
-function renderPublicLeagueDivision(partidos, insc, title){
-  const today = new Date().toISOString().slice(0,10);
-  const standings = {};
-  insc.forEach(i => { standings[i.id] = { name: parejaLabelPublic(i.id, insc), wins: 0, losses: 0, played: 0 }; });
-  partidos.forEach(m => {
-    if (m.status === 'jugado' && m.winner_pareja_id){
-      const loserId = m.winner_pareja_id === m.pareja1_id ? m.pareja2_id : m.pareja1_id;
-      if (standings[m.winner_pareja_id]){ standings[m.winner_pareja_id].wins++; standings[m.winner_pareja_id].played++; }
-      if (standings[loserId]){ standings[loserId].losses++; standings[loserId].played++; }
-    }
-  });
-  const table = Object.values(standings).sort((a,b) => b.wins - a.wins);
-  const pending = partidos.filter(m => m.status !== 'jugado' && m.match_date && m.match_date < today);
-
-  let html = title ? `<h5>${title}</h5>` : '';
-  html += '<h5>Clasificación</h5>';
-  html += `<div class="pub-table-wrap"><table><thead><tr><th>Pareja</th><th>PJ</th><th>G</th><th>P</th></tr></thead><tbody>`;
-  html += table.map(t => `<tr><td>${t.name}</td><td>${t.played}</td><td>${t.wins}</td><td>${t.losses}</td></tr>`).join('') || '<tr><td colspan="4">Sin datos.</td></tr>';
-  html += `</tbody></table></div>`;
-
-  if (pending.length){
-    html += `<div class="pub-pending-alert">⚠️ ${pending.length} partido${pending.length > 1 ? 's' : ''} pendiente${pending.length > 1 ? 's' : ''} de resultado (fecha ya pasada). ¡Jugadlos y avisad al ayuntamiento!</div>`;
-  }
-
-  const rounds = {};
-  partidos.forEach(p => { (rounds[p.round_number] = rounds[p.round_number] || []).push(p); });
-  const roundNumbers = Object.keys(rounds).map(Number).sort((a,b) => a-b);
-  html += '<h5>Jornadas</h5>';
-  roundNumbers.forEach(rn => {
-    const matches = rounds[rn];
-    html += `<div class="pub-round"><b>${matches[0].round_name}</b>`;
-    html += matches.map(m => publicMatchCardHtml(m, parejaLabelPublic(m.pareja1_id, insc), parejaLabelPublic(m.pareja2_id, insc))).join('');
-    html += '</div>';
-  });
-  return html;
-}
-function renderPublicLeagueResults(partidos, insc){
-  if (!partidos.length) return '<p class="empty-msg">Todavía no se ha generado el calendario.</p>';
-  const divisiones = [...new Set(partidos.map(p => p.division || 1))].sort((a,b) => a-b);
-  if (divisiones.length <= 1) return renderPublicLeagueDivision(partidos, insc, null);
-  return divisiones.map(div => {
-    const divPartidos = partidos.filter(p => (p.division || 1) === div);
-    const divInsc = insc.filter(i => (i.division || 1) === div);
-    return renderPublicLeagueDivision(divPartidos, divInsc, `🏅 División ${div}`);
-  }).join('<hr style="border-color:var(--line); margin:14px 0;">');
-}
-async function toggleCompetitionResults(compId, btn){
-  const box = document.getElementById('compResults' + compId);
-  box.hidden = !box.hidden;
-  if (btn) btn.textContent = box.hidden ? '🏆 Ver resultados' : '🔼 Ocultar resultados';
-  if (box.hidden) return;
-  box.innerHTML = '<p class="empty-msg">Cargando…</p>';
-  const comp = (window._COMPETITIONS_PUBLIC || []).find(c => c.id === compId);
-  const [{ data: partidos }, { data: insc }] = await Promise.all([
-    supabase.from('competicion_partidos_padel').select('*').eq('competicion_id', compId).eq('organizacion_id', ORG_ID)
-      .order('round_number', { ascending: true }),
-    supabase.rpc('inscripciones_padel_publicas', { p_organizacion_id: ORG_ID }).eq('competicion_id', compId),
-  ]);
-  box.innerHTML = comp && comp.type === 'torneo'
-    ? renderPublicTournamentResults(partidos || [], insc || [])
-    : renderPublicLeagueResults(partidos || [], insc || []);
-}
-
-let pareja2ClientId = null;
-let pareja2LookupSeq = 0;
-let pareja2LookupTimer = null;
-
-async function lookupPareja2(phone){
-  const msgEl = document.getElementById('signupP2Msg');
-  const nameEl = document.getElementById('signup_p2_name');
-  pareja2ClientId = null;
-  nameEl.value = '';
-  if (!phone){
-    msgEl.textContent = '';
-    msgEl.className = 'form-msg';
-    return;
-  }
-  const mySeq = ++pareja2LookupSeq;
-  msgEl.textContent = 'Buscando…';
-  msgEl.className = 'form-msg';
-  const { data, error } = await supabase.rpc('buscar_cliente_padel_por_telefono', { p_phone: phone, p_organizacion_id: ORG_ID });
-  if (mySeq !== pareja2LookupSeq) return;
-  const match = Array.isArray(data) ? data[0] : data;
-  if (error || !match){
-    msgEl.textContent = 'No encontramos ningún cliente con ese teléfono. Tu compañero/a debe crearse una cuenta primero (con ese mismo teléfono) para poder apuntarse contigo.';
-    msgEl.className = 'form-msg err';
-    return;
-  }
-  if (currentUser && match.id === currentUser.id){
-    msgEl.textContent = 'Ese teléfono es el tuyo — el jugador/a 2 tiene que ser otra persona.';
-    msgEl.className = 'form-msg err';
-    return;
-  }
-  pareja2ClientId = match.id;
-  nameEl.value = match.full_name || '';
-  msgEl.textContent = `✓ Vinculado a ${match.full_name || 'un cliente registrado'}.`;
-  msgEl.className = 'form-msg ok';
-}
-
-function openSignupModal(compId){
-  if (!currentUser){
-    pendingSignupCompId = compId;
-    awaitingLoginForSignup = true;
-    openAccountModal();
-    showLoginForm();
-    loginMsg.textContent = 'Inicia sesión o crea una cuenta para apuntarte a este torneo/liga.';
-    return;
-  }
-  const comp = (window._COMPETITIONS_PUBLIC || []).find(c => c.id === compId);
-  document.getElementById('signupCompName').textContent = comp ? comp.name : '';
-  document.getElementById('signupForm').dataset.compId = compId;
-  document.getElementById('signupForm').reset();
-  document.getElementById('signupFormMsg').textContent = '';
-  document.getElementById('signupP2Msg').textContent = '';
-  pareja2ClientId = null;
-  document.getElementById('signup_p1_name').value = currentUser.user_metadata?.full_name || '';
-  document.getElementById('signup_p1_phone').value = currentUser.user_metadata?.phone || '';
-  document.getElementById('signupModal').hidden = false;
-}
-function closeSignupModal(){
-  document.getElementById('signupModal').hidden = true;
-}
-
-/* ---------- Chat interno de torneo/liga ---------- */
-let chatCompId = null;
-let chatChannel = null;
-
-function escapeHtml(str){
-  const div = document.createElement('div');
-  div.textContent = str;
-  return div.innerHTML;
-}
-function renderChatMessage(m){
-  const mine = currentUser && m.user_id === currentUser.id;
-  const time = new Date(m.created_at).toLocaleTimeString('es-ES', { hour:'2-digit', minute:'2-digit' });
-  return `<div class="chat-msg ${mine ? 'mine' : ''}">
-    <div class="sender">${escapeHtml(m.sender_name)}</div>
-    <div>${escapeHtml(m.mensaje)}</div>
-    <div class="time">${time}</div>
-  </div>`;
-}
-
-async function openCompChatModal(compId){
-  chatCompId = compId;
-  const comp = (window._COMPETITIONS_PUBLIC || []).find(c => c.id === compId);
-  document.getElementById('chatCompName').textContent = comp ? comp.name : '';
-  const messagesEl = document.getElementById('chatMessages');
-  messagesEl.innerHTML = '<p class="empty-msg">Cargando…</p>';
-  document.getElementById('chatModal').hidden = false;
-
-  const { data, error } = await supabase.from('competicion_chat_mensajes').select('*')
-    .eq('competicion_id', compId).order('created_at', { ascending: true });
-  if (error){
-    messagesEl.innerHTML = '<p class="empty-msg">No se pudo cargar el chat.</p>';
-  } else if (!data.length){
-    messagesEl.innerHTML = '<p class="empty-msg">Todavía no hay mensajes. ¡Escribe el primero!</p>';
-  } else {
-    messagesEl.innerHTML = data.map(renderChatMessage).join('');
-    messagesEl.scrollTop = messagesEl.scrollHeight;
-  }
-
-  if (chatChannel) supabase.removeChannel(chatChannel);
-  chatChannel = supabase.channel('chat-' + compId)
-    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'competicion_chat_mensajes', filter: `competicion_id=eq.${compId}` }, (payload) => {
-      const empty = messagesEl.querySelector('.empty-msg');
-      if (empty) empty.remove();
-      messagesEl.insertAdjacentHTML('beforeend', renderChatMessage(payload.new));
-      messagesEl.scrollTop = messagesEl.scrollHeight;
-    })
-    .subscribe();
-}
-function closeCompChatModal(){
-  document.getElementById('chatModal').hidden = true;
-  if (chatChannel){ supabase.removeChannel(chatChannel); chatChannel = null; }
-  chatCompId = null;
-}
-
-async function init(){
-  const adBanner = document.getElementById('adBanner');
-  if (localStorage.getItem('adBannerClosed_1105sports')){
-    adBanner.hidden = true;
-  } else {
-    document.getElementById('adBannerClose').addEventListener('click', () => {
-      adBanner.hidden = true;
-      localStorage.setItem('adBannerClosed_1105sports', '1');
-    });
-  }
-  const adBannerLink = adBanner.querySelector('a');
-  if (adBannerLink) adBannerLink.addEventListener('click', () => trackAnalyticsEvent('banner_click'));
-
-  const f = (CURRENT_ORG && CURRENT_ORG.features) || {};
-  await Promise.all([
-    loadCourts(), loadDurations(), loadExtras(), loadMaintenance(), loadNoticias(),
-    f.torneos !== false ? loadCompetitions() : Promise.resolve(),
-    f.ranking !== false ? renderPublicRanking() : Promise.resolve(),
-  ]);
-  ALL_START_TIMES = buildStartTimes();
-
-  const today = new Date().toISOString().slice(0,10);
-  const dateInput = document.getElementById('dateInput');
-  dateInput.min = today;
-  dateInput.value = today;
-
-  document.getElementById('pistaSelect').addEventListener('change', refreshSlots);
-  dateInput.addEventListener('change', refreshSlots);
-
-  document.getElementById('slotsGrid').addEventListener('click', (e) => {
-    const btn = e.target.closest('.slot-btn');
-    if (btn && !btn.disabled) openBookingModal(btn.dataset.start);
-  });
-
-  document.getElementById('modalClose').addEventListener('click', closeBookingModal);
-  document.getElementById('bookingModal').addEventListener('click', (e) => {
-    if (e.target.id === 'bookingModal') closeBookingModal();
-  });
-  document.getElementById('signupModalClose').addEventListener('click', closeSignupModal);
-  document.getElementById('signupModal').addEventListener('click', (e) => {
-    if (e.target.id === 'signupModal') closeSignupModal();
-  });
-  document.getElementById('signup_p2_phone').addEventListener('input', (e) => {
-    const phone = e.target.value.trim();
-    clearTimeout(pareja2LookupTimer);
-    pareja2LookupTimer = setTimeout(() => lookupPareja2(phone), 400);
-  });
-
-  document.getElementById('chatModalClose').addEventListener('click', closeCompChatModal);
-  document.getElementById('chatModal').addEventListener('click', (e) => {
-    if (e.target.id === 'chatModal') closeCompChatModal();
-  });
-
-  function wireSimpleModal(modalId, closeBtnId){
-    const modal = document.getElementById(modalId);
-    document.getElementById(closeBtnId).addEventListener('click', () => { modal.hidden = true; });
-    modal.addEventListener('click', (e) => { if (e.target.id === modalId) modal.hidden = true; });
-  }
-  function openSimpleModal(modalId){
-    document.getElementById(modalId).hidden = false;
-  }
-  wireSimpleModal('legalModal', 'legalModalClose');
-  wireSimpleModal('privacyModal', 'privacyModalClose');
-  wireSimpleModal('cookiesModal', 'cookiesModalClose');
-  document.getElementById('openLegalLink').addEventListener('click', (e) => { e.preventDefault(); openSimpleModal('legalModal'); });
-  document.getElementById('openPrivacyLink').addEventListener('click', (e) => { e.preventDefault(); openSimpleModal('privacyModal'); });
-  document.getElementById('openCookiesLink').addEventListener('click', (e) => { e.preventDefault(); openSimpleModal('cookiesModal'); });
-  document.getElementById('openPrivacyFromBooking').addEventListener('click', (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    openSimpleModal('privacyModal');
-  });
-  document.getElementById('chatForm').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const input = document.getElementById('chatInput');
-    const text = input.value.trim();
-    if (!text || !chatCompId || !currentUser) return;
-    input.disabled = true;
-    const { error } = await supabase.from('competicion_chat_mensajes').insert({
-      competicion_id: chatCompId,
-      user_id: currentUser.id,
-      sender_name: currentUser.user_metadata?.full_name || currentUser.email,
-      mensaje: text,
-      organizacion_id: ORG_ID,
-    });
-    input.disabled = false;
-    if (!error) input.value = '';
-    input.focus();
-  });
-  document.getElementById('signupForm').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const form = e.target;
-    const msg = document.getElementById('signupFormMsg');
-    msg.textContent = '';
-    if (!currentUser){
-      msg.textContent = 'Tienes que iniciar sesión para apuntarte.';
-      msg.className = 'form-msg err';
-      return;
-    }
-    const p2Phone = document.getElementById('signup_p2_phone').value.trim();
-    if (p2Phone && !pareja2ClientId){
-      msg.textContent = 'Espera a que se vincule el teléfono del jugador/a 2, o bórralo si vas a apuntarte sin pareja todavía.';
-      msg.className = 'form-msg err';
-      return;
-    }
-    const payload = {
-      competicion_id: form.dataset.compId,
-      player1_name: document.getElementById('signup_p1_name').value.trim(),
-      player1_phone: document.getElementById('signup_p1_phone').value.trim(),
-      player2_name: p2Phone ? document.getElementById('signup_p2_name').value.trim() : null,
-      player2_phone: p2Phone || null,
-      pareja2_client_id: p2Phone ? pareja2ClientId : null,
-      user_id: currentUser.id,
-      organizacion_id: ORG_ID,
-    };
-    const submitBtn = form.querySelector('button[type="submit"]');
-    submitBtn.disabled = true;
-    submitBtn.textContent = 'Enviando…';
-    const { error } = await supabase.from('competicion_inscripciones_padel').insert(payload);
-    submitBtn.disabled = false;
-    submitBtn.textContent = 'Apuntar pareja';
-    if (error){
-      msg.textContent = 'No se ha podido enviar la inscripción. Inténtalo de nuevo.';
-      msg.className = 'form-msg err';
-      return;
-    }
-    msg.textContent = '¡Pareja apuntada! Nos vemos en la pista.';
-    msg.className = 'form-msg ok';
-    setTimeout(() => { closeSignupModal(); loadCompetitions(); }, 1800);
-  });
-
-  document.getElementById('bookingForm').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    setMsg('', '');
-
-    const pistaId = document.getElementById('pistaSelect').value;
-    const reservationDate = document.getElementById('dateInput').value;
-
-    if (maintenanceFor(pistaId, reservationDate)){
-      setMsg('Esta pista está en mantenimiento en esa fecha. Elige otra pista u otra fecha.', 'err');
-      return;
-    }
-
-    if (!selectedSlot){
-      setMsg('Elige una duración.', 'err');
-      return;
-    }
-
-    const wantsLight = document.getElementById('wants_light').checked;
-
-    const payload = {
-      pista_id: pistaId,
-      reservation_date: reservationDate,
-      start_time: selectedSlot.start,
-      end_time: selectedSlot.end,
-      duration_minutes: selectedSlot.duration,
-      price: selectedSlot.price,
-      full_name: document.getElementById('full_name').value.trim(),
-      phone: document.getElementById('phone').value.trim(),
-      email: document.getElementById('email').value.trim() || null,
-      players_count: Number(document.getElementById('players_count').value),
-      message: document.getElementById('message').value.trim() || null,
-      wants_light: wantsLight,
-      light_price: wantsLight && LIGHT_EXTRA ? LIGHT_EXTRA.price : null,
-      status: 'confirmada',
-      user_id: currentUser.id,
-      organizacion_id: ORG_ID,
-    };
-
-    const submitBtn = e.target.querySelector('button[type="submit"]');
-    submitBtn.disabled = true;
-    submitBtn.textContent = 'Enviando…';
-
-    const { error } = await supabase.from('reservas_padel').insert(payload);
-
-    submitBtn.disabled = false;
-    submitBtn.textContent = 'Confirmar reserva';
-
-    if (error){
-      if (error.code === '23P01'){
-        setMsg('Vaya, justo se acaba de reservar ese horario. Elige otro.', 'err');
-        await refreshSlots();
-      } else if (/reservas activas/i.test(error.message || '')){
-        setMsg(error.message + ' Puedes cancelarla desde "Mi cuenta".', 'err');
-      } else {
-        setMsg('No se ha podido enviar la reserva. Inténtalo de nuevo.', 'err');
-      }
-      return;
-    }
-
-    setMsg('¡Reserva confirmada! Te esperamos en la pista.', 'ok');
-    setTimeout(() => { closeBookingModal(); refreshSlots(); }, 1800);
-  });
-
-  refreshSlots();
-}
-
-resolveOrganizacion().then((ok) => { if (ok) init(); });
-
-document.getElementById('burgerBtn').addEventListener('click', () => {
-  document.querySelector('header').classList.toggle('nav-open');
-});
-document.querySelectorAll('.nav-links a').forEach(a => {
-  a.addEventListener('click', () => document.querySelector('header').classList.remove('nav-open'));
+  e.target.reset();
+  document.getElementById('lead_plan').value = 'Torneos y Ligas';
 });
 </script>
 </body>
