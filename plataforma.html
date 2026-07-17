@@ -322,9 +322,9 @@ function orgCardHtml(org, admins, contratos){
           <label>Plan contratado</label>
           <select data-field="plan">
             <option value="" ${!org.plan ? 'selected' : ''}>— Sin asignar —</option>
-            <option value="reservas" ${org.plan === 'reservas' ? 'selected' : ''}>Reservas — 49,99€/mes</option>
-            <option value="torneos_ligas" ${org.plan === 'torneos_ligas' ? 'selected' : ''}>Torneos y Ligas — 59,99€/mes</option>
-            <option value="premium" ${org.plan === 'premium' ? 'selected' : ''}>Premium — 69,99€/mes</option>
+            <option value="reservas" ${org.plan === 'reservas' ? 'selected' : ''}>Reservas — 39,99€/mes</option>
+            <option value="torneos_ligas" ${org.plan === 'torneos_ligas' ? 'selected' : ''}>Torneos y Ligas — 49,99€/mes</option>
+            <option value="premium" ${org.plan === 'premium' ? 'selected' : ''}>Premium — 59,99€/mes</option>
           </select>
         </div>
         ${org.tipo === 'ayuntamiento' ? `

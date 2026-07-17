@@ -785,11 +785,11 @@ el producto, planes y precios, y un formulario para pedir una demo.
 
 Planes actuales (mensuales, sin permanencia, con **2 meses gratis** para
 probar antes de pagar):
-- **Reservas — 49,99€/mes**: reservas online, calendario, pistas, precios y
+- **Reservas — 39,99€/mes**: reservas online, calendario, pistas, precios y
   clientes.
-- **Torneos y Ligas — 59,99€/mes**: todo lo anterior + torneos, ligas y
+- **Torneos y Ligas — 49,99€/mes**: todo lo anterior + torneos, ligas y
   ranking automático.
-- **Premium — 69,99€/mes**: todo lo anterior + pasarela de pago online y
+- **Premium — 59,99€/mes**: todo lo anterior + pasarela de pago online y
   apertura de pista con código domotizado.
 
 > ⚠️ **Importante**: los dos únicos extras del plan Premium (pasarela de pago
@@ -815,7 +815,7 @@ mandas al cliente para que la rellene y firme él mismo:
 1. Antes de mandar el enlace, en `plataforma.html` tienes que fijar el
    **«Plan contratado»** de esa organización (Reservas / Torneos y Ligas /
    Premium) — el contrato usa ese plan para calcular la cuota mensual exacta
-   (49,99 / 59,99 / 69,99 € + IVA). Si no se ha asignado plan todavía, la
+   (39,99 / 49,99 / 59,99 € + IVA). Si no se ha asignado plan todavía, la
    página se lo dice al cliente y no le deja continuar.
 2. El cliente ve el texto completo del contrato a la izquierda (se actualiza
    en vivo según va rellenando sus datos) y un formulario a la derecha:
