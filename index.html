@@ -403,6 +403,8 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 document.getElementById('year').textContent = new Date().getFullYear();
 
+supabase.from('analytics_eventos_padel').insert({ organizacion_id: null, event_type: 'landing_page_view' }).then(() => {});
+
 document.querySelectorAll('[data-plan-cta]').forEach(btn => {
   btn.addEventListener('click', () => {
     document.getElementById('lead_plan').value = btn.dataset.planCta;

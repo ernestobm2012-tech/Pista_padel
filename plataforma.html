@@ -128,6 +128,13 @@
 
     <section>
       <div class="panel-head"><h2>Estadísticas de uso</h2></div>
+      <div class="card" style="margin-bottom:14px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:16px;">
+        <span>Visitas a la página principal (<b>gestionmypadel.com</b>)</span>
+        <span style="display:flex; gap:24px; font-size:14px;">
+          <span>30 días: <b id="landingViews30" style="color:var(--lime);">—</b></span>
+          <span>Total: <b id="landingViewsTotal" style="color:var(--lime);">—</b></span>
+        </span>
+      </div>
       <div class="card table-wrap" id="analyticsCard">
         <table>
           <thead><tr><th>Organización</th><th>Visitas (30 días)</th><th>Visitas (total)</th><th>Reservas este mes</th><th>Clics en el banner</th></tr></thead>
@@ -326,10 +333,6 @@ async function loadSolicitudes(){
 
 async function loadAnalytics(){
   const body = document.getElementById('analyticsBody');
-  if (!ALL_ORGS.length){
-    body.innerHTML = '<tr><td colspan="5" style="color:var(--ink-soft);">No hay organizaciones todavía.</td></tr>';
-    return;
-  }
   const since30 = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
   const startOfMonth = new Date();
   startOfMonth.setDate(1);
@@ -339,6 +342,15 @@ async function loadAnalytics(){
     supabase.from('analytics_eventos_padel').select('organizacion_id, event_type, created_at'),
     supabase.from('reservas_padel').select('organizacion_id, reservation_date, status').neq('status', 'cancelada'),
   ]);
+
+  const landingEvents = (events || []).filter(e => e.event_type === 'landing_page_view');
+  document.getElementById('landingViewsTotal').textContent = landingEvents.length;
+  document.getElementById('landingViews30').textContent = landingEvents.filter(e => e.created_at >= since30).length;
+
+  if (!ALL_ORGS.length){
+    body.innerHTML = '<tr><td colspan="5" style="color:var(--ink-soft);">No hay organizaciones todavía.</td></tr>';
+    return;
+  }
 
   body.innerHTML = ALL_ORGS.map(org => {
     const orgEvents = (events || []).filter(e => e.organizacion_id === org.id);

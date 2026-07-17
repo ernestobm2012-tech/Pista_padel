@@ -720,8 +720,11 @@ directos, cada uno en una pestaña nueva:
 
 ### Estadísticas de la plataforma
 
-Arriba del todo, antes de la lista de organizaciones, hay una tabla con un
-resumen de uso de cada organización:
+Arriba del todo, antes de la lista de organizaciones, hay un contador de
+**visitas a la página principal** (`gestionmypadel.com`, es decir
+`index.html`, la web de ventas del producto — no la de ningún club
+concreto) con el mismo desglose de 30 días / total, y debajo una tabla con
+un resumen de uso de cada organización:
 
 - **Visitas (30 días)** y **visitas (total)**: cada vez que alguien abre la
   web pública de una organización (`club.html?org=...`) se registra un
@@ -732,11 +735,14 @@ resumen de uso de cada organización:
 - **Clics en el banner**: cuántas veces se ha pulsado el banner de publicidad
   de `club.html` estando en la web de esa organización.
 
-Estos datos viven en una tabla nueva, `analytics_eventos_padel` (evento +
+Estos datos viven en una tabla, `analytics_eventos_padel` (evento +
 organización + fecha), donde cualquier visitante anónimo puede insertar un
 evento (para que la propia web pública lo registre sin necesitar login),
 pero solo tu cuenta puede leerlos — ni siquiera el administrador de cada
 organización ve estos números, es información exclusiva de la plataforma.
+Las visitas a `index.html` se guardan en la misma tabla con
+`organizacion_id` en blanco y el evento `landing_page_view`, ya que no
+pertenecen a ninguna organización concreta.
 
 Desde ahí, para dar de alta un cliente nuevo:
 
