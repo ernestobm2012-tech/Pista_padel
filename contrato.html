@@ -1,0 +1,436 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>Contrato de alta — GestionMyPadel</title>
+<link rel="icon" href="assets/favicon-32.png" sizes="32x32" type="image/png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0B1210; --bg-soft:#101C17; --surface:#142620; --surface-2:#1A322A;
+    --ink:#EEF6F0; --ink-soft:#A9C2B3; --lime:#C6FF3D; --lime-dark:#8FCB1F;
+    --line:rgba(255,255,255,.10); --radius:14px; --red:#FF6B6B; --amber:#FFC857;
+  }
+  *{box-sizing:border-box;}
+  body{ margin:0; background:var(--bg); color:var(--ink); font-family:'Inter', sans-serif; line-height:1.55; }
+  h1,h2,h3,h4{ font-family:'Outfit', sans-serif; font-weight:700; margin:0; }
+  a{ color:var(--lime); }
+  .wrap{ max-width:1100px; margin:0 auto; padding:0 24px; }
+  input, select, textarea, button{ font-family:inherit; }
+  input, select, textarea{
+    background:var(--bg-soft); border:1px solid var(--line); border-radius:8px;
+    padding:10px 12px; color:var(--ink); font-size:14.5px; width:100%;
+  }
+  input:focus, select:focus, textarea:focus{ outline:none; border-color:var(--lime); }
+  label{ font-size:12.5px; font-weight:600; color:var(--ink-soft); display:block; margin-bottom:5px; }
+  .field{ margin-bottom:14px; }
+  .btn{
+    display:inline-flex; align-items:center; justify-content:center; gap:8px; padding:13px 24px; border-radius:999px; border:0;
+    cursor:pointer; font-family:'Outfit'; font-weight:700; font-size:15px;
+  }
+  .btn-primary{ background:var(--lime); color:#0B1210; }
+  .btn-primary:hover{ background:var(--lime-dark); }
+  .btn-primary:disabled{ opacity:.5; cursor:not-allowed; }
+  .btn-ghost{ background:transparent; color:var(--ink); border:1px solid var(--line); }
+  .btn-block{ width:100%; }
+  header{ border-bottom:1px solid var(--line); padding:16px 0; }
+  header .nav{ display:flex; align-items:center; justify-content:space-between; }
+  .logo{ font-family:'Outfit'; font-weight:800; font-size:18px; display:flex; align-items:center; gap:8px; }
+  .logo .dot{ width:9px; height:9px; border-radius:50%; background:var(--lime); }
+  main{ padding:32px 0 64px; }
+  h1.page-title{ font-size:clamp(24px,3vw,32px); margin-bottom:6px; }
+  .subtitle{ color:var(--ink-soft); font-size:14.5px; margin-bottom:28px; }
+  .layout{ display:grid; grid-template-columns:1.2fr 1fr; gap:24px; align-items:start; }
+  @media (max-width:900px){ .layout{ grid-template-columns:1fr; } }
+  .card{ background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); padding:24px; }
+  .contract-text{ max-height:70vh; overflow-y:auto; padding-right:6px; }
+  .contract-text h4{ font-size:14px; margin:16px 0 6px; color:var(--lime); }
+  .contract-text h4:first-child{ margin-top:0; }
+  .contract-text p{ font-size:13px; color:var(--ink-soft); margin:0 0 10px; white-space:pre-wrap; }
+  .contract-text .title{ font-size:16px; color:var(--ink); text-align:center; margin-bottom:18px; }
+  .contract-text .placeholder{ color:var(--amber); }
+  .warning{ background:rgba(255,200,87,.12); border:1px solid rgba(255,200,87,.4); color:var(--amber); border-radius:10px; padding:12px 14px; font-size:13px; margin-bottom:20px; }
+  .form-grid{ display:grid; gap:14px; }
+  .plan-box{ background:var(--bg-soft); border:1px solid var(--line); border-radius:10px; padding:12px 14px; font-size:14px; }
+  .plan-box b{ color:var(--lime); }
+  #sigCanvas{ background:#fff; border-radius:8px; width:100%; height:150px; touch-action:none; cursor:crosshair; }
+  .sig-actions{ display:flex; justify-content:space-between; align-items:center; margin-top:6px; }
+  .checkbox-row{ display:flex; align-items:flex-start; gap:8px; font-size:13px; color:var(--ink-soft); margin:16px 0; }
+  .checkbox-row input{ width:auto; margin-top:3px; }
+  .form-msg{ font-size:13.5px; min-height:18px; margin-top:10px; }
+  .form-msg.ok{ color:var(--lime); }
+  .form-msg.err{ color:var(--red); }
+  #errorScreen{ min-height:60vh; display:flex; align-items:center; justify-content:center; text-align:center; padding:40px; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap nav">
+    <div class="logo"><span class="dot"></span> GestionMyPadel</div>
+  </div>
+</header>
+
+<main class="wrap">
+  <div id="loadingScreen"><p style="color:var(--ink-soft);">Cargando datos de la organización…</p></div>
+
+  <div id="errorScreen" hidden>
+    <div><h1 style="font-size:20px; margin-bottom:10px;">No se puede generar el contrato</h1>
+    <p id="errorMsg" style="color:var(--ink-soft); max-width:420px; margin:0 auto;"></p></div>
+  </div>
+
+  <div id="formScreen" hidden>
+    <h1 class="page-title">Contrato de alta de cliente</h1>
+    <p class="subtitle">Organización: <b id="orgNameLabel"></b>. Rellena tus datos, revisa el contrato y fírmalo al final.</p>
+
+    <div class="layout">
+      <div class="card">
+        <div class="contract-text" id="contractText"></div>
+      </div>
+
+      <div class="card">
+        <form id="contractForm" class="form-grid">
+          <div class="plan-box">Plan contratado: <b id="planLabel"></b></div>
+
+          <div class="field"><label for="f_nombre">Nombre completo o razón social</label><input type="text" id="f_nombre" required></div>
+          <div class="field"><label for="f_nif">NIF / CIF</label><input type="text" id="f_nif" required></div>
+          <div class="field"><label for="f_domicilio">Domicilio</label><input type="text" id="f_domicilio" required></div>
+          <div class="field"><label for="f_email">Email de contacto</label><input type="email" id="f_email" required></div>
+          <div class="field"><label for="f_telefono">Teléfono</label><input type="text" id="f_telefono" required></div>
+          <div class="field"><label for="f_iban">IBAN / número de cuenta (para la domiciliación)</label><input type="text" id="f_iban" placeholder="ES00 0000 0000 0000 0000 0000" required></div>
+
+          <div class="field">
+            <label>Firma</label>
+            <canvas id="sigCanvas"></canvas>
+            <div class="sig-actions">
+              <span style="font-size:12px; color:var(--ink-soft);">Dibuja tu firma con el ratón o el dedo.</span>
+              <button type="button" class="btn btn-ghost" id="clearSigBtn" style="padding:6px 14px; font-size:13px;">Borrar firma</button>
+            </div>
+          </div>
+
+          <label class="checkbox-row">
+            <input type="checkbox" id="f_accept" required>
+            <span>He leído y acepto los términos de este contrato y la política de privacidad de GestionMyPadel / EBM Proyectos de Software.</span>
+          </label>
+
+          <button type="submit" class="btn btn-primary btn-block" id="submitBtn">Firmar y generar contrato (PDF)</button>
+          <span class="form-msg" id="formMsg"></span>
+        </form>
+      </div>
+    </div>
+  </div>
+</main>
+
+<script type="module">
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { jsPDF } from 'https://esm.sh/jspdf@2.5.1';
+
+const SUPABASE_URL = 'https://stnuvhlqicftjbtlybit.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN0bnV2aGxxaWNmdGpidGx5Yml0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMyNDY4NzgsImV4cCI6MjA5ODgyMjg3OH0.1a8uenfaddy_yiXPgerteMoktCEeeFhkH021qp0okPY';
+const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+// ⚠️ Falta completar el domicilio fiscal real antes de usar este contrato con
+// clientes reales — Ernesto lo dará más adelante (ver conversación).
+const EBM_DATA = {
+  nombre: 'Ernesto Bermejo Montalvo',
+  dni: '47498439N',
+  nombreComercial: 'EBM Proyectos de Software',
+  domicilio: '[PENDIENTE DE COMPLETAR — domicilio fiscal del autónomo]',
+  email: 'ernestobm2012@gmail.com',
+};
+const DOMICILIO_PENDIENTE = EBM_DATA.domicilio.startsWith('[PENDIENTE');
+
+const PLAN_LABELS = { reservas: 'Reservas', torneos_ligas: 'Torneos y Ligas', premium: 'Premium' };
+const PLAN_PRICES = { reservas: 49.99, torneos_ligas: 59.99, premium: 69.99 };
+
+let ORG = null;
+
+function fmtPrice(n){
+  return new Intl.NumberFormat('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n);
+}
+
+function formValues(){
+  return {
+    nombre: document.getElementById('f_nombre').value.trim(),
+    nif: document.getElementById('f_nif').value.trim(),
+    domicilio: document.getElementById('f_domicilio').value.trim(),
+    email: document.getElementById('f_email').value.trim(),
+    telefono: document.getElementById('f_telefono').value.trim(),
+    iban: document.getElementById('f_iban').value.trim(),
+  };
+}
+
+/* Fuente única de las cláusulas: se usa tanto para la vista previa en HTML
+   como para el PDF, así el texto nunca se desincroniza entre ambos. */
+function contractParagraphs(v){
+  const planLabel = PLAN_LABELS[ORG.plan] || ORG.plan;
+  const precio = PLAN_PRICES[ORG.plan];
+  const ph = (val, label) => val ? val : `[${label} pendiente]`;
+
+  return [
+    { type: 'title', text: 'CONTRATO DE PRESTACIÓN DE SERVICIOS SAAS — GESTIONMYPADEL' },
+
+    { type: 'heading', text: 'REUNIDOS' },
+    { type: 'body', text: `De una parte, D. ${EBM_DATA.nombre}, mayor de edad, con DNI ${EBM_DATA.dni}, actuando en nombre propio en su condición de empresario autónomo bajo el nombre comercial "${EBM_DATA.nombreComercial}", con domicilio en ${EBM_DATA.domicilio} y correo electrónico de contacto ${EBM_DATA.email}, en adelante "EL PRESTADOR".` },
+    { type: 'body', text: `De otra parte, ${ph(v.nombre, 'nombre del cliente')}, con NIF/CIF ${ph(v.nif, 'NIF/CIF')}, con domicilio en ${ph(v.domicilio, 'domicilio')}, correo electrónico de contacto ${ph(v.email, 'email')} y teléfono ${ph(v.telefono, 'teléfono')}, en adelante "EL CLIENTE".` },
+    { type: 'body', text: 'Ambas partes se reconocen mutuamente la capacidad legal necesaria para suscribir el presente contrato y, en su virtud,' },
+
+    { type: 'heading', text: 'EXPONEN' },
+    { type: 'body', text: 'I. Que EL PRESTADOR es titular y desarrollador de la plataforma de software "GestionMyPadel", un servicio en la nube (SaaS) para la gestión de reservas de pistas de pádel, calendario, clientes y, según el plan contratado, torneos, ligas, ranking y facturación.' },
+    { type: 'body', text: 'II. Que EL CLIENTE está interesado en contratar dicha plataforma para la gestión de sus instalaciones deportivas, en las condiciones que se detallan en las siguientes' },
+
+    { type: 'heading', text: 'CLÁUSULAS' },
+
+    { type: 'heading', text: '1. Objeto del contrato' },
+    { type: 'body', text: `El presente contrato tiene por objeto regular la prestación por parte de EL PRESTADOR a EL CLIENTE del servicio "GestionMyPadel", en la modalidad de software como servicio (SaaS), en el plan denominado "${planLabel}", que incluye las funcionalidades descritas en la web del servicio para dicho plan.` },
+
+    { type: 'heading', text: '2. Plan contratado y precio' },
+    { type: 'body', text: `El plan contratado por EL CLIENTE es: ${planLabel}. La cuota mensual correspondiente a este plan es de ${fmtPrice(precio)} € + IVA, facturados mensualmente conforme a lo dispuesto en la cláusula 3.` },
+
+    { type: 'heading', text: '3. Periodo de prueba gratuito' },
+    { type: 'body', text: 'EL CLIENTE disfrutará de un periodo de prueba gratuito de DOS (2) MESES naturales desde la fecha de alta del servicio, durante el cual no se realizará cargo alguno.' },
+    { type: 'body', text: 'A partir del TERCER MES, y de forma automática salvo baja comunicada conforme a la cláusula 5, se activará el cobro recurrente mensual de la cuota indicada en la cláusula 2, mediante domiciliación bancaria en la cuenta facilitada por EL CLIENTE o el medio de pago que las partes acuerden.' },
+
+    { type: 'heading', text: '4. Forma de pago' },
+    { type: 'body', text: `El pago de la cuota mensual se realizará por adelantado, mediante domiciliación bancaria en la cuenta IBAN ${ph(v.iban, 'IBAN')} facilitada por EL CLIENTE, salvo que las partes acuerden expresamente otro medio de pago.` },
+
+    { type: 'heading', text: '5. Duración y baja del servicio' },
+    { type: 'body', text: '5.1. Baja durante el periodo de prueba gratuito: EL CLIENTE podrá darse de baja sin coste alguno durante los dos primeros meses de servicio, debiendo comunicarlo a EL PRESTADOR con una antelación mínima de siete (7) días naturales a la finalización del periodo gratuito. Transcurrido dicho plazo sin comunicación de baja, se entenderá que EL CLIENTE desea continuar con el servicio, activándose el cobro recurrente conforme a la cláusula 3.' },
+    { type: 'body', text: '5.2. Baja una vez iniciado el periodo de pago: EL CLIENTE podrá darse de baja del servicio en cualquier momento, debiendo comunicarlo a EL PRESTADOR con una antelación mínima de UN (1) MES a la fecha de facturación correspondiente. Si la baja se comunica con una antelación inferior a un mes, se realizará igualmente el cargo correspondiente al mes siguiente, entendiéndose prestado el servicio durante dicho periodo adicional.' },
+    { type: 'body', text: `5.3. La comunicación de baja se realizará por escrito a la dirección de correo electrónico ${EBM_DATA.email}, indicando el nombre de la organización y la fecha de baja solicitada.` },
+
+    { type: 'heading', text: '6. Protección de datos de carácter personal' },
+    { type: 'body', text: 'Los datos personales facilitados por EL CLIENTE en el presente contrato (nombre/razón social, NIF/CIF, domicilio, email, teléfono e IBAN) serán tratados por EL PRESTADOR con la finalidad de gestionar la relación contractual, la facturación y el cobro del servicio, sobre la base jurídica de la ejecución del presente contrato (art. 6.1.b RGPD), y se conservarán durante la vigencia de la relación y los plazos legalmente exigibles en materia fiscal y mercantil. Más información en la Política de Privacidad de GestionMyPadel.' },
+    { type: 'body', text: 'En caso de que, para la prestación del servicio, EL PRESTADOR trate datos personales de terceros por cuenta de EL CLIENTE (por ejemplo, datos de los vecinos, socios o usuarios que reservan pista a través de la plataforma), dicho tratamiento se regirá por el correspondiente Contrato de Encargado de Tratamiento de Datos (art. 28 RGPD), que se adjunta como Anexo I al presente contrato y forma parte inseparable del mismo. La firma de dicho Anexo I es obligatoria cuando EL CLIENTE sea una administración pública (ayuntamiento u organismo público) o, en general, siempre que trate datos de terceros a través de la Plataforma.' },
+
+    { type: 'heading', text: '7. Propiedad intelectual' },
+    { type: 'body', text: 'EL PRESTADOR es titular de todos los derechos de propiedad intelectual e industrial sobre la Plataforma. El presente contrato no supone cesión alguna de dichos derechos a EL CLIENTE, que únicamente adquiere un derecho de uso no exclusivo e intransferible sobre el servicio, limitado a la duración del presente contrato.' },
+
+    { type: 'heading', text: '8. Disponibilidad y soporte' },
+    { type: 'body', text: 'EL PRESTADOR realizará sus mejores esfuerzos para mantener la Plataforma operativa y disponible, sin perjuicio de las interrupciones necesarias por mantenimiento, actualización o causas de fuerza mayor. El soporte técnico se prestará por correo electrónico a través de la dirección facilitada por EL PRESTADOR.' },
+
+    { type: 'heading', text: '9. Modificación de precios' },
+    { type: 'body', text: 'EL PRESTADOR podrá modificar el precio del plan contratado, comunicándolo a EL CLIENTE con una antelación mínima de treinta (30) días naturales. Si EL CLIENTE no acepta la modificación, podrá darse de baja conforme a la cláusula 5, sin que la modificación le sea de aplicación durante el preaviso.' },
+
+    { type: 'heading', text: '10. Legislación y jurisdicción' },
+    { type: 'body', text: 'El presente contrato se rige por la legislación española. Para cualquier controversia derivada de su interpretación o cumplimiento, las partes se someten a los Juzgados y Tribunales que correspondan según la legislación aplicable, con renuncia expresa a cualquier otro fuero que pudiera corresponderles.' },
+
+    { type: 'body', text: 'Y en prueba de conformidad con cuanto antecede, ambas partes firman el presente contrato electrónicamente en la fecha indicada.' },
+  ];
+}
+
+function renderContractPreview(){
+  const v = formValues();
+  const paragraphs = contractParagraphs(v);
+  const html = paragraphs.map(p => {
+    if (p.type === 'title') return `<div class="title"><b>${p.text}</b></div>`;
+    if (p.type === 'heading') return `<h4>${p.text}</h4>`;
+    return `<p>${p.text}</p>`;
+  }).join('');
+  document.getElementById('contractText').innerHTML = html;
+}
+
+/* ---------- Firma ---------- */
+const canvas = document.getElementById('sigCanvas');
+const ctx = canvas.getContext('2d');
+let drawing = false;
+let hasSignature = false;
+
+function resizeCanvas(){
+  const ratio = window.devicePixelRatio || 1;
+  const rect = canvas.getBoundingClientRect();
+  canvas.width = rect.width * ratio;
+  canvas.height = rect.height * ratio;
+  ctx.scale(ratio, ratio);
+  ctx.lineWidth = 2;
+  ctx.lineCap = 'round';
+  ctx.strokeStyle = '#0B1210';
+}
+window.addEventListener('resize', () => { const data = hasSignature ? canvas.toDataURL() : null; resizeCanvas(); if (data){ const img = new Image(); img.onload = () => ctx.drawImage(img, 0, 0, canvas.getBoundingClientRect().width, canvas.getBoundingClientRect().height); img.src = data; } });
+
+function getPos(e){
+  const rect = canvas.getBoundingClientRect();
+  return { x: e.clientX - rect.left, y: e.clientY - rect.top };
+}
+canvas.addEventListener('pointerdown', (e) => {
+  drawing = true;
+  hasSignature = true;
+  const p = getPos(e);
+  ctx.beginPath();
+  ctx.moveTo(p.x, p.y);
+});
+canvas.addEventListener('pointermove', (e) => {
+  if (!drawing) return;
+  const p = getPos(e);
+  ctx.lineTo(p.x, p.y);
+  ctx.stroke();
+});
+window.addEventListener('pointerup', () => { drawing = false; });
+document.getElementById('clearSigBtn').addEventListener('click', () => {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  hasSignature = false;
+});
+
+/* ---------- PDF ---------- */
+function buildContractPdf(v){
+  const doc = new jsPDF({ unit: 'mm', format: 'a4' });
+  const marginLeft = 20, marginRight = 20;
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const pageHeight = doc.internal.pageSize.getHeight();
+  const maxWidth = pageWidth - marginLeft - marginRight;
+  let y = 20;
+
+  function addParagraph(text, opts){
+    opts = opts || {};
+    const bold = !!opts.bold;
+    const size = opts.size || 9.5;
+    const align = opts.align || 'left';
+    doc.setFont('helvetica', bold ? 'bold' : 'normal');
+    doc.setFontSize(size);
+    const lines = doc.splitTextToSize(text, maxWidth);
+    lines.forEach(line => {
+      if (y > pageHeight - 22){ doc.addPage(); y = 20; }
+      const x = align === 'center' ? pageWidth / 2 : marginLeft;
+      doc.text(line, x, y, { align });
+      y += size * 0.42;
+    });
+    y += opts.gapAfter != null ? opts.gapAfter : 3.5;
+  }
+
+  contractParagraphs(v).forEach(p => {
+    if (p.type === 'title') addParagraph(p.text, { bold: true, size: 13, align: 'center', gapAfter: 8 });
+    else if (p.type === 'heading') addParagraph(p.text, { bold: true, size: 10.5, gapAfter: 3 });
+    else addParagraph(p.text, { size: 9.5 });
+  });
+
+  const now = new Date();
+  const fecha = now.toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' });
+  const hora = now.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+  if (y > pageHeight - 60){ doc.addPage(); y = 20; }
+  addParagraph(`Firmado electrónicamente por EL CLIENTE el ${fecha} a las ${hora}.`, { size: 9.5, gapAfter: 6 });
+
+  const sigData = canvas.toDataURL('image/png');
+  const sigWidth = 60, sigHeight = 22;
+  if (y + sigHeight > pageHeight - 20){ doc.addPage(); y = 20; }
+  doc.addImage(sigData, 'PNG', marginLeft, y, sigWidth, sigHeight);
+  y += sigHeight + 4;
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(9);
+  doc.text('Firma de EL CLIENTE', marginLeft, y);
+
+  return doc;
+}
+
+/* ---------- Envío ---------- */
+document.getElementById('contractForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const msg = document.getElementById('formMsg');
+  const btn = document.getElementById('submitBtn');
+  const v = formValues();
+
+  if (!v.nombre || !v.nif || !v.domicilio || !v.email || !v.telefono || !v.iban){
+    msg.textContent = 'Rellena todos los campos.';
+    msg.className = 'form-msg err';
+    return;
+  }
+  if (!hasSignature){
+    msg.textContent = 'Falta dibujar la firma.';
+    msg.className = 'form-msg err';
+    return;
+  }
+  if (!document.getElementById('f_accept').checked){
+    msg.textContent = 'Debes aceptar los términos para continuar.';
+    msg.className = 'form-msg err';
+    return;
+  }
+
+  btn.disabled = true;
+  msg.textContent = 'Generando el contrato…';
+  msg.className = 'form-msg';
+
+  const doc = buildContractPdf(v);
+  const blob = doc.output('blob');
+  const path = `${ORG.id}/${Date.now()}-contrato.pdf`;
+
+  const { error: uploadError } = await supabase.storage.from('contratos-padel').upload(path, blob, { contentType: 'application/pdf' });
+  if (uploadError){
+    msg.textContent = 'No se ha podido guardar el contrato: ' + uploadError.message;
+    msg.className = 'form-msg err';
+    btn.disabled = false;
+    return;
+  }
+
+  const precio = PLAN_PRICES[ORG.plan];
+  const { error: insertError } = await supabase.from('contratos_padel').insert({
+    organizacion_id: ORG.id,
+    nombre_firmante: v.nombre,
+    nif_cif: v.nif,
+    domicilio: v.domicilio,
+    email: v.email,
+    telefono: v.telefono,
+    iban: v.iban,
+    plan: ORG.plan,
+    precio_mensual: precio,
+    pdf_path: path,
+  });
+  if (insertError){
+    msg.textContent = 'El PDF se ha generado pero no se ha podido registrar: ' + insertError.message;
+    msg.className = 'form-msg err';
+    btn.disabled = false;
+  } else {
+    msg.textContent = '¡Contrato firmado! Descargando tu copia…';
+    msg.className = 'form-msg ok';
+  }
+
+  doc.save(`contrato-gestionmypadel-${ORG.nombre.replace(/\s+/g, '-').toLowerCase()}.pdf`);
+});
+
+/* ---------- Carga inicial ---------- */
+document.querySelectorAll('#f_nombre, #f_nif, #f_domicilio, #f_email, #f_telefono, #f_iban').forEach(el => {
+  el.addEventListener('input', renderContractPreview);
+});
+
+async function init(){
+  if (DOMICILIO_PENDIENTE){
+    const w = document.createElement('div');
+    w.className = 'warning';
+    w.textContent = '⚠️ Falta completar el domicilio fiscal real de EBM Proyectos de Software en el código de esta página antes de usarla con clientes reales.';
+    document.querySelector('main.wrap').prepend(w);
+  }
+
+  const slug = new URLSearchParams(location.search).get('org');
+  if (!slug){
+    showError('Falta indicar la organización en el enlace (añade "?org=..." al final de la URL).');
+    return;
+  }
+  const { data, error } = await supabase.from('organizaciones').select('id, nombre, slug, plan').eq('slug', slug).eq('activo', true).maybeSingle();
+  if (error || !data){
+    showError('No encontramos ninguna organización activa con ese identificador.');
+    return;
+  }
+  if (!data.plan){
+    showError(`"${data.nombre}" todavía no tiene un plan asignado. Contacta con EBM Proyectos de Software (${EBM_DATA.email}) antes de firmar.`);
+    return;
+  }
+  ORG = data;
+  document.getElementById('orgNameLabel').textContent = ORG.nombre;
+  document.getElementById('planLabel').textContent = `${PLAN_LABELS[ORG.plan]} — ${fmtPrice(PLAN_PRICES[ORG.plan])} €/mes + IVA`;
+  document.getElementById('loadingScreen').hidden = true;
+  document.getElementById('formScreen').hidden = false;
+  resizeCanvas();
+  renderContractPreview();
+}
+function showError(message){
+  document.getElementById('loadingScreen').hidden = true;
+  document.getElementById('errorMsg').textContent = message;
+  document.getElementById('errorScreen').hidden = false;
+}
+
+init();
+</script>
+</body>
+</html>

@@ -801,6 +801,60 @@ solo tu cuenta puede leerlas). Se ven y gestionan desde `plataforma.html`,
 en la sección **«Solicitudes de demo»**, arriba del todo: puedes marcar cada
 una como nuevo/contactado/convertido/descartado, o borrarla.
 
+## `contrato.html`: alta de cliente con firma digital
+
+Cuando un cliente nuevo se va a dar de alta, `plataforma.html` tiene un
+enlace **«Enviar contrato de alta →»** en la ficha de cada organización, que
+lleva a `contrato.html?org=<slug>`. Es una página pública (sin login) que le
+mandas al cliente para que la rellene y firme él mismo:
+
+1. Antes de mandar el enlace, en `plataforma.html` tienes que fijar el
+   **«Plan contratado»** de esa organización (Reservas / Torneos y Ligas /
+   Premium) — el contrato usa ese plan para calcular la cuota mensual exacta
+   (49,99 / 59,99 / 69,99 € + IVA). Si no se ha asignado plan todavía, la
+   página se lo dice al cliente y no le deja continuar.
+2. El cliente ve el texto completo del contrato a la izquierda (se actualiza
+   en vivo según va rellenando sus datos) y un formulario a la derecha:
+   nombre/razón social, NIF/CIF, domicilio, email, teléfono e IBAN (para la
+   domiciliación cuando empiece a pagar).
+3. Firma con el ratón o el dedo en un lienzo (`<canvas>`), sin necesidad de
+   ninguna librería externa de firma.
+4. Al confirmar, se genera un PDF en el propio navegador (con la librería
+   `jsPDF`) con el contrato completo, la firma incrustada y la fecha/hora de
+   la firma; se sube al bucket privado `contratos-padel` de Supabase Storage,
+   se guarda un registro en la tabla `contratos_padel` (nombre, NIF, IBAN,
+   plan, precio, fecha) y el cliente se descarga su copia al momento.
+4. Desde `plataforma.html`, en la propia ficha de la organización, tienes el
+   listado de **«Contratos firmados»** con un botón para descargar cada PDF
+   (mediante una URL firmada temporal — el bucket es privado y solo tu cuenta
+   puede leerlo, ya que los contratos incluyen el IBAN del cliente).
+
+El contrato incluye, entre otras, estas cláusulas (revísalas con un abogado
+antes de usarlo con clientes reales, esto es una plantilla, no asesoría
+legal):
+- **2 meses gratis** y, a partir del tercer mes, cobro recurrente mensual
+  automático según el plan, salvo baja.
+- **Baja durante la prueba gratuita**: hay que avisar con 7 días de
+  antelación a que termine la gratuidad; si no se avisa, se entiende que el
+  cliente continúa y se activa el cobro del tercer mes en adelante.
+- **Baja una vez de pago**: hay que avisar con 1 mes de antelación a la
+  fecha de facturación; si se avisa con menos margen, se cobra igualmente
+  el mes siguiente.
+- Referencia a la protección de datos: los datos del propio contrato se
+  tratan para gestionar la relación contractual y la facturación; y, cuando
+  el cliente sea una administración pública (o en general trate datos de
+  terceros a través de la plataforma), se remite al **Contrato de Encargado
+  de Tratamiento de Datos** (documento aparte, ya existe una plantilla en
+  `Contrato_Encargado_Tratamiento_EBM.docx`), que debe firmarse como Anexo I.
+
+> ⚠️ **Pendiente**: en el código de `contrato.html` (constante `EBM_DATA`)
+> falta tu domicilio fiscal real como autónomo — de momento aparece como
+> `[PENDIENTE DE COMPLETAR]` y la propia página muestra un aviso mientras
+> tanto. Complétalo antes de mandarle este contrato a un cliente real.
+> Además, esta plantilla de contrato (y sus plazos de baja) no ha sido
+> revisada por un abogado — solo recoge lo que me has pedido en la
+> conversación.
+
 ## Cómo lo pruebas en local
 
 Solo hace falta un servidor estático simple (los módulos ES no funcionan con `file://`):
@@ -839,3 +893,12 @@ La forma más rápida y gratuita es **GitHub Pages**:
   cookies» sí describe con exactitud lo que usa hoy la web (sesión, banner de
   publicidad, caché de la PWA) — actualízala si en el futuro añades analítica o
   publicidad con cookies de terceros.
+- Falta una **«Política de privacidad» propia de GestionMyPadel/EBM Proyectos
+  de Software** (a nivel de proveedor, distinta de la de cada club en
+  `index.html`) que recoja cómo tratas los datos de tus clientes: los que
+  rellenan el formulario de la landing (`leads_gestionmypadel`) y los que
+  firman el contrato de alta (`contratos_padel`: nombre/razón social, NIF,
+  domicilio, email, teléfono e IBAN). El propio contrato de alta ya menciona
+  esta política y la base legal (ejecución del contrato, art. 6.1.b RGPD) —
+  falta publicarla como página (por ejemplo en `landing.html`) y enlazarla
+  desde ahí y desde `contrato.html`.

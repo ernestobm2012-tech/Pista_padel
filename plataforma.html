@@ -275,8 +275,18 @@ function padelImageUrl(path){
 
 const TIPO_LABELS = { ayuntamiento: 'Ayuntamiento', comunidad_vecinos: 'Comunidad de vecinos', club_padel: 'Club de pádel', otro: 'Otro' };
 
-function orgCardHtml(org, admins){
+const PLAN_LABELS = { reservas: 'Reservas', torneos_ligas: 'Torneos y Ligas', premium: 'Premium' };
+
+function orgCardHtml(org, admins, contratos){
   const orgAdmins = admins.filter(a => a.organizacion_id === org.id);
+  const orgContratos = (contratos || []).filter(c => c.organizacion_id === org.id);
+  const contratosHtml = orgContratos.length
+    ? orgContratos.map(c => `
+        <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; padding:6px 0; border-bottom:1px solid var(--line); font-size:13px;">
+          <span>${c.nombre_firmante} · ${PLAN_LABELS[c.plan] || c.plan} · ${new Date(c.signed_at).toLocaleDateString('es-ES')}</span>
+          <button type="button" class="btn btn-ghost btn-sm" data-download-contrato="${c.pdf_path}">Descargar PDF</button>
+        </div>`).join('')
+    : '<span style="color:var(--ink-soft); font-size:13px;">Sin contratos firmados todavía.</span>';
   const adminsHtml = orgAdmins.length
     ? orgAdmins.map(a => `<span class="admin-pill">${a.email} <button data-remove-admin="${a.id}" title="Quitar acceso">×</button></span>`).join(' ')
     : '<span style="color:var(--ink-soft); font-size:13px;">Sin administradores todavía</span>';
@@ -285,9 +295,10 @@ function orgCardHtml(org, admins){
     <div class="card org-card" data-org-id="${org.id}">
       <div class="org-card-head">
         <h3>${org.nombre} <span class="pill">${TIPO_LABELS[org.tipo] || org.tipo || '—'}</span> ${org.activo === false ? '<span class="pill pill-inactiva">Inactiva</span>' : ''}</h3>
-        <div style="display:flex; align-items:center; gap:12px;">
+        <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
           <span style="color:var(--ink-soft); font-size:13px;">/?org=${org.slug}</span>
           <a class="btn btn-ghost btn-sm" href="admin.html?org=${org.slug}" target="_blank" rel="noopener">Abrir panel de administración →</a>
+          <a class="btn btn-ghost btn-sm" href="contrato.html?org=${org.slug}" target="_blank" rel="noopener">Enviar contrato de alta →</a>
         </div>
       </div>
 
@@ -307,6 +318,15 @@ function orgCardHtml(org, admins){
         <div class="field"><label>Facebook (URL)</label><input data-field="facebook_url" value="${org.facebook_url || ''}"></div>
         <div class="field"><label>WhatsApp (enlace wa.me)</label><input data-field="whatsapp_url" value="${org.whatsapp_url || ''}"></div>
         <div class="field"><label>Búsqueda para el mapa</label><input data-field="mapa_query" value="${org.mapa_query || ''}" placeholder="pistas de padel Mi Ciudad"></div>
+        <div class="field">
+          <label>Plan contratado</label>
+          <select data-field="plan">
+            <option value="" ${!org.plan ? 'selected' : ''}>— Sin asignar —</option>
+            <option value="reservas" ${org.plan === 'reservas' ? 'selected' : ''}>Reservas — 49,99€/mes</option>
+            <option value="torneos_ligas" ${org.plan === 'torneos_ligas' ? 'selected' : ''}>Torneos y Ligas — 59,99€/mes</option>
+            <option value="premium" ${org.plan === 'premium' ? 'selected' : ''}>Premium — 69,99€/mes</option>
+          </select>
+        </div>
         ${org.tipo === 'ayuntamiento' ? `
         <div class="field">
           <label>Documento que emite al cobrar</label>
@@ -361,6 +381,13 @@ function orgCardHtml(org, admins){
         </div>
         <span class="form-msg" data-admin-msg="${org.id}"></span>
       </div>
+
+      <hr class="sep">
+
+      <div>
+        <label>Contratos firmados</label>
+        <div style="margin-bottom:4px;">${contratosHtml}</div>
+      </div>
     </div>
   `;
 }
@@ -369,13 +396,17 @@ let ALL_ORGS = [];
 let ALL_ORG_ADMINS = [];
 let SELECTED_ORG_ID = null;
 
+let ALL_CONTRATOS = [];
+
 async function loadOrganizaciones(){
-  const [{ data: orgs }, { data: admins }] = await Promise.all([
+  const [{ data: orgs }, { data: admins }, { data: contratos }] = await Promise.all([
     supabase.from('organizaciones').select('*').order('nombre'),
     supabase.from('organizacion_admins').select('*'),
+    supabase.from('contratos_padel').select('*').order('signed_at', { ascending: false }),
   ]);
   ALL_ORGS = orgs || [];
   ALL_ORG_ADMINS = admins || [];
+  ALL_CONTRATOS = contratos || [];
   if (SELECTED_ORG_ID && !ALL_ORGS.some(o => o.id === SELECTED_ORG_ID)) SELECTED_ORG_ID = null;
   renderOrgSelector();
   renderSelectedOrgCard();
@@ -398,8 +429,20 @@ function renderSelectedOrgCard(){
     wrap.innerHTML = '';
     return;
   }
-  wrap.innerHTML = orgCardHtml(org, ALL_ORG_ADMINS);
+  wrap.innerHTML = orgCardHtml(org, ALL_ORG_ADMINS, ALL_CONTRATOS);
   wireOrgCardEvents();
+  wireContratosDownload();
+}
+
+function wireContratosDownload(){
+  document.querySelectorAll('[data-download-contrato]').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const path = btn.dataset.downloadContrato;
+      const { data, error } = await supabase.storage.from('contratos-padel').createSignedUrl(path, 300);
+      if (error || !data){ alert('No se ha podido generar el enlace de descarga.'); return; }
+      window.open(data.signedUrl, '_blank');
+    });
+  });
 }
 
 document.getElementById('orgSelector').addEventListener('change', (e) => {
@@ -468,6 +511,7 @@ function wireOrgCardEvents(){
         facebook_url: get('facebook_url').value.trim() || null,
         whatsapp_url: get('whatsapp_url').value.trim() || null,
         mapa_query: get('mapa_query').value.trim() || null,
+        plan: get('plan').value || null,
         tipo_documento_cobro: get('tipo_documento_cobro') ? get('tipo_documento_cobro').value : 'factura',
         activo: get('activo').checked,
         features: {
