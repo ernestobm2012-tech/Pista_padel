@@ -847,13 +847,8 @@ legal):
   de Tratamiento de Datos** (documento aparte, ya existe una plantilla en
   `Contrato_Encargado_Tratamiento_EBM.docx`), que debe firmarse como Anexo I.
 
-> ⚠️ **Pendiente**: en el código de `contrato.html` (constante `EBM_DATA`)
-> falta tu domicilio fiscal real como autónomo — de momento aparece como
-> `[PENDIENTE DE COMPLETAR]` y la propia página muestra un aviso mientras
-> tanto. Complétalo antes de mandarle este contrato a un cliente real.
-> Además, esta plantilla de contrato (y sus plazos de baja) no ha sido
-> revisada por un abogado — solo recoge lo que me has pedido en la
-> conversación.
+> ⚠️ Esta plantilla de contrato (y sus plazos de baja) no ha sido revisada
+> por un abogado — solo recoge lo que me has pedido en la conversación.
 
 ## Cómo lo pruebas en local
 

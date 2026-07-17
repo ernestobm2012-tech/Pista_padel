@@ -53,7 +53,6 @@
   .contract-text p{ font-size:13px; color:var(--ink-soft); margin:0 0 10px; white-space:pre-wrap; }
   .contract-text .title{ font-size:16px; color:var(--ink); text-align:center; margin-bottom:18px; }
   .contract-text .placeholder{ color:var(--amber); }
-  .warning{ background:rgba(255,200,87,.12); border:1px solid rgba(255,200,87,.4); color:var(--amber); border-radius:10px; padding:12px 14px; font-size:13px; margin-bottom:20px; }
   .form-grid{ display:grid; gap:14px; }
   .plan-box{ background:var(--bg-soft); border:1px solid var(--line); border-radius:10px; padding:12px 14px; font-size:14px; }
   .plan-box b{ color:var(--lime); }
@@ -133,17 +132,13 @@ const SUPABASE_URL = 'https://stnuvhlqicftjbtlybit.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN0bnV2aGxxaWNmdGpidGx5Yml0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMyNDY4NzgsImV4cCI6MjA5ODgyMjg3OH0.1a8uenfaddy_yiXPgerteMoktCEeeFhkH021qp0okPY';
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-// ⚠️ Falta completar el domicilio fiscal real antes de usar este contrato con
-// clientes reales — Ernesto lo dará más adelante (ver conversación).
 const EBM_DATA = {
   nombre: 'Ernesto Bermejo Montalvo',
   dni: '47498439N',
   nombreComercial: 'EBM Proyectos de Software',
-  domicilio: '[PENDIENTE DE COMPLETAR — domicilio fiscal del autónomo]',
+  domicilio: 'Calle Rumanía, 38, Chozas de Canales (Toledo)',
   email: 'ernestobm2012@gmail.com',
 };
-const DOMICILIO_PENDIENTE = EBM_DATA.domicilio.startsWith('[PENDIENTE');
-
 const PLAN_LABELS = { reservas: 'Reservas', torneos_ligas: 'Torneos y Ligas', premium: 'Premium' };
 const PLAN_PRICES = { reservas: 49.99, torneos_ligas: 59.99, premium: 69.99 };
 
@@ -395,13 +390,6 @@ document.querySelectorAll('#f_nombre, #f_nif, #f_domicilio, #f_email, #f_telefon
 });
 
 async function init(){
-  if (DOMICILIO_PENDIENTE){
-    const w = document.createElement('div');
-    w.className = 'warning';
-    w.textContent = '⚠️ Falta completar el domicilio fiscal real de EBM Proyectos de Software en el código de esta página antes de usarla con clientes reales.';
-    document.querySelector('main.wrap').prepend(w);
-  }
-
   const slug = new URLSearchParams(location.search).get('org');
   if (!slug){
     showError('Falta indicar la organización en el enlace (añade "?org=..." al final de la URL).');
