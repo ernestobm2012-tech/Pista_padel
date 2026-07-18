@@ -902,13 +902,12 @@ Todo esto vive en la tabla `cobros_organizacion_padel` (solo tu cuenta
 puede leerla o escribirla — ni el administrador de cada club ve esto,
 es tu contabilidad como dueño de la plataforma).
 
-El envío automático de facturas por email ya está **activado** (Edge
-Function `send-invoice-email-padel` con tu cuenta de
-[Resend](https://resend.com)): al marcar un cobro como pagado, o al pulsar
-«Enviar email», el cliente recibe el correo con el enlace de descarga de
-su factura, enviado desde `facturacion@gestionmypadel.com`. Si el dominio
-todavía no está verificado del todo en Resend, el aviso en pantalla te
-dirá el motivo exacto en vez de fallar en silencio.
+El envío automático de facturas por email ya está **activado y verificado**
+(Edge Function `send-invoice-email-padel` con tu cuenta de
+[Resend](https://resend.com), dominio `gestionmypadel.com` verificado): al
+marcar un cobro como pagado, o al pulsar «Enviar email», el cliente recibe
+el correo con el enlace de descarga de su factura, enviado desde
+`facturacion@gestionmypadel.com`.
 
 ## `contrato.html`: alta de cliente con firma digital
 
