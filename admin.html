@@ -169,6 +169,9 @@
   .stat-kpi{ background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); padding:16px 18px; }
   .stat-kpi .num{ font-family:'Outfit',sans-serif; font-size:26px; font-weight:700; color:var(--lime); line-height:1.2; }
   .stat-kpi .lbl{ font-size:12.5px; color:var(--ink-soft); margin-top:4px; }
+  .stat-grid{ display:grid; grid-template-columns:repeat(auto-fit, minmax(160px,1fr)); gap:14px; margin-bottom:14px; }
+  .stat-tile .stat-num{ font-family:'Outfit',sans-serif; font-weight:800; font-size:32px; color:var(--lime); line-height:1.1; }
+  .stat-tile .stat-label{ color:var(--ink-soft); font-size:12.5px; text-transform:uppercase; letter-spacing:.04em; margin-top:6px; }
   .stats-grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(320px,1fr)); gap:20px; }
   .bar-row{ display:flex; align-items:center; gap:10px; margin:10px 0; font-size:13px; }
   .bar-row .bar-lbl{ width:96px; flex-shrink:0; color:var(--ink-soft); }
@@ -374,6 +377,17 @@
           </select>
         </div>
       </div>
+      <div class="panel-head" style="margin-top:0;"><h3 style="margin:0;">Visitas a la web</h3></div>
+      <div class="stat-grid">
+        <div class="card stat-tile"><div class="stat-num" id="siteViewsTotal">—</div><div class="stat-label">Visitas totales</div></div>
+        <div class="card stat-tile"><div class="stat-num" id="siteVisitorsTotal">—</div><div class="stat-label">Visitantes únicos totales</div></div>
+        <div class="card stat-tile"><div class="stat-num" id="siteViewsMonth">—</div><div class="stat-label">Visitas este mes</div></div>
+        <div class="card stat-tile"><div class="stat-num" id="siteVisitorsMonth">—</div><div class="stat-label">Visitantes únicos este mes</div></div>
+      </div>
+      <div class="card table-wrap" id="siteMonthlyCard" style="margin-bottom:20px;">
+        <table><thead><tr><th>Mes</th><th>Visitas</th><th>Visitantes únicos</th></tr></thead><tbody id="siteMonthlyBody"></tbody></table>
+      </div>
+      <div class="panel-head"><h3 style="margin:0;">Reservas</h3></div>
       <div class="stats-kpis" id="statsKpis"></div>
       <div class="stats-grid">
         <div class="card">
@@ -1796,9 +1810,49 @@ async function loadRegisteredClients(){
 /* ---------- Estadísticas ---------- */
 document.getElementById('statsRange').addEventListener('change', renderStats);
 
+function uniqueVisitorCount(events){
+  return new Set(events.map(e => e.visitor_id).filter(Boolean)).size;
+}
+function monthKeyOf(isoDate){ return isoDate.slice(0, 7); }
+function monthLabel(key){
+  const [y, m] = key.split('-');
+  return new Date(Number(y), Number(m) - 1, 1).toLocaleDateString('es-ES', { month: 'long', year: 'numeric' });
+}
+
+async function loadSiteStats(){
+  const { data: events } = await supabase.from('analytics_eventos_padel')
+    .select('event_type, created_at, visitor_id')
+    .eq('organizacion_id', ORG_ID)
+    .eq('event_type', 'page_view');
+  const pageViews = events || [];
+  const startOfMonth = new Date(); startOfMonth.setDate(1);
+  const monthKeyNow = monthKeyOf(startOfMonth.toISOString().slice(0, 10));
+  const viewsThisMonth = pageViews.filter(e => monthKeyOf(e.created_at) === monthKeyNow);
+
+  document.getElementById('siteViewsTotal').textContent = pageViews.length;
+  document.getElementById('siteVisitorsTotal').textContent = uniqueVisitorCount(pageViews);
+  document.getElementById('siteViewsMonth').textContent = viewsThisMonth.length;
+  document.getElementById('siteVisitorsMonth').textContent = uniqueVisitorCount(viewsThisMonth);
+
+  const monthlyMap = {};
+  pageViews.forEach(e => {
+    const key = monthKeyOf(e.created_at);
+    if (!monthlyMap[key]) monthlyMap[key] = { views: 0, visitors: new Set() };
+    monthlyMap[key].views++;
+    if (e.visitor_id) monthlyMap[key].visitors.add(e.visitor_id);
+  });
+  const monthKeys = Object.keys(monthlyMap).sort().reverse();
+  const monthlyBody = document.getElementById('siteMonthlyBody');
+  monthlyBody.innerHTML = monthKeys.length
+    ? monthKeys.map(key => `<tr><td style="text-transform:capitalize;">${monthLabel(key)}</td><td>${monthlyMap[key].views}</td><td>${monthlyMap[key].visitors.size}</td></tr>`).join('')
+    : '<tr><td colspan="3" style="color:var(--ink-soft);">Todavía no hay visitas.</td></tr>';
+}
+
 async function renderStats(){
   const kpisEl = document.getElementById('statsKpis');
   kpisEl.innerHTML = '<p class="empty-msg">Cargando…</p>';
+
+  loadSiteStats();
 
   const { data, error } = await supabase.from('reservas_padel').select('*').eq('organizacion_id', ORG_ID);
   if (error || !data){

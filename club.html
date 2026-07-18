@@ -793,6 +793,17 @@ function wireLightboxPhotos(container){
   });
 }
 
+/* ---------- Identificador anónimo de visitante (para "visitantes únicos") ---------- */
+function getVisitorId(){
+  const KEY = 'gmp_visitor_id';
+  let id = localStorage.getItem(KEY);
+  if (!id){
+    id = crypto.randomUUID();
+    localStorage.setItem(KEY, id);
+  }
+  return id;
+}
+
 /* ---------- Organización (multi-tenant): resolución por ?org=slug ---------- */
 // Esta misma web sirve a varias organizaciones (ayuntamientos, comunidades de
 // vecinos, clubs...); cada una tiene su propio enlace con "?org=su-slug" y sus
@@ -869,7 +880,7 @@ async function resolveOrganizacion(){
 
 function trackAnalyticsEvent(event_type){
   if (!ORG_ID) return;
-  supabase.from('analytics_eventos_padel').insert({ organizacion_id: ORG_ID, event_type }).then(() => {});
+  supabase.from('analytics_eventos_padel').insert({ organizacion_id: ORG_ID, event_type, visitor_id: getVisitorId() }).then(() => {});
 }
 
 document.getElementById('year').textContent = new Date().getFullYear();

@@ -48,16 +48,19 @@ de las notificaciones (`sw-padel.js`).
 
 ## Estadísticas
 
-En `admin.html` → pestaña «Estadísticas» tienes, con un selector de periodo
-(últimos 30/90 días, último año o todo el historial):
+En `admin.html` → pestaña «Estadísticas» tienes:
 
-- Resumen: reservas confirmadas, clientes distintos, dinero ganado y ticket
-  medio (el uso municipal no cuenta como ingreso).
-- Ingresos por mes (últimos 12 meses del periodo elegido).
-- Qué duración se reserva más (1 hora / 1h30 / 2 horas), con el número de
-  reservas y el porcentaje sobre el total.
-- A qué horas hay más demanda, para detectar las franjas más solicitadas.
-- Los clientes más frecuentes del periodo.
+- **Visitas a la web**: visitas totales, visitantes únicos totales, visitas
+  de este mes y visitantes únicos de este mes a la web pública del club
+  (`club.html`), más una tabla con el histórico mes a mes. Una "visita" cuenta
+  cada carga de página; un "visitante único" cuenta dispositivos distintos
+  (ver más abajo cómo se calcula).
+- Con un selector de periodo (últimos 30/90 días, último año o todo el
+  historial): resumen de reservas confirmadas, clientes distintos, dinero
+  ganado y ticket medio (el uso municipal no cuenta como ingreso), ingresos
+  por mes, qué duración se reserva más (1 hora / 1h30 / 2 horas) con el
+  número de reservas y el porcentaje sobre el total, a qué horas hay más
+  demanda, y los clientes más frecuentes del periodo.
 
 ## Fotos de pistas y torneos
 
@@ -746,29 +749,45 @@ directos, cada uno en una pestaña nueva:
 
 ### Estadísticas de la plataforma
 
-Arriba del todo, antes de la lista de organizaciones, hay un contador de
-**visitas a la página principal** (`gestionmypadel.com`, es decir
-`index.html`, la web de ventas del producto — no la de ningún club
-concreto) con el mismo desglose de 30 días / total, y debajo una tabla con
-un resumen de uso de cada organización:
+Arriba del todo, antes de la lista de organizaciones, hay un bloque de
+**visitas a la web principal** (`gestionmypadel.com`, es decir `index.html`,
+la web de ventas del producto — no la de ningún club concreto) con cuatro
+cifras — visitas totales, visitantes únicos totales, visitas de este mes y
+visitantes únicos de este mes — más una tabla con el histórico mes a mes.
+Debajo, una tabla con un resumen de uso de cada organización:
 
-- **Visitas (30 días)** y **visitas (total)**: cada vez que alguien abre la
-  web pública de una organización (`club.html?org=...`) se registra un
-  evento `page_view`. No distingue visitantes únicos, es un contador simple
-  de cargas de página.
+- **Visitas (30 días / total)** y **visitantes únicos (30 días / total)**:
+  cada vez que alguien abre la web pública de una organización
+  (`club.html?org=...`) se registra un evento `page_view`. "Visitas" cuenta
+  cada carga de página; "visitantes únicos" cuenta dispositivos distintos.
 - **Reservas este mes**: cuántas reservas (sin contar las canceladas) tiene
   esa organización en el mes en curso.
 - **Clics en el banner**: cuántas veces se ha pulsado el banner de publicidad
   de `club.html` estando en la web de esa organización.
 
 Estos datos viven en una tabla, `analytics_eventos_padel` (evento +
-organización + fecha), donde cualquier visitante anónimo puede insertar un
-evento (para que la propia web pública lo registre sin necesitar login),
-pero solo tu cuenta puede leerlos — ni siquiera el administrador de cada
-organización ve estos números, es información exclusiva de la plataforma.
-Las visitas a `index.html` se guardan en la misma tabla con
-`organizacion_id` en blanco y el evento `landing_page_view`, ya que no
-pertenecen a ninguna organización concreta.
+organización + fecha + `visitor_id`), donde cualquier visitante anónimo
+puede insertar un evento (para que la propia web pública lo registre sin
+necesitar login), pero solo tu cuenta puede leerlos — ni siquiera el
+administrador de cada organización ve estos números de la plataforma
+completa (aunque sí ve los suyos propios, ver más abajo). Las visitas a
+`index.html` se guardan en la misma tabla con `organizacion_id` en blanco y
+el evento `landing_page_view`, ya que no pertenecen a ninguna organización
+concreta.
+
+**Visitantes únicos**: al entrar en `index.html` o en `club.html`, la web
+genera un identificador aleatorio (`crypto.randomUUID()`) y lo guarda en el
+`localStorage` del navegador bajo la clave `gmp_visitor_id`; ese mismo
+identificador se reutiliza en las siguientes visitas desde el mismo
+dispositivo/navegador y se manda junto con cada evento. No usa cookies de
+terceros ni ningún dato personal — es solo un número aleatorio por
+dispositivo que permite distinguir "una persona volvió a entrar" de "cinco
+personas distintas entraron una vez cada una". Si borras los datos del
+navegador o entras desde otro dispositivo, cuenta como un visitante nuevo.
+
+En `admin.html` → pestaña «Estadísticas», cada organización ve este mismo
+bloque de "Visitas a la web" pero limitado a su propia web pública
+(`club.html?org=<su-slug>`), con las mismas cuatro cifras y la tabla mensual.
 
 Desde ahí, para dar de alta un cliente nuevo:
 

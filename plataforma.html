@@ -69,6 +69,9 @@
   .tab-panel[hidden]{ display:none; }
   .panel-head{ display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; }
   .card{ background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); padding:20px; }
+  .stat-grid{ display:grid; grid-template-columns:repeat(auto-fit, minmax(160px,1fr)); gap:14px; margin-bottom:14px; }
+  .stat-tile .stat-num{ font-family:'Outfit'; font-weight:800; font-size:32px; color:var(--lime); line-height:1.1; }
+  .stat-tile .stat-label{ color:var(--ink-soft); font-size:12.5px; text-transform:uppercase; letter-spacing:.04em; margin-top:6px; }
   table{ width:100%; border-collapse:collapse; font-size:13.5px; }
   th, td{ text-align:left; padding:10px 8px; border-bottom:1px solid var(--line); vertical-align:top; }
   th{ color:var(--ink-soft); font-weight:600; font-size:11.5px; text-transform:uppercase; letter-spacing:.04em; }
@@ -149,17 +152,24 @@
     </section>
 
     <section id="tabEstadisticas" class="tab-panel" hidden>
-      <div class="panel-head"><h2>Estadísticas de uso</h2></div>
-      <div class="card" style="margin-bottom:14px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:16px;">
-        <span>Visitas a la página principal (<b>gestionmypadel.com</b>)</span>
-        <span style="display:flex; gap:24px; font-size:14px;">
-          <span>30 días: <b id="landingViews30" style="color:var(--lime);">—</b></span>
-          <span>Total: <b id="landingViewsTotal" style="color:var(--lime);">—</b></span>
-        </span>
+      <div class="panel-head"><h2>Visitas a la web (gestionmypadel.com)</h2></div>
+      <div class="stat-grid">
+        <div class="card stat-tile"><div class="stat-num" id="landingViewsTotal">—</div><div class="stat-label">Visitas totales</div></div>
+        <div class="card stat-tile"><div class="stat-num" id="landingVisitorsTotal">—</div><div class="stat-label">Visitantes únicos totales</div></div>
+        <div class="card stat-tile"><div class="stat-num" id="landingViewsMonth">—</div><div class="stat-label">Visitas este mes</div></div>
+        <div class="card stat-tile"><div class="stat-num" id="landingVisitorsMonth">—</div><div class="stat-label">Visitantes únicos este mes</div></div>
       </div>
+      <div class="card table-wrap" id="landingMonthlyCard">
+        <table>
+          <thead><tr><th>Mes</th><th>Visitas</th><th>Visitantes únicos</th></tr></thead>
+          <tbody id="landingMonthlyBody"></tbody>
+        </table>
+      </div>
+
+      <div class="panel-head" style="margin-top:28px;"><h2>Estadísticas por organización</h2></div>
       <div class="card table-wrap" id="analyticsCard">
         <table>
-          <thead><tr><th>Organización</th><th>Visitas (30 días)</th><th>Visitas (total)</th><th>Reservas este mes</th><th>Clics en el banner</th></tr></thead>
+          <thead><tr><th>Organización</th><th>Visitas (30 días)</th><th>Visitas (total)</th><th>Visitantes únicos (30 días)</th><th>Visitantes únicos (total)</th><th>Reservas este mes</th><th>Clics en el banner</th></tr></thead>
           <tbody id="analyticsBody"></tbody>
         </table>
       </div>
@@ -477,34 +487,67 @@ async function loadSolicitudes(){
   });
 }
 
+function uniqueVisitorCount(events){
+  return new Set(events.map(e => e.visitor_id).filter(Boolean)).size;
+}
+
+function monthKeyOf(isoDate){
+  return isoDate.slice(0, 7);
+}
+
+function monthLabel(key){
+  const [y, m] = key.split('-');
+  return new Date(Number(y), Number(m) - 1, 1).toLocaleDateString('es-ES', { month: 'long', year: 'numeric' });
+}
+
 async function loadAnalytics(){
   const body = document.getElementById('analyticsBody');
   const since30 = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
   const startOfMonth = new Date();
   startOfMonth.setDate(1);
   const monthStr = startOfMonth.toISOString().slice(0, 10);
+  const monthKeyNow = monthKeyOf(monthStr);
 
   const [{ data: events }, { data: reservas }] = await Promise.all([
-    supabase.from('analytics_eventos_padel').select('organizacion_id, event_type, created_at'),
+    supabase.from('analytics_eventos_padel').select('organizacion_id, event_type, created_at, visitor_id'),
     supabase.from('reservas_padel').select('organizacion_id, reservation_date, status').neq('status', 'cancelada'),
   ]);
 
   const landingEvents = (events || []).filter(e => e.event_type === 'landing_page_view');
+  const landingThisMonth = landingEvents.filter(e => monthKeyOf(e.created_at) === monthKeyNow);
   document.getElementById('landingViewsTotal').textContent = landingEvents.length;
-  document.getElementById('landingViews30').textContent = landingEvents.filter(e => e.created_at >= since30).length;
+  document.getElementById('landingVisitorsTotal').textContent = uniqueVisitorCount(landingEvents);
+  document.getElementById('landingViewsMonth').textContent = landingThisMonth.length;
+  document.getElementById('landingVisitorsMonth').textContent = uniqueVisitorCount(landingThisMonth);
+
+  const monthlyMap = {};
+  landingEvents.forEach(e => {
+    const key = monthKeyOf(e.created_at);
+    if (!monthlyMap[key]) monthlyMap[key] = { views: 0, visitors: new Set() };
+    monthlyMap[key].views++;
+    if (e.visitor_id) monthlyMap[key].visitors.add(e.visitor_id);
+  });
+  const monthlyBody = document.getElementById('landingMonthlyBody');
+  const monthKeys = Object.keys(monthlyMap).sort().reverse();
+  monthlyBody.innerHTML = monthKeys.length
+    ? monthKeys.map(key => `<tr><td style="text-transform:capitalize;">${monthLabel(key)}</td><td>${monthlyMap[key].views}</td><td>${monthlyMap[key].visitors.size}</td></tr>`).join('')
+    : '<tr><td colspan="3" style="color:var(--ink-soft);">Todavía no hay visitas.</td></tr>';
 
   if (!ALL_ORGS.length){
-    body.innerHTML = '<tr><td colspan="5" style="color:var(--ink-soft);">No hay organizaciones todavía.</td></tr>';
+    body.innerHTML = '<tr><td colspan="7" style="color:var(--ink-soft);">No hay organizaciones todavía.</td></tr>';
     return;
   }
 
   body.innerHTML = ALL_ORGS.map(org => {
-    const orgEvents = (events || []).filter(e => e.organizacion_id === org.id);
-    const visitasTotal = orgEvents.filter(e => e.event_type === 'page_view').length;
-    const visitas30 = orgEvents.filter(e => e.event_type === 'page_view' && e.created_at >= since30).length;
-    const clicsBanner = orgEvents.filter(e => e.event_type === 'banner_click').length;
+    const orgPageViews = (events || []).filter(e => e.organizacion_id === org.id && e.event_type === 'page_view');
+    const orgPageViews30 = orgPageViews.filter(e => e.created_at >= since30);
+    const visitasTotal = orgPageViews.length;
+    const visitas30 = orgPageViews30.length;
+    const visitantesTotal = uniqueVisitorCount(orgPageViews);
+    const visitantes30 = uniqueVisitorCount(orgPageViews30);
+    const clicsBanner = (events || []).filter(e => e.organizacion_id === org.id && e.event_type === 'banner_click').length;
     const reservasMes = (reservas || []).filter(r => r.organizacion_id === org.id && r.reservation_date >= monthStr).length;
-    return `<tr><td>${org.nombre}</td><td>${visitas30}</td><td>${visitasTotal}</td><td>${reservasMes}</td><td>${clicsBanner}</td></tr>`;
+    return `<tr><td>${org.nombre}</td><td>${visitas30}</td><td>${visitasTotal}</td><td>${visitantes30}</td><td>${visitantesTotal}</td><td>${reservasMes}</td><td>${clicsBanner}</td></tr>`;
   }).join('');
 }
 

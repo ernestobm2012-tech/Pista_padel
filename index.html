@@ -415,7 +415,17 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 document.getElementById('year').textContent = new Date().getFullYear();
 
-supabase.from('analytics_eventos_padel').insert({ organizacion_id: null, event_type: 'landing_page_view' }).then(() => {});
+function getVisitorId(){
+  const KEY = 'gmp_visitor_id';
+  let id = localStorage.getItem(KEY);
+  if (!id){
+    id = crypto.randomUUID();
+    localStorage.setItem(KEY, id);
+  }
+  return id;
+}
+
+supabase.from('analytics_eventos_padel').insert({ organizacion_id: null, event_type: 'landing_page_view', visitor_id: getVisitorId() }).then(() => {});
 
 document.querySelectorAll('[data-plan-cta]').forEach(btn => {
   btn.addEventListener('click', () => {
