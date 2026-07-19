@@ -839,9 +839,13 @@ gestión, `index.html` es la página de ventas propia del producto en sí —
 (ver «Dominio propio: gestionmypadel.com» más abajo). Es la página que le
 enseñas a un ayuntamiento o un club nuevo antes de darlos de alta: qué hace
 el producto, planes y precios, y un formulario para pedir una demo. El pie
-de página muestra `info@gestionmypadel.com` como email de contacto de
-GestionMyPadel/EBM Proyectos de Software — el mismo que aparece en
-`contrato.html` como correo de contacto de "EL PRESTADOR".
+de página muestra `info@gestionmypadel.com` y el teléfono `698 935 800`
+como contacto de GestionMyPadel/EBM Proyectos de Software — los mismos que
+aparecen en `contrato.html` como contacto de "EL PRESTADOR". Además tiene un
+botón flotante de WhatsApp (esquina inferior derecha, visible en toda la
+página) que abre un chat directo a ese mismo número con un mensaje
+predefinido, para que un club o ayuntamiento interesado pueda escribir sin
+tener que rellenar el formulario de demo.
 
 Planes actuales (mensuales, sin permanencia, con **2 meses gratis** para
 probar antes de pagar):

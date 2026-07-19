@@ -53,6 +53,21 @@
   section{ padding:88px 0; }
   @media (max-width:760px){ section{ padding:56px 0; } }
 
+  /* ---------- Botón flotante de WhatsApp ---------- */
+  .whatsapp-float{
+    position:fixed; bottom:22px; right:22px; z-index:90;
+    display:flex; align-items:center; justify-content:center;
+    width:58px; height:58px; border-radius:50%;
+    background:#25D366; color:#fff; text-decoration:none;
+    box-shadow:0 10px 28px rgba(0,0,0,.4);
+  }
+  .whatsapp-float svg{ width:30px; height:30px; }
+  .whatsapp-float:active{ transform:scale(.96); }
+  @media (max-width:480px){
+    .whatsapp-float{ bottom:16px; right:16px; width:52px; height:52px; }
+    .whatsapp-float svg{ width:27px; height:27px; }
+  }
+
   /* ---------- Header ---------- */
   header{
     position:sticky; top:0; z-index:40; background:rgba(11,18,16,.9); backdrop-filter:blur(8px);
@@ -399,9 +414,13 @@
   </div>
 </section>
 
+<a class="whatsapp-float" href="https://wa.me/34698935800?text=Hola%2C%20quiero%20informaci%C3%B3n%20sobre%20GestionMyPadel" target="_blank" rel="noopener" aria-label="Escríbenos por WhatsApp">
+  <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38a9.9 9.9 0 0 0 4.74 1.21h.01c5.46 0 9.91-4.45 9.91-9.91C21.96 6.45 17.5 2 12.04 2Zm0 18.06h-.01a8.2 8.2 0 0 1-4.18-1.14l-.3-.18-3.12.82.83-3.04-.2-.31a8.15 8.15 0 0 1-1.25-4.3c0-4.51 3.67-8.18 8.19-8.18 2.19 0 4.24.85 5.79 2.4a8.13 8.13 0 0 1 2.4 5.79c0 4.51-3.68 8.18-8.19 8.18Zm4.49-6.13c-.25-.12-1.45-.72-1.67-.8-.22-.08-.39-.12-.55.12-.16.25-.63.8-.78.96-.14.16-.29.18-.53.06-.25-.12-1.05-.39-2-1.23-.74-.66-1.24-1.48-1.39-1.73-.14-.25-.02-.38.11-.51.11-.11.25-.29.37-.43.12-.14.16-.25.25-.41.08-.16.04-.31-.02-.43-.06-.12-.55-1.33-.76-1.82-.2-.48-.4-.41-.55-.42-.14-.01-.31-.01-.47-.01-.16 0-.43.06-.65.31-.22.25-.86.84-.86 2.05 0 1.21.88 2.38 1 2.54.12.16 1.73 2.64 4.19 3.7.59.25 1.04.4 1.4.51.59.19 1.12.16 1.54.1.47-.07 1.45-.59 1.65-1.16.2-.57.2-1.06.14-1.16-.06-.1-.22-.16-.47-.28Z"/></svg>
+</a>
+
 <footer>
   <div class="wrap footer-grid">
-    <div>© <span id="year"></span> GestionMyPadel · Desarrollado por EBM Proyectos de Software · <a href="mailto:info@gestionmypadel.com" style="color:var(--ink-soft);">info@gestionmypadel.com</a></div>
+    <div>© <span id="year"></span> GestionMyPadel · Desarrollado por EBM Proyectos de Software · <a href="mailto:info@gestionmypadel.com" style="color:var(--ink-soft);">info@gestionmypadel.com</a> · <a href="https://wa.me/34698935800" style="color:var(--ink-soft);">698 935 800</a></div>
     <div>¿Ya eres cliente? <a href="club.html" style="color:var(--lime); text-decoration:none;">Accede a tu club →</a></div>
   </div>
 </footer>

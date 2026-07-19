@@ -138,6 +138,7 @@ const EBM_DATA = {
   nombreComercial: 'EBM Proyectos de Software',
   domicilio: 'Calle Rumanía, 38, Chozas de Canales (Toledo)',
   email: 'info@gestionmypadel.com',
+  telefono: '698 935 800',
 };
 const PLAN_LABELS = { reservas: 'Reservas', torneos_ligas: 'Torneos y Ligas', premium: 'Premium' };
 const PLAN_PRICES = { reservas: 39.99, torneos_ligas: 49.99, premium: 59.99 };
@@ -170,7 +171,7 @@ function contractParagraphs(v){
     { type: 'title', text: 'CONTRATO DE PRESTACIÓN DE SERVICIOS SAAS — GESTIONMYPADEL' },
 
     { type: 'heading', text: 'REUNIDOS' },
-    { type: 'body', text: `De una parte, D. ${EBM_DATA.nombre}, mayor de edad, con DNI ${EBM_DATA.dni}, actuando en nombre propio en su condición de empresario autónomo bajo el nombre comercial "${EBM_DATA.nombreComercial}", con domicilio en ${EBM_DATA.domicilio} y correo electrónico de contacto ${EBM_DATA.email}, en adelante "EL PRESTADOR".` },
+    { type: 'body', text: `De una parte, D. ${EBM_DATA.nombre}, mayor de edad, con DNI ${EBM_DATA.dni}, actuando en nombre propio en su condición de empresario autónomo bajo el nombre comercial "${EBM_DATA.nombreComercial}", con domicilio en ${EBM_DATA.domicilio}, correo electrónico de contacto ${EBM_DATA.email} y teléfono ${EBM_DATA.telefono}, en adelante "EL PRESTADOR".` },
     { type: 'body', text: `De otra parte, ${ph(v.nombre, 'nombre del cliente')}, con NIF/CIF ${ph(v.nif, 'NIF/CIF')}, con domicilio en ${ph(v.domicilio, 'domicilio')}, correo electrónico de contacto ${ph(v.email, 'email')} y teléfono ${ph(v.telefono, 'teléfono')}, en adelante "EL CLIENTE".` },
     { type: 'body', text: 'Ambas partes se reconocen mutuamente la capacidad legal necesaria para suscribir el presente contrato y, en su virtud,' },
 
